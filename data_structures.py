@@ -33,6 +33,14 @@ class Sample(ABC):
     def to_tensors(self) -> Data:
         pass
 
+    def __repr__(self):
+        return self.__str__()
+    def __str__(self):
+        strings = ["\n"]
+        for atom in self.state.atoms:
+            strings.append(atom.predicate.name + "(" + ",".join([term.name for term in atom.terms]) + ")")
+        return ", ".join(strings)
+
 
 class Graph(Sample, ABC):
     node_features: {object: [float]}
@@ -62,7 +70,11 @@ class Graph(Sample, ABC):
         for node, features in self.node_features.items():
             relations.append(R.get("node")(node.name)[features])
         for i, (node1, node2) in enumerate(self.edges):
-            relations.append(R.get("edge")(node1.name, node2.name)[self.edge_features[i]])
+            if len(self.edge_features[i]) == 1:
+                feats = self.edge_features[i][0]
+            else:
+                feats = self.edge_features[i]
+            relations.append(R.get("edge")(node1.name, node2.name)[feats])
         return relations
 
     def to_tensors(self) -> Data:
@@ -138,7 +150,7 @@ class Object2ObjectGraph(Graph):
             feature_vector = predicates_to_features(predicates, self.edge_feature_names())
             self.edge_features.append(feature_vector)
 
-# todo not objects but loading methods of the classes above
+
 # class Object2Object:
 #     pass
 #

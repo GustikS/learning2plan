@@ -114,19 +114,3 @@ class PlanningDataset:
 
     def get_samples(self, structure_class: object.__class__):
         return [structure_class(sample) for sample in self.states]
-
-    def get_relational_dataset(self, samples):
-        logic_dataset = Dataset()
-
-        for sample in samples:
-            structure = sample.to_relations()
-            logic_dataset.add_example(structure)
-            logic_dataset.add_query(logic_dataset.add_query(R.get("distance")[sample.state.label]))
-
-        return logic_dataset
-
-    def get_tensor_dataset(self, samples):
-        data_tensors = []
-        for sample in samples:
-            data_tensors.append(sample.to_tensors())
-        return data_tensors
