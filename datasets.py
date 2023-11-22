@@ -1,299 +1,7 @@
 import sys
-import os
-
-from collections import namedtuple
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
 
 import numpy as np
 
-# %%
-
-Object = namedtuple("Object", "name, type")
-Predicate = namedtuple("Predicate", "name, arity, types")
-Atom = namedtuple("Atom", "predicate, terms")
-
-
-class LogicLanguage:
-    objects: [Object]
-    predicates: [Predicate]
-
-    types: [str]
-    supertypes: {str: str}  # type -> supertype
-
-    def __init__(self, objects: [str], predicates: [str], types: [str] = []):
-        self.types = [obj_type[1] for obj_type in types]
-        self.supertypes = {obj_type[1]: self.types[int(obj_type[0])] for i, obj_type in enumerate(types)}
-
-        self.objects = [Object(obj_name, self.types[int(obj_type)]) for obj_type, obj_name in objects]
-
-        self.predicates = []
-        for pred in predicates:
-            pred_types = [self.types[int(arg_type)] for arg_type in pred[:-1]]
-            pred_name = pred[-1]
-            predicate = Predicate(pred_name, len(pred_types), tuple(pred_types))
-            self.predicates.append(predicate)
-
-    def parse_atom(self, int_line: str) -> Atom:
-        ints = [int(i) for i in int_line.split(" ")]
-        predicate = self.predicates[ints[0]]
-        constants = [self.objects[i] for i in ints[1:]]
-        atom = Atom(predicate, constants)
-        return atom
-
-
-class DomainLanguage(LogicLanguage):
-    arities: {int: [Predicate]}
-
-    proposition_types: [Predicate]  # zero arity predicates
-    object_types: [Predicate]  # unary relations and actual types
-    relation_types: [Predicate]  # all other relations with arity >=2 will be treated as relation types
-
-    types_for_object: {Object: [Predicate]}  # concrete object types and supertypes
-
-    def __init__(self, objects: [str], predicates: [str], types: [str] = []):
-        super().__init__(objects, predicates, types)
-
-        self.arities = {}
-        for predicate in self.predicates:
-            self.arities.setdefault(predicate.arity, []).append(predicate)
-
-        self.propositions = self.arities[0]
-        self.object_types = self.arities[1]
-        type_predicates = [Predicate(obj_type, 1, -1) for obj_type in self.types]
-        self.object_types.extend(type_predicates)
-
-        self.relation_types = []
-        for arity, predicate in self.arities.items():
-            if arity <= 1: continue
-            self.relation_types.append(predicate)
-
-        for obj in self.objects:
-            obj_types = []
-            self.recursive_types(obj.type, obj_types)
-            self.types_for_object[obj] = obj_types
-
-    def recursive_types(self, obj_type, types):
-        types.append(obj_type)
-        if obj_type == "object":
-            return
-        else:
-            self.recursive_types(self.supertypes[obj_type], types)
-
-
-# %%
-
-class PlanningState:
-    domain: DomainLanguage
-
-    label: int
-
-    atoms: [Atom]  # all atoms
-    propositions: [Atom]  # zero arity atoms
-    relations: [Atom]  # >=2 arity atoms
-
-    object_properties: {Object: [Predicate]}  # unary atoms
-
-    def __init__(self, domain: DomainLanguage, atoms: [Atom], label: int = -1):
-        self.domain = domain
-        self.label = label
-        self.atoms = atoms
-
-        self.propositions = []
-        self.relations = []
-        self.object_properties = {}
-
-        self.update(atoms)
-
-    def update(self, atoms: [Atom]):
-        for atom in atoms:
-            if atom.predicate.arity == 0:
-                self.propositions.append(atom)
-            elif atom.predicate.arity == 1:
-                self.object_properties.setdefault(atom.terms[0], []).append(atom.predicate)
-            elif atom.predicate.arity >= 2:
-                self.relations.append(atom)
-
-    @staticmethod
-    def parse(domain: DomainLanguage, label_line: str, facts_lines: [str]):
-        label = int(label_line)
-        facts: [Atom] = []
-        for fact_line in facts_lines:
-            fact = domain.parse_atom(fact_line)
-            facts.append(fact)
-        state = PlanningState(domain, facts, label)
-        return state
-
-
-# %%
-
-class Action:
-    name: str
-
-    domain: DomainLanguage
-
-    parameter_types: [str]  # term types
-
-    preconditions: [Atom]
-    add_effects: [Atom]
-    delete_effects: [Atom]
-
-    def __init__(self, name: str, domain: DomainLanguage, parameters: [str], preconditions: [str], add_effects: [str],
-                 delete_effects: [str]):
-        self.name = name
-        self.domain = domain
-        self.parameter_types = [self.domain.types[int(par.split(" ")[1])] for par in parameters]
-        self.preconditions = [self.parse_atom(precondition) for precondition in preconditions]
-        self.add_effects = [self.parse_atom(add_effect) for add_effect in add_effects]
-        self.delete_effects = [self.parse_atom(delete_effect) for delete_effect in delete_effects]
-
-    def parse_atom(self, int_line: str) -> Atom:
-        ints = [int(i) for i in int_line.split(" ")]
-        predicate = self.domain.predicates[ints[0]]
-        arguments = ["X" + str(arg) for arg in ints[1:]]  # arguments are just variable indices
-        atom = Atom(predicate, arguments)
-        return atom
-
-
-class PlanningDataset:
-    name: str
-
-    domain: DomainLanguage
-
-    static_facts: [Atom]
-    actions: [Action]
-    goal: [Atom]
-
-    states: [PlanningState]
-
-    def __init__(self, name, domain: DomainLanguage, static_facts: [Atom], actions: [Action], goal: [Atom],
-                 states: [PlanningState]):
-        self.name = name
-        self.domain = domain
-
-        self.static_facts = static_facts
-        self.actions = actions
-        self.goal = goal
-
-        self.states = states
-
-    def enrich_states(self):
-        for state in self.states:
-            state.update(self.static_facts)
-            # todo add also actions and goal somehow?
-
-
-# %%
-
-def get_dataset(file_path: str):
-    with open(file_path) as f:
-
-        all_lines = f.readlines()
-        lines = [l.strip() for l in all_lines]
-
-        types_start = lines.index("BEGIN_TYPES")
-        types_end = lines.index("END_TYPES")
-
-        actions_start = lines.index("BEGIN_ACTIONS")
-        actions_end = lines.index("END_ACTIONS")
-
-        obj_start = lines.index("BEGIN_OBJECTS")
-        obj_end = lines.index("END_OBJECTS")
-
-        pred_start = lines.index("BEGIN_PREDICATES")
-        pred_end = lines.index("END_PREDICATES")
-
-        fact_start = lines.index("BEGIN_STATIC_FACTS")
-        fact_end = lines.index("END_STATIC_FACTS")
-
-        goal_start = lines.index("BEGIN_GOAL")
-        goal_end = lines.index("END_GOAL")
-
-        states_start = lines.index("BEGIN_STATE_LIST")
-        states_end = lines.index("END_STATE_LIST")
-
-        # Process types
-        types: [str] = []
-        for i in range(types_start + 1, types_end):
-            types.append(lines[i].split(" ")[1:])
-
-        # Process objects
-        objects: [str] = []
-        for i in range(obj_start + 1, obj_end):
-            objects.append(lines[i].split(" ")[1:])
-
-        # Process predicates
-        predicates: [str] = []
-        for i in range(pred_start + 1, pred_end):
-            predicates.append(lines[i].split(" ")[1:])
-
-        domain = DomainLanguage(objects, predicates, types)
-
-        # Process facts
-        facts: [Atom] = []
-        for i in range(fact_start + 1, fact_end):
-            facts.append(domain.parse_atom(lines[i]))
-
-        # Process goal
-        goal: [Atom] = []
-        for i in range(goal_start + 1, goal_end):
-            goal.append(domain.parse_atom(lines[i]))
-
-        # Process actions
-        actions_starts = [i for i, x in enumerate(lines) if x == "BEGIN_ACTION"]
-        actions_ends = [i for i, x in enumerate(lines) if x == "END_ACTION"]
-        actions: [Action] = []
-        for action_start, action_end in zip(actions_starts, actions_ends):
-            action_name = lines[action_start + 1]
-            action_parameters = lines[lines.index("BEGIN_PARAMETERS", action_start) + 1: lines.index("END_PARAMETERS",
-                                                                                                     action_start)]
-            action_preconditions = lines[lines.index("BEGIN_PRECONDITION", action_start) + 1: lines.index(
-                "END_PRECONDITION", action_start)]
-            action_add_effects = lines[lines.index("BEGIN_ADD_EFFECT", action_start) + 1: lines.index(
-                "END_ADD_EFFECTN", action_start)]
-            action_del_effects = lines[lines.index("BEGIN_DEL_EFFECT", action_start) + 1: lines.index(
-                "END_DEL_EFFECT", action_start)]
-            actions.append(
-                Action(action_name, domain, action_parameters, action_preconditions, action_add_effects,
-                       action_del_effects))
-
-        # Process states
-        states_starts = [i for i, x in enumerate(lines) if x == "BEGIN_LABELED_STATE"]
-        states_ends = [i for i, x in enumerate(lines) if x == "END_LABELED_STATE"]
-        states: [PlanningState] = []
-        for state_start, state_end in zip(states_starts, states_ends):
-            label_line = lines[state_start + 1]
-            fact_lines = lines[state_start + 3: state_end - 1]
-            states.append(PlanningState.parse(domain, label_line, fact_lines))
-
-        # Create the dataset
-        dataset = PlanningDataset(f.name, domain, facts, actions, goal, states)
-        return dataset
-
-
-# %%
-
-# Getting multiple datasets from a folder
-def get_datasets(folder: str, limit=float("inf"), descending=False):
-    all_files = sorted(os.listdir(folder), reverse=descending)
-    all_datasets = []
-
-    for i, file in enumerate(all_files):
-        dataset = get_dataset(folder + "/" + file)
-        all_datasets.append(dataset)
-        if i == limit - 1:
-            break
-
-    return all_datasets
-
-
-# %%
-
-# folder = "C:/Users/gusta/Downloads/planning/geffner/data/data/supervised/optimal/train/blocks-clear/blocks-clear"
-folder = "C:/Users/gusta/Downloads/planning/rosta/blocks"
-
-datasets = get_datasets(folder, limit=1)  # let's just get the first/smallest dataset for now
-dataset = datasets[0]
 
 # %%
 
@@ -314,9 +22,6 @@ add_handler(sys.stdout, Level.FINE, Formatter.COLOR)
 # from IPython.display import display
 
 # %%
-
-label_name = 'distance'
-generic_name = 'relation'  # some generic name for n-ary relations
 
 
 class LogicDataset:
@@ -384,11 +89,13 @@ class LogicDataset:
 import torch
 from torch_geometric.data import Data
 
-#%%
+
+# %%
 class ObjectGraph(LogicDataset):
     logic_dataset: Dataset
 
-    tensor_dataset: Data
+    node_features: torch.tensor
+    edge_matrix: torch.tensor
 
     def __init__(self, planning_dataset: PlanningDataset):
         self.logic_dataset = Dataset()
@@ -398,15 +105,20 @@ class ObjectGraph(LogicDataset):
 
     def get_object_nodes(self, state: PlanningState) -> [Relation]:
         relations = []
+        feature_vectors = []
         for obj, properties in state.object_properties.items():
-            all_properties = self.original.domain.types_for_object[obj] + properties
-            feature_vector = self.predicates_to_features(all_properties, self.original.domain.object_types)
+            all_properties = self.original.domain.object_types[obj] + properties
+            feature_vector = self.predicates_to_features(all_properties, self.original.domain.unary_predicates)
+            feature_vector.append(feature_vector)
             relations.append(R.get("features")(obj.name)[feature_vector])
+
+        node_features = torch.tensor(feature_vectors, dtype=torch.float)
         return relations
 
     def get_attributed_edges(self, state: PlanningState) -> [Relation]:
         relations = []
         types: {[str]: {Predicate}} = {}  # remember constants and all the predicates they satisfy
+        edge_index = []
 
         for atom in state.relations:
             if atom.predicate.arity >= 2:  # split n-ary relations into multiple binary relations
@@ -417,8 +129,21 @@ class ObjectGraph(LogicDataset):
                         types.setdefault(tuple([const1, const2]), set()).add(atom.predicate)
 
         for constants, predicates in types.items():
-            feature_vector = self.predicates_to_features(predicates, self.original.domain.relation_types)
+            feature_vector = self.predicates_to_features(predicates, self.original.domain.nary_predicates)
             relations.append(R.get("edge")(constants)[feature_vector])
+
+            edge_index.append([state.domain.objects.index(constants[0]), state.domain.objects.index(constants[1])])
+
+        return relations
+
+    def get_tensor_data(self, state: PlanningState):
+
+        x = torch.tensor(np.zeros(shape=(len(state.domain.objects), len(self.original.domain.unary_predicates))),
+                         dtype=torch.float)
+
+        for obj, properties in state.object_properties.items():
+            all_properties = self.original.domain.object_types[obj] + properties
+            feature_vector = self.predicates_to_features(all_properties, self.original.domain.unary_predicates)
 
 
 class AtomGraph(ObjectGraph):
@@ -432,7 +157,7 @@ class AtomGraph(ObjectGraph):
     def get_atom_edges(self, state):
         relations = []
         for atom in state.relations:
-            feature_vector = self.predicates_to_features(atom.predicate, self.original.domain.relation_types)
+            feature_vector = self.predicates_to_features(atom.predicate, self.original.domain.nary_predicates)
             joint_object = "-".join(atom.terms)
             relations.append(R.get("atom")(joint_object)[feature_vector])  # atom nodes
             for i, obj in enumerate(atom.terms):
