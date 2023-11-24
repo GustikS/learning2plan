@@ -23,7 +23,7 @@ def get_relational_dataset(samples):
     for sample in samples:
         structure = sample.to_relations()
         logic_dataset.add_example(structure)
-        logic_dataset.add_query(R.get("distance")[sample.state.label])
+        logic_dataset.add_query(R.get(label_name)[sample.state.label])
 
     return logic_dataset
 

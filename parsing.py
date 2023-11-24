@@ -1,10 +1,5 @@
 import os
 
-import neuralogic
-import torch_geometric.data
-from neuralogic.dataset import Dataset
-from torch_geometric.data import DataLoader
-
 from planning import *
 from data_structures import *
 

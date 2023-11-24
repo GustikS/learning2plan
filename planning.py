@@ -5,6 +5,8 @@ from torch_geometric.data import DataLoader
 
 from logic import DomainLanguage, Atom, Object, Predicate
 
+goal_prefix = "goal_"
+
 
 class PlanningState:
     domain: DomainLanguage
@@ -91,8 +93,10 @@ class PlanningDataset:
 
     states: [PlanningState]
 
+    goal_predicates: {Predicate: Predicate}  # original -> goal version
+
     def __init__(self, name, domain: DomainLanguage, static_facts: [Atom], actions: [Action], goal: [Atom],
-                 states: [PlanningState]):
+                 states: [PlanningState], duplicate_goal_predicates=True):
         self.name = name
         self.domain = domain
 
@@ -102,15 +106,36 @@ class PlanningDataset:
 
         self.states = states
 
-    def enrich_states(self, add_types=True, add_facts=True, add_goal=False):
+        if duplicate_goal_predicates:
+            self.duplicate_goal_predicates()
+
+        self.domain.update()
+
+    def enrich_states(self, add_types=True, add_facts=True, add_goal=True):
         for state in self.states:
             if add_facts:
                 state.update(self.static_facts)
             if add_types:
                 for obj, properties in state.object_properties.items():
                     properties.extend(state.domain.object_types[obj])
-            # if add_goal:
-            # # todo
+            if add_goal:
+                state.update(self.goal)
 
     def get_samples(self, structure_class: object.__class__):
         return [structure_class(sample) for sample in self.states]
+
+    def duplicate_goal_predicates(self):
+        goal_atoms = []
+        self.goal_predicates = {}
+        for atom in self.goal:
+            if atom.predicate in self.goal_predicates:
+                goal_predicate = self.goal_predicates[atom.predicate]
+            else:
+                goal_predicate = Predicate(goal_prefix + atom.predicate.name, atom.predicate.arity,
+                                           atom.predicate.types, len(self.domain.predicates))
+                self.domain.predicates.append(goal_predicate)
+                self.goal_predicates[atom.predicate] = goal_predicate
+
+            goal_atom = Atom(goal_predicate, atom.terms)
+            goal_atoms.append(goal_atom)
+        self.goal = goal_atoms

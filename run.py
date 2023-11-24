@@ -1,13 +1,10 @@
 import torch
-import torch.nn.functional as F
 
-from LRNNmodels import GNN, get_predictions_LRNN, get_relational_dataset
+from modelsLRNN import GNN, get_predictions_LRNN, get_relational_dataset
 from data_structures import Object2ObjectGraph, Sample
-from Torchmodels import GCN, get_predictions_torch, reset_model_weights, get_tensor_dataset
+from modelsTorch import GCN, get_predictions_torch, reset_model_weights, get_tensor_dataset
 from parsing import get_datasets
 from planning import PlanningDataset, PlanningState
-
-from neuralogic.core import Template
 
 
 class DistanceHashing:
@@ -79,8 +76,8 @@ dataset.enrich_states()  # add info about types, static facts, ...
 
 samples = dataset.get_samples(Object2ObjectGraph)
 
-model = GCN(samples)  # pytorch
-# model = GNN(samples)    # LRNN
+# model = GCN(samples)  # pytorch
+model = GNN(samples)    # LRNN
 
 distance_hashing = DistanceHashing(model, samples)
 

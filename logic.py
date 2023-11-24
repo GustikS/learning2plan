@@ -47,8 +47,10 @@ class DomainLanguage(LogicLanguage):
 
     object_types: {Object: [Predicate]}  # concrete object types and supertypes for concrete objects
 
-    def __init__(self, objects: [str], predicates: [str], types: [str] = [], types_as_predicates=True):
+    def __init__(self, objects: [str], predicates: [str], types: [str] = []):
         super().__init__(objects, predicates, types)
+
+    def update(self, types_as_predicates=True):
 
         self.arities = {}
         for predicate in self.predicates:

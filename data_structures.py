@@ -36,10 +36,10 @@ class Sample(ABC):
     def __repr__(self):
         return self.__str__()
     def __str__(self):
-        strings = ["\n"]
+        strings = []
         for atom in self.state.atoms:
             strings.append(atom.predicate.name + "(" + ",".join([term.name for term in atom.terms]) + ")")
-        return ", ".join(strings)
+        return "\n" + ", ".join(strings)
 
 
 class Graph(Sample, ABC):
