@@ -72,10 +72,11 @@ dataset = datasets[0]
 
 # %%
 
-dataset.enrich_states()  # add info about types, static facts, ...
+dataset.enrich_states()  # add info about types, static facts, goal...
 
-samples = dataset.get_samples(Object2ObjectGraph)
+samples = dataset.get_samples(Object2ObjectGraph)   # choose the representation/encoding
 
+# choose a model
 # model = GCN(samples)  # pytorch
 model = GNN(samples)    # LRNN
 

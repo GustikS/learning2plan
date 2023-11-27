@@ -44,8 +44,8 @@ class GNN:
     def __init__(self, samples, dim=16):
         self.dim = dim
 
-        self.num_node_features = len(samples[0].node_feature_names())
-        self.num_edge_features = len(samples[0].edge_feature_names())
+        self.num_node_features = len(samples[0].object_feature_names())
+        self.num_edge_features = len(samples[0].relation_feature_names())
 
         self.template = Template()
 

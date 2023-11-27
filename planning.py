@@ -5,7 +5,7 @@ from torch_geometric.data import DataLoader
 
 from logic import DomainLanguage, Atom, Object, Predicate
 
-goal_prefix = "goal_"
+goal_relation_prefix = "goal_"
 
 
 class PlanningState:
@@ -131,7 +131,7 @@ class PlanningDataset:
             if atom.predicate in self.goal_predicates:
                 goal_predicate = self.goal_predicates[atom.predicate]
             else:
-                goal_predicate = Predicate(goal_prefix + atom.predicate.name, atom.predicate.arity,
+                goal_predicate = Predicate(goal_relation_prefix + atom.predicate.name, atom.predicate.arity,
                                            atom.predicate.types, len(self.domain.predicates))
                 self.domain.predicates.append(goal_predicate)
                 self.goal_predicates[atom.predicate] = goal_predicate
@@ -139,3 +139,10 @@ class PlanningDataset:
             goal_atom = Atom(goal_predicate, atom.terms)
             goal_atoms.append(goal_atom)
         self.goal = goal_atoms
+
+    def expand_goal_states(self):
+        """The version with adding a context object, i.e. keeping all the objects and relations the same,
+        but increasing arity of all the relations in all the states instead"""
+
+        # todo
+        pass

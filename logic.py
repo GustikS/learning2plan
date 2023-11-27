@@ -40,8 +40,9 @@ class DomainLanguage(LogicLanguage):
     """Class with a few useful extras over the pure LogicLanguage"""
 
     arities: {int: [Predicate]}
+    max_arity: int
 
-    propositions: [Predicate]  # zero arity predicates
+    nullary_predicates: [Predicate]  # zero arity predicates
     unary_predicates: [Predicate]  # unary relations and (optionally) types
     nary_predicates: [Predicate]  # all other relations with arity >=2 will be treated as relation (edge) types
 
@@ -53,10 +54,13 @@ class DomainLanguage(LogicLanguage):
     def update(self, types_as_predicates=True):
 
         self.arities = {}
+        self.max_arity = -1
         for predicate in self.predicates:
             self.arities.setdefault(predicate.arity, []).append(predicate)
+            if predicate.arity > self.max_arity:
+                self.max_arity = predicate.arity
 
-        self.propositions = self.arities[0]
+        self.nullary_predicates = self.arities[0]
         self.unary_predicates = self.arities[1]
 
         if types_as_predicates:

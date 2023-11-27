@@ -34,7 +34,7 @@ def reset_model_weights(layer):
 class GCN(torch.nn.Module):
     def __init__(self, tensor_dataset, hidden_channels=16):
         super(GCN, self).__init__()
-        num_node_features = len(tensor_dataset[0].node_feature_names())
+        num_node_features = len(tensor_dataset[0].object_feature_names())
 
         self.conv1 = GCNConv(num_node_features, hidden_channels)
         self.conv2 = GCNConv(hidden_channels, hidden_channels)
