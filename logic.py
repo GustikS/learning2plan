@@ -60,8 +60,8 @@ class DomainLanguage(LogicLanguage):
             if predicate.arity > self.max_arity:
                 self.max_arity = predicate.arity
 
-        self.nullary_predicates = self.arities[0]
-        self.unary_predicates = self.arities[1]
+        self.nullary_predicates = self.arities[0] if 0 in self.arities else []
+        self.unary_predicates = self.arities[1] if 1 in self.arities else []
 
         if types_as_predicates:
             pred_index = len(self.predicates) + 1  # +1 because of the root type -1

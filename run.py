@@ -2,11 +2,13 @@ import torch
 from torch_geometric.nn import GCNConv, SAGEConv, GINConv, RGCNConv, GATv2Conv
 
 from modelsLRNN import GNN, get_predictions_LRNN, get_relational_dataset
-from data_structures import Object2ObjectGraph, Object2ObjectMultiGraph, Object2ObjectHeteroGraph, \
-    Object2AtomGraph, Object2AtomBipartiteGraph
+from data_structures import Object2ObjectGraph, Object2ObjectMultiGraph, Object2AtomGraph, Object2AtomBipartiteGraph, \
+    Object2ObjectHeteroGraph
 from modelsTorch import get_predictions_torch, get_tensor_dataset, SimpleGNN, BipartiteGNN, GINConvWrap
 from parsing import get_datasets
 from planning import PlanningDataset, PlanningState
+
+import pprint
 
 
 class DistanceHashing:
@@ -20,6 +22,7 @@ class DistanceHashing:
         self.precision = precision
         self.repetitions = repetitions
 
+        self.samples = samples
         self.true_distances = {}
         for sample in samples:
             self.true_distances.setdefault(sample.state.label, []).append(sample)
@@ -57,33 +60,42 @@ class DistanceHashing:
         confusions = {}
         for distance, collisions in self.predicted_distances.items():
             if len(collisions) > 1:
-                for state1 in collisions:
-                    for state2 in collisions:
-                        if state1.label != state2.label:
-                            confusions.setdefault(state1, []).append(state2)
+                for sample1 in collisions:
+                    for sample2 in collisions:
+                        if sample1.state.label != sample2.state.label:
+                            confusions.setdefault(sample1, []).append(sample2)
         return confusions
 
+    def get_compression_rates(self):
+        class_compression = len(self.true_distances) / len(self.predicted_distances)
+        sample_compression = len(self.predicted_distances) / len(self.samples)
+        return sample_compression, class_compression
 
-# %%
 
-# folder = "C:/Users/gusta/Downloads/planning/geffner/data/data/supervised/optimal/train/blocks-clear/blocks-clear"
-folder = "C:/Users/gusta/Downloads/planning/rosta/blocks"
+# %% choose a dataset source
+# folder = "./datasets/rosta/blocks"
+folder = "./datasets/rosta/rovers"
+# folder = "./datasets/rosta/transport"
 
-datasets = get_datasets(folder, limit=1)  # let's just get the first/smallest dataset for now
+datasets = get_datasets(folder, limit=1, descending=False)  # smallest dataset
+# datasets = get_datasets(folder, limit=1, descending=True)   # largest dataset
+
 dataset = datasets[0]
 
-# %%
+# %% add info about types, static facts, goal...
 
-dataset.enrich_states()  # add info about types, static facts, goal...
+dataset.enrich_states()
 
-# 1) choose an encoding
+# %%  1) choose an encoding
+
 # samples = dataset.get_samples(Object2ObjectGraph)
 # samples = dataset.get_samples(Object2ObjectMultiGraph)
 # samples = dataset.get_samples(Object2AtomGraph)
 samples = dataset.get_samples(Object2AtomBipartiteGraph)
 # samples = dataset.get_samples(Object2ObjectHeteroGraph)
 
-# 2) choose a model
+# %% 2) choose a model
+
 # model = SimpleGNN(samples[0], model_class=GCNConv)
 # model = SimpleGNN(samples[0], model_class=SAGEConv)
 # model = SimpleGNN(samples[0], model_class=GINConvWrap)
@@ -97,4 +109,9 @@ model = BipartiteGNN(samples[0], model_class=GATv2Conv)
 distance_hashing = DistanceHashing(model, samples)
 
 collisions = distance_hashing.get_all_collisions()
-print(collisions)
+# collisions = distance_hashing.get_bad_collisions()
+
+print("Indistinguishable states detected:")
+pprint.pprint(collisions)
+print("Resulting [class] and [sample] compression rates:")
+print(distance_hashing.get_compression_rates())

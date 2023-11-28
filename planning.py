@@ -96,7 +96,7 @@ class PlanningDataset:
     goal_predicates: {Predicate: Predicate}  # original -> goal version
 
     def __init__(self, name, domain: DomainLanguage, static_facts: [Atom], actions: [Action], goal: [Atom],
-                 states: [PlanningState], duplicate_goal_predicates=True):
+                 duplicate_goal_predicates=True, remove_duplicate_states=True):
         self.name = name
         self.domain = domain
 
@@ -104,12 +104,22 @@ class PlanningDataset:
         self.actions = actions
         self.goal = goal
 
-        self.states = states
+        self.states = []
 
         if duplicate_goal_predicates:
             self.duplicate_goal_predicates()
 
+        if remove_duplicate_states:
+            duplicates = self.get_duplicate_states(remove=True)
+            if duplicates:
+                print("Duplicate states found:")
+                print(duplicates)
+
         self.domain.update()
+
+    def add_state(self, state: PlanningState):
+        # todo enrich the state right here when adding?
+        self.states.append(state)
 
     def enrich_states(self, add_types=True, add_facts=True, add_goal=True):
         for state in self.states:

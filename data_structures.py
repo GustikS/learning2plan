@@ -65,7 +65,7 @@ class Sample(ABC):
         strings = []
         for atom in self.state.atoms:
             strings.append(atom.predicate.name + "(" + ",".join([term.name for term in atom.terms]) + ")")
-        return "\n" + ", ".join(strings)
+        return ", ".join(strings)
 
 
 class Graph(Sample, ABC):

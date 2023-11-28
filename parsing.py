@@ -76,17 +76,18 @@ def get_dataset(file_path: str):
                 Action(action_name, domain, action_parameters, action_preconditions, action_add_effects,
                        action_del_effects))
 
+        dataset = PlanningDataset(f.name, domain, facts, actions, goal)
+
         # Process states
         states_starts = [i for i, x in enumerate(lines) if x == "BEGIN_LABELED_STATE"]
         states_ends = [i for i, x in enumerate(lines) if x == "END_LABELED_STATE"]
-        states: [PlanningState] = []
         for state_start, state_end in zip(states_starts, states_ends):
             label_line = lines[state_start + 1]
             fact_lines = lines[state_start + 3: state_end - 1]
-            states.append(PlanningState.parse(domain, label_line, fact_lines))
+            dataset.add_state(PlanningState.parse(domain, label_line, fact_lines))
 
         # Create the dataset
-        return PlanningDataset(f.name, domain, facts, actions, goal, states)
+        return dataset
 
 
 # %%
