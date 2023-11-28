@@ -122,7 +122,22 @@ class PlanningDataset:
                 state.update(self.goal)
 
     def get_samples(self, structure_class: object.__class__):
-        return [structure_class(sample) for sample in self.states]
+        samples = []
+        for state in self.states:
+            sample = structure_class(state)
+            sample.load_state(state)
+            samples.append(sample)
+        return samples
+
+    def get_duplicate_states(self, remove=True):
+        # not very efficient but clear
+        duplicates = []
+        for state in self.states:
+            if self.states.count(state) > 1:
+                duplicates.append(state)
+                if remove:
+                    self.states.remove(state)
+        return duplicates
 
     def duplicate_goal_predicates(self):
         goal_atoms = []

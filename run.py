@@ -1,8 +1,9 @@
 import torch
 
 from modelsLRNN import GNN, get_predictions_LRNN, get_relational_dataset
-from data_structures import Object2ObjectGraph, Sample
-from modelsTorch import GCN, get_predictions_torch, reset_model_weights, get_tensor_dataset
+from data_structures import Object2ObjectGraph, Sample, Object2ObjectMultiGraph, Object2ObjectHeteroGraph, \
+    Object2AtomGraph, Object2AtomBipartiteGraph
+from modelsTorch import GCN, get_predictions_torch, reset_model_weights, get_tensor_dataset, GIN, GATv2, SAGE
 from parsing import get_datasets
 from planning import PlanningDataset, PlanningState
 
@@ -74,11 +75,19 @@ dataset = datasets[0]
 
 dataset.enrich_states()  # add info about types, static facts, goal...
 
-samples = dataset.get_samples(Object2ObjectGraph)   # choose the representation/encoding
+# samples = dataset.get_samples(Object2ObjectGraph)   # choose the representation/encoding
+# samples = dataset.get_samples(Object2ObjectMultiGraph)
+# samples = dataset.get_samples(Object2AtomGraph)
+samples = dataset.get_samples(Object2AtomBipartiteGraph)
+# samples = dataset.get_samples(Object2ObjectHeteroGraph)
 
 # choose a model
 # model = GCN(samples)  # pytorch
-model = GNN(samples)    # LRNN
+# model = SAGE(samples)  # pytorch
+# model = GIN(samples)  # pytorch
+model = GATv2(samples)  # pytorch
+
+# model = GNN(samples)    # LRNN
 
 distance_hashing = DistanceHashing(model, samples)
 

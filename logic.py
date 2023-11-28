@@ -31,7 +31,7 @@ class LogicLanguage:
     def parse_atom(self, int_line: str) -> Atom:
         ints = [int(i) for i in int_line.split(" ")]
         predicate = self.predicates[ints[0]]
-        constants = [self.objects[i] for i in ints[1:]]
+        constants = tuple([self.objects[i] for i in ints[1:]])
         atom = Atom(predicate, constants)  # no index just yet
         return atom
 
