@@ -8,17 +8,17 @@ from logic import Atom, Predicate, Object
 from planning import PlanningState
 
 
-def one_hot(index, length) -> [int]:
-    vector = [0] * length
-    vector[index] = 1
+def one_hot(index, length) -> [float]:
+    vector = [0.0] * length
+    vector[index] = 1.0
     return vector
 
 
-def multi_hot(predicates: [Predicate], predicate_list: [Predicate]) -> [int]:
-    feature_vector = [0] * len(predicate_list)
+def multi_hot(predicates: [Predicate], predicate_list: [Predicate]) -> [float]:
+    feature_vector = [0.0] * len(predicate_list)
     for predicate in predicates:
         predicate_index = predicate_list.index(predicate)
-        feature_vector[predicate_index] = 1
+        feature_vector[predicate_index] = 1.0
     return feature_vector
 
 

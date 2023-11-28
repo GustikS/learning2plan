@@ -1,9 +1,10 @@
 import torch
+from torch_geometric.nn import GCNConv, SAGEConv, GINConv, RGCNConv, GATv2Conv
 
 from modelsLRNN import GNN, get_predictions_LRNN, get_relational_dataset
-from data_structures import Object2ObjectGraph, Sample, Object2ObjectMultiGraph, Object2ObjectHeteroGraph, \
+from data_structures import Object2ObjectGraph, Object2ObjectMultiGraph, Object2ObjectHeteroGraph, \
     Object2AtomGraph, Object2AtomBipartiteGraph
-from modelsTorch import GCN, get_predictions_torch, reset_model_weights, get_tensor_dataset, GIN, GATv2, SAGE
+from modelsTorch import get_predictions_torch, get_tensor_dataset, SimpleGNN, BipartiteGNN, GINConvWrap
 from parsing import get_datasets
 from planning import PlanningDataset, PlanningState
 
@@ -75,17 +76,21 @@ dataset = datasets[0]
 
 dataset.enrich_states()  # add info about types, static facts, goal...
 
-# samples = dataset.get_samples(Object2ObjectGraph)   # choose the representation/encoding
+# 1) choose an encoding
+# samples = dataset.get_samples(Object2ObjectGraph)
 # samples = dataset.get_samples(Object2ObjectMultiGraph)
 # samples = dataset.get_samples(Object2AtomGraph)
 samples = dataset.get_samples(Object2AtomBipartiteGraph)
 # samples = dataset.get_samples(Object2ObjectHeteroGraph)
 
-# choose a model
-# model = GCN(samples)  # pytorch
-# model = SAGE(samples)  # pytorch
-# model = GIN(samples)  # pytorch
-model = GATv2(samples)  # pytorch
+# 2) choose a model
+# model = SimpleGNN(samples[0], model_class=GCNConv)
+# model = SimpleGNN(samples[0], model_class=SAGEConv)
+# model = SimpleGNN(samples[0], model_class=GINConvWrap)
+# model = SimpleGNN(samples[0], model_class=GATv2Conv)
+
+# model = BipartiteGNN(samples[0], model_class=SAGEConv)
+model = BipartiteGNN(samples[0], model_class=GATv2Conv)
 
 # model = GNN(samples)    # LRNN
 
