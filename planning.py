@@ -22,8 +22,8 @@ class PlanningState:
     def __init__(self, domain: DomainLanguage, atoms: [Atom], label: int = -1):
         self.domain = domain
         self.label = label
-        self.atoms = atoms
 
+        self.atoms = []
         self.propositions = []
         self.relations = []
         self.object_properties = {}
@@ -31,6 +31,7 @@ class PlanningState:
         self.update(atoms)
 
     def update(self, atoms: [Atom]):
+        self.atoms.extend(atoms)
         for atom in atoms:
             if atom.predicate.arity == 0:
                 self.propositions.append(atom)
@@ -126,6 +127,7 @@ class PlanningDataset:
             if add_facts:
                 state.update(self.static_facts)
             if add_types:
+                # todo add types also as explicit unary atoms here?
                 for obj, properties in state.object_properties.items():
                     properties.extend(state.domain.object_types[obj])
             if add_goal:

@@ -1,5 +1,5 @@
 import torch
-from torch_geometric.nn import GCNConv, SAGEConv, GINConv, RGCNConv, GATv2Conv
+from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv
 
 from modelsLRNN import GNN, get_predictions_LRNN, get_relational_dataset
 from data_structures import Object2ObjectGraph, Object2ObjectMultiGraph, Object2AtomGraph, Object2AtomBipartiteGraph, \
@@ -77,34 +77,36 @@ class DistanceHashing:
 folder = "./datasets/rosta/rovers"
 # folder = "./datasets/rosta/transport"
 
-datasets = get_datasets(folder, limit=1, descending=False)  # smallest dataset
-# datasets = get_datasets(folder, limit=1, descending=True)   # largest dataset
+# datasets = get_datasets(folder, limit=1, descending=False)  # smallest dataset
+datasets = get_datasets(folder, limit=1, descending=True)   # largest dataset
 
 dataset = datasets[0]
 
 # %% add info about types, static facts, goal...
 
-dataset.enrich_states()
+dataset.enrich_states(add_types=True, add_facts=True, add_goal=True)
 
 # %%  1) choose an encoding
 
 # samples = dataset.get_samples(Object2ObjectGraph)
 # samples = dataset.get_samples(Object2ObjectMultiGraph)
-# samples = dataset.get_samples(Object2AtomGraph)
-samples = dataset.get_samples(Object2AtomBipartiteGraph)
+samples = dataset.get_samples(Object2AtomGraph)
+# samples = dataset.get_samples(Object2AtomBipartiteGraph)
 # samples = dataset.get_samples(Object2ObjectHeteroGraph)
 
 # %% 2) choose a model
 
-# model = SimpleGNN(samples[0], model_class=GCNConv)
-# model = SimpleGNN(samples[0], model_class=SAGEConv)
-# model = SimpleGNN(samples[0], model_class=GINConvWrap)
-# model = SimpleGNN(samples[0], model_class=GATv2Conv)
+model = SimpleGNN(samples[0], model_class=GCNConv, num_layers=3)
+# model = SimpleGNN(samples[0], model_class=SAGEConv, num_layers=3)
+# model = SimpleGNN(samples[0], model_class=GINConvWrap, num_layers=3)
+# model = SimpleGNN(samples[0], model_class=GATv2Conv, num_layers=3)
 
-# model = BipartiteGNN(samples[0], model_class=SAGEConv)
-model = BipartiteGNN(samples[0], model_class=GATv2Conv)
+# model = BipartiteGNN(samples[0], model_class=SAGEConv, num_layers=3)
+# model = BipartiteGNN(samples[0], model_class=GATv2Conv, num_layers=3)
 
 # model = GNN(samples)    # LRNN
+
+# %% ...and test the expressiveness of the setup
 
 distance_hashing = DistanceHashing(model, samples)
 
