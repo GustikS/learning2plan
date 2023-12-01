@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+from typing import Union
 
 import torch
 from torch_geometric.data import Data, HeteroData
@@ -147,20 +148,32 @@ class Bipartite(Graph, ABC):
 
 
 class Hetero(Graph, ABC):
-    relation_edges: {Predicate: [(Object, Object)]}
+    node_types: {str: Graph}  # Graph is a carrier of node features and indices for each node type (Object|Atom) here
+
+    relation_edges: {Predicate: [(Union[Object, Atom], Union[Object, Atom])]}
     relation_edge_features: {Predicate: [[float]]}
 
     def __init__(self, state: PlanningState):
+        self.node_types = {}
         self.relation_edges = {}
         self.relation_edge_features = {}
         super().__init__(state)
 
     def to_tensors(self) -> HeteroData:
         data: HeteroData = HeteroData()
+
+        for node_type, graph in self.node_types.items():
+            data[node_type].x = torch.tensor(list(graph.node_features.values()), dtype=torch.float)
+
         for relation, edges in self.relation_edges.items():
-            # edge_index = [(self.object2index[i], self.object2index[j]) for i, j in edges]
-            # edge_index_tensor = torch.tensor(edge_index, dtype=torch.long).reshape(2, len(edge_index))  # COO format
-            data[edges[0][0].__class__.__name__, relation.name, edges[0][1].__class__.__name__].edge_index = edges
+            type1 = edges[0][0].__class__.__name__
+            type2 = edges[0][1].__class__.__name__
+            edge_index = [(self.node_types[type1].node2index[i], self.node_types[type2].node2index[j])
+                          for i, j in edges]
+            edge_index_tensor = torch.tensor(edge_index, dtype=torch.long).transpose(0, 1)
+            data[type1, relation.name, type2].edge_index = edge_index_tensor
+
+            data[type1, relation.name, type2].edge_attr = torch.tensor(self.relation_edge_features[relation])
             # todo check edge creation
         return data
 
@@ -236,6 +249,10 @@ class Object2ObjectMultiGraph(Object2ObjectGraph, Multi):
 class Object2ObjectHeteroGraph(Object2ObjectGraph, Hetero):
     """Same as Object2ObjectGraph but each relation is a separate edge type with separate learning parameters"""
 
+    def load_nodes(self, state: PlanningState, include_types=True):
+        super().load_nodes(state)
+        self.node_types["Object"] = self
+
     def load_edges(self, state: PlanningState, symmetric_edges=True):
         edge_types = self.get_edge_types(state, symmetric_edges)
 
@@ -243,7 +260,7 @@ class Object2ObjectHeteroGraph(Object2ObjectGraph, Hetero):
             for predicate in predicates:
                 self.relation_edges.setdefault(predicate, []).append((constants[0], constants[1]))
                 # no edge features here - each relation is a separate dimension already
-                self.relation_edge_features.setdefault(predicate, []).append(1.0)
+                self.relation_edge_features.setdefault(predicate, []).append([1.0])
 
 
 class Object2AtomGraph(Graph):
@@ -310,7 +327,7 @@ class Object2AtomMultiGraph(Object2AtomBipartiteGraph, Multi):
 
 
 class Object2AtomHeteroGraph(Object2AtomBipartiteGraph, Hetero):
-    """Same as Object2ObjectGraph but each relation is a separate edge type with separate learning parameters"""
+    """Same as Object2AtomGraph but each relation is a separate edge type with separate learning parameters"""
 
     def load_edges(self, state: PlanningState, symmetric_edges=True):
         for i, atom in enumerate(state.atoms):

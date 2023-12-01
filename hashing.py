@@ -39,7 +39,7 @@ class DistanceHashing:
                 rep_pred.append(get_predictions_torch(model, tensor_dataset))
         else:
             logic_dataset = get_relational_dataset(samples)
-            built_dataset = model.model.build_dataset(logic_dataset)
+            built_dataset = model.base_model.build_dataset(logic_dataset)
             for rep in range(self.repetitions):
                 rep_pred.append(get_predictions_LRNN(model, built_dataset))
 

@@ -1,11 +1,11 @@
 import pprint
 
-from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv
+from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, HGTConv
 
 from data_structures import Object2ObjectGraph, Object2ObjectMultiGraph, Object2AtomGraph, Object2AtomBipartiteGraph, \
     Object2ObjectHeteroGraph
 from hashing import DistanceHashing
-from modelsTorch import SimpleGNN, BipartiteGNN, GINConvWrap
+from modelsTorch import SimpleGNN, BipartiteGNN, GINConvWrap, HeteroGNN
 from parsing import get_datasets
 
 # %% choose a dataset source
@@ -25,20 +25,25 @@ dataset.enrich_states(add_types=True, add_facts=True, add_goal=True)
 # %%  1) choose an encoding
 
 # samples = dataset.get_samples(Object2ObjectGraph)
-# samples = dataset.get_samples(Object2ObjectMultiGraph)
-samples = dataset.get_samples(Object2AtomGraph)
+samples = dataset.get_samples(Object2ObjectMultiGraph)
+# samples = dataset.get_samples(Object2AtomGraph)
 # samples = dataset.get_samples(Object2AtomBipartiteGraph)
 # samples = dataset.get_samples(Object2ObjectHeteroGraph)
 
 # %% 2) choose a model
 
-model = SimpleGNN(samples[0], model_class=GCNConv, num_layers=3)
+# model = SimpleGNN(samples[0], model_class=GCNConv, num_layers=3)
 # model = SimpleGNN(samples[0], model_class=SAGEConv, num_layers=3)
 # model = SimpleGNN(samples[0], model_class=GINConvWrap, num_layers=3)
 # model = SimpleGNN(samples[0], model_class=GATv2Conv, num_layers=3)
+model = SimpleGNN(samples[0], model_class=RGCNConv, num_layers=3)
+
 
 # model = BipartiteGNN(samples[0], model_class=SAGEConv, num_layers=3)
 # model = BipartiteGNN(samples[0], model_class=GATv2Conv, num_layers=3)
+
+# model = HeteroGNN(samples[0], model_class=SAGEConv, num_layers=3) # not working yet
+# model = HeteroGNN(samples[0], model_class=HGTConv, num_layers=3)
 
 # model = GNN(samples)    # LRNN
 
