@@ -1,4 +1,7 @@
+numpy~=1.22.2
 torch~=2.0.1
-torch-geometric~=2.3.1
 
 neuralogic~=0.7.9
+
+networkx~=3.1
+matplotlib~=3.5.1

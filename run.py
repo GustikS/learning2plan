@@ -30,13 +30,15 @@ samples = dataset.get_samples(Object2ObjectMultiGraph)
 # samples = dataset.get_samples(Object2AtomBipartiteGraph)
 # samples = dataset.get_samples(Object2ObjectHeteroGraph)
 
+samples[0].draw()
+
 # %% 2) choose a model
 
-# model = SimpleGNN(samples[0], model_class=GCNConv, num_layers=3)
+model = SimpleGNN(samples[0], model_class=GCNConv, num_layers=3)
 # model = SimpleGNN(samples[0], model_class=SAGEConv, num_layers=3)
 # model = SimpleGNN(samples[0], model_class=GINConvWrap, num_layers=3)
 # model = SimpleGNN(samples[0], model_class=GATv2Conv, num_layers=3)
-model = SimpleGNN(samples[0], model_class=RGCNConv, num_layers=3)
+# model = SimpleGNN(samples[0], model_class=RGCNConv, num_layers=3)
 
 
 # model = BipartiteGNN(samples[0], model_class=SAGEConv, num_layers=3)

@@ -2,7 +2,10 @@ from abc import abstractmethod, ABC
 from typing import Union
 
 import torch
+from matplotlib import pyplot as plt
 from torch_geometric.data import Data, HeteroData
+from torch_geometric.utils import to_networkx
+import networkx as nx
 from neuralogic.core import Relation, R
 
 from logic import Atom, Predicate, Object
@@ -33,7 +36,7 @@ def multi_hot_object(predicates: [Predicate], predicate_list: [Predicate]) -> [f
 class Sample(ABC):
     state: PlanningState
 
-    node2index: {Object | Atom: int}
+    node2index: {Union[Object, Atom]: int}
 
     def __init__(self, state: PlanningState):
         self.state = state
@@ -70,19 +73,16 @@ class Sample(ABC):
 
 
 class Graph(Sample, ABC):
-    node_features: {Object | Atom: [float]}
+    node_features: {Union[Object, Atom]: [float]}
 
-    edges: [(Object | Atom, Object | Atom)]  # note that duplicate edges are allowed here!
+    edges: [(Union[Object, Atom], Union[Object, Atom])]  # note that duplicate edges are allowed here!
     edge_features: [[float]]
 
-    edge_type_format: str
-
-    def __init__(self, state: PlanningState, edge_type_format="index"):
+    def __init__(self, state: PlanningState):
         super().__init__(state)
         self.node_features = {}
         self.edges = []
         self.edge_features = []
-        self.edge_type_format = edge_type_format
 
     def load_state(self, state: PlanningState):
         self.load_nodes(state)
@@ -122,6 +122,11 @@ class Graph(Sample, ABC):
         # data_tensor.is_directed()
 
         return data_tensor
+
+    def draw(self):
+        g = to_networkx(self.to_tensors())
+        nx.draw(g, with_labels=True)
+        plt.show()
 
 
 class Bipartite(Graph, ABC):
@@ -182,6 +187,12 @@ class Hetero(Graph, ABC):
 
 class Multi(Graph, ABC):
     """This is natively implemented by allowing duplicate/parallel edges in the Graph class"""
+
+    edge_type_format: str
+
+    def __init__(self, state: PlanningState, edge_type_format="weight"):
+        super().__init__(state)
+        self.edge_type_format = edge_type_format
 
     def encode_edge_type(self, index, max_index):
         """Encoding a position/type of something - either scalar, index, or one-hot"""
