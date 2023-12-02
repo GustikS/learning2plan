@@ -42,16 +42,18 @@ def reset_model_weights(layer):
 
 def model_call(conv, x, edge_index, edge_attr):
     if isinstance(conv, SAGEConv) or isinstance(conv, GINConvWrap):
-        x = conv(x=x, edge_index=edge_index)
+        x = conv(x=x, edge_index=edge_index)  # no edge feature support
     elif isinstance(conv, GCNConv):
         if len(edge_attr[0]) == 1:
             x = conv(x=x, edge_index=edge_index, edge_weight=edge_attr)
         else:  # only scalar edge weights are supported in GCN
-            x = conv(x=x, edge_index=edge_index)
+            edge_type_index = torch.argmax(edge_attr, dim=1)
+            x = conv(x=x, edge_index=edge_index, edge_weight=edge_type_index.float())
     elif isinstance(conv, RGCNConv):
-        edge_type_index = torch.argmax(edge_attr, dim=1)  # RGCN need to have the edge types as index not one-hot
-        x = conv(x=x, edge_index=edge_index, edge_type=edge_type_index)
-    else:
+        if len(edge_attr[0]) != 1:  # RGCN need to have the edge types as index not one-hot
+            edge_attr = torch.argmax(edge_attr, dim=1)
+        x = conv(x=x, edge_index=edge_index, edge_type=edge_attr)
+    else:   # general support for edge features
         x = conv(x=x, edge_index=edge_index, edge_attr=edge_attr)
     return x
 
@@ -168,7 +170,7 @@ class HeteroGNN(torch.nn.Module):
         else:
             self.convs = torch.nn.ModuleList()
             self.convs.append(model_class(-1, hidden_channels, sample.to_tensors().metadata()))
-            for _ in range(num_layers-1):
+            for _ in range(num_layers - 1):
                 conv = model_class(hidden_channels, hidden_channels, sample.to_tensors().metadata())
                 self.convs.append(conv)
 

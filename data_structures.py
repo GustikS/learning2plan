@@ -74,15 +74,20 @@ class Sample(ABC):
 
 class Graph(Sample, ABC):
     node_features: {Union[Object, Atom]: [float]}
+    node_features_symbolic: {Union[Object, Atom]: [str]}
 
     edges: [(Union[Object, Atom], Union[Object, Atom])]  # note that duplicate edges are allowed here!
     edge_features: [[float]]
+    edge_features_symbolic: {(Union[Object, Atom], Union[Object, Atom]): [str]}
 
     def __init__(self, state: PlanningState):
         super().__init__(state)
         self.node_features = {}
         self.edges = []
         self.edge_features = []
+
+        self.node_features_symbolic = {}
+        self.edge_features_symbolic = {}
 
     def load_state(self, state: PlanningState):
         self.load_nodes(state)
@@ -123,10 +128,38 @@ class Graph(Sample, ABC):
 
         return data_tensor
 
-    def draw(self):
-        g = to_networkx(self.to_tensors())
-        nx.draw(g, with_labels=True)
+    def draw(self, symbolic=True, pos=None):
+        data = self.to_tensors()
+
+        g = to_networkx(data, node_attrs=["x"], edge_attrs=["edge_attr"], graph_attrs=["y"])
+        if not pos:
+            pos = nx.spring_layout(g)
+
+        if symbolic:
+            node_names = {index: node.name for node, index in self.node2index.items()}
+            node_attr = {self.node2index[node]: features for node, features in self.node_features_symbolic.items()}
+            edge_attr = {(self.node2index[node1], self.node2index[node2]): features for (node1, node2), features in
+                         self.edge_features_symbolic.items()}
+
+            nx.draw_networkx(g, pos, with_labels=True, labels=node_names)
+            nx.draw_networkx_edge_labels(g, pos, edge_labels=edge_attr, font_size=6)
+
+            pos_attrs = {}
+            for node, coords in pos.items():
+                pos_attrs[node] = (coords[0], coords[1] + 0.08)
+            nx.draw_networkx_labels(g, pos_attrs, labels=node_attr, font_size=6)
+        else:
+            node_attr = {self.node2index[node]: features for node, features in self.node_features.items()}
+
+            nx.draw_networkx(g, pos, with_labels=True)
+            nx.draw_networkx_edge_labels(g, pos, edge_labels=nx.get_edge_attributes(g, 'edge_attr'), font_size=6)
+
+            pos_attrs = {}
+            for node, coords in pos.items():
+                pos_attrs[node] = (coords[0], coords[1] + 0.08)
+            nx.draw_networkx_labels(g, pos_attrs, labels=node_attr, font_size=6)
         plt.show()
+        return pos
 
 
 class Bipartite(Graph, ABC):
@@ -226,6 +259,8 @@ class Object2ObjectGraph(Graph):
             feature_vector = multi_hot_object(properties, self.object_feature_names())
             self.node_features[obj] = feature_vector
 
+            self.node_features_symbolic[obj] = [prop.name for prop in properties]
+
     # todo nullary predicates are missing here, how to include them?
     def load_edges(self, state: PlanningState, symmetric_edges=True):
         """Collecting all relation types into one multi-hot edge feature vector"""
@@ -247,6 +282,10 @@ class Object2ObjectGraph(Graph):
                         edge_types.setdefault(tuple([const1, const2]), set()).add(atom.predicate)
                         if symmetric_edges:
                             edge_types.setdefault(tuple([const2, const1]), set()).add(atom.predicate)
+
+        for constants, predicates in edge_types.items():
+            self.edge_features_symbolic[(constants[0], constants[1])] = [pred.name for pred in predicates]
+
         return edge_types
 
 

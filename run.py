@@ -9,12 +9,12 @@ from modelsTorch import SimpleGNN, BipartiteGNN, GINConvWrap, HeteroGNN
 from parsing import get_datasets
 
 # %% choose a dataset source
-# folder = "./datasets/rosta/blocks"
-folder = "./datasets/rosta/rovers"
+folder = "./datasets/rosta/blocks"
+# folder = "./datasets/rosta/rovers"
 # folder = "./datasets/rosta/transport"
 
-# datasets = get_datasets(folder, limit=1, descending=False)  # smallest dataset
-datasets = get_datasets(folder, limit=1, descending=True)  # largest dataset
+datasets = get_datasets(folder, limit=1, descending=False)  # smallest dataset
+# datasets = get_datasets(folder, limit=1, descending=True)  # largest dataset
 
 dataset = datasets[0]
 
@@ -24,13 +24,14 @@ dataset.enrich_states(add_types=True, add_facts=True, add_goal=True)
 
 # %%  1) choose an encoding
 
-# samples = dataset.get_samples(Object2ObjectGraph)
-samples = dataset.get_samples(Object2ObjectMultiGraph)
+samples = dataset.get_samples(Object2ObjectGraph)
+# samples = dataset.get_samples(Object2ObjectMultiGraph)
 # samples = dataset.get_samples(Object2AtomGraph)
 # samples = dataset.get_samples(Object2AtomBipartiteGraph)
 # samples = dataset.get_samples(Object2ObjectHeteroGraph)
 
-samples[0].draw()
+layout = samples[0].draw(symbolic=True)
+samples[0].draw(symbolic=False, pos=layout)
 
 # %% 2) choose a model
 
