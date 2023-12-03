@@ -1,14 +1,17 @@
 import pprint
 
-from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, HGTConv
+from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, HGTConv, HANConv, FiLMConv, RGATConv, GINEConv
 
 from data_structures import Object2ObjectGraph, Object2ObjectMultiGraph, Object2AtomGraph, Object2AtomBipartiteGraph, \
-    Object2ObjectHeteroGraph
+    Object2ObjectHeteroGraph, Object2AtomMultiGraph, Object2AtomBipartiteMultiGraph, Object2AtomHeteroGraph, \
+    Atom2AtomGraph, Atom2AtomMultiGraph, Atom2AtomHeteroGraph
+
 from hashing import DistanceHashing
-from modelsTorch import SimpleGNN, BipartiteGNN, GINConvWrap, HeteroGNN
+from modelsTorch import PlainGNN, BipartiteGNN, GINConvWrap, HeteroGNN, get_compatible_model, GINEConvWrap
 from parsing import get_datasets
 
 # %% choose a dataset source
+
 folder = "./datasets/rosta/blocks"
 # folder = "./datasets/rosta/rovers"
 # folder = "./datasets/rosta/transport"
@@ -24,31 +27,41 @@ dataset.enrich_states(add_types=True, add_facts=True, add_goal=True)
 
 # %%  1) choose an encoding
 
-samples = dataset.get_samples(Object2ObjectGraph)
-# samples = dataset.get_samples(Object2ObjectMultiGraph)
-# samples = dataset.get_samples(Object2AtomGraph)
-# samples = dataset.get_samples(Object2AtomBipartiteGraph)
-# samples = dataset.get_samples(Object2ObjectHeteroGraph)
+# encoding = Object2ObjectGraph
+# encoding = Object2ObjectMultiGraph
+# encoding = Object2ObjectHeteroGraph
+# encoding = Object2AtomGraph
+# encoding = Object2AtomMultiGraph
+# encoding = Object2AtomBipartiteGraph
+# encoding = Object2AtomBipartiteMultiGraph
+# encoding = Object2AtomHeteroGraph
+# encoding = Atom2AtomGraph
+# encoding = Atom2AtomMultiGraph
+encoding = Atom2AtomHeteroGraph
 
-layout = samples[0].draw(symbolic=True)
-samples[0].draw(symbolic=False, pos=layout)
+samples = dataset.get_samples(encoding)
+
+# %% optional sample drawing for debugging purposes
+
+# layout = samples[0].draw(symbolic=True)
+# samples[0].draw(symbolic=False, pos=layout)
 
 # %% 2) choose a model
 
-model = SimpleGNN(samples[0], model_class=GCNConv, num_layers=3)
-# model = SimpleGNN(samples[0], model_class=SAGEConv, num_layers=3)
-# model = SimpleGNN(samples[0], model_class=GINConvWrap, num_layers=3)
-# model = SimpleGNN(samples[0], model_class=GATv2Conv, num_layers=3)
-# model = SimpleGNN(samples[0], model_class=RGCNConv, num_layers=3)
+# gnn_type = GCNConv
+# gnn_type = SAGEConv
+# gnn_type = GINConvWrap
+gnn_type = GINEConvWrap
+# gnn_type = GATv2Conv
 
+# gnn_type = RGCNConv
+# gnn_type = FiLMConv
+# gnn_type = RGATConv
 
-# model = BipartiteGNN(samples[0], model_class=SAGEConv, num_layers=3)
-# model = BipartiteGNN(samples[0], model_class=GATv2Conv, num_layers=3)
+# gnn_type = HGTConv
+# gnn_type = HANConv
 
-# model = HeteroGNN(samples[0], model_class=SAGEConv, num_layers=3) # not working yet
-# model = HeteroGNN(samples[0], model_class=HGTConv, num_layers=3)
-
-# model = GNN(samples)    # LRNN
+model = get_compatible_model(samples, model_class=gnn_type, num_layers=3, hidden_channels=8, update_samples=True)
 
 # %% ...and test the expressiveness of the setup
 

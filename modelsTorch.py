@@ -1,3 +1,4 @@
+import warnings
 from typing import List, Tuple
 
 import torch
@@ -6,12 +7,15 @@ from torch.nn import Linear, ReLU, Sequential
 from torch_geometric.data import Data, HeteroData
 from torch_geometric.graphgym.models.layer import LayerConfig
 from torch_geometric.nn import GCNConv, SAGEConv, GINConv, global_mean_pool, RGCNConv, GATv2Conv, global_add_pool, \
-    MessagePassing, to_hetero, HGTConv
+    MessagePassing, to_hetero, HGTConv, HANConv, FiLMConv, RGATConv, GINEConv
 from torch_geometric.nn import Linear as Linear_pyg
 
-from data_structures import Bipartite, Hetero
+from data_structures import Bipartite, Hetero, Graph
 
 torch.manual_seed(1)
+
+multirelational_gnn_list = [RGCNConv, FiLMConv, RGATConv]
+hetero_gnn_list = [HGTConv, HANConv]
 
 
 def get_tensor_dataset(samples):
@@ -42,23 +46,66 @@ def reset_model_weights(layer):
 
 def model_call(conv, x, edge_index, edge_attr):
     if isinstance(conv, SAGEConv) or isinstance(conv, GINConvWrap):
+        warnings.warn("Skipping edge features due to no support in the selected GNN model")
         x = conv(x=x, edge_index=edge_index)  # no edge feature support
     elif isinstance(conv, GCNConv):
-        if len(edge_attr[0]) == 1:
+        if edge_attr[0].dim() == 0 or edge_attr[0][0].dim() == 0:  # only scalar edge weights are supported in GCN
             x = conv(x=x, edge_index=edge_index, edge_weight=edge_attr)
-        else:  # only scalar edge weights are supported in GCN
-            edge_type_index = torch.argmax(edge_attr, dim=1)
-            x = conv(x=x, edge_index=edge_index, edge_weight=edge_type_index.float())
-    elif isinstance(conv, RGCNConv):
-        if len(edge_attr[0]) != 1:  # RGCN need to have the edge types as index not one-hot
-            edge_attr = torch.argmax(edge_attr, dim=1)
+        else:
+            warnings.warn("Skipping edge features with GCN")
+            x = conv(x=x, edge_index=edge_index)
+    elif conv.__class__ in multirelational_gnn_list:
+        if edge_attr[0].dim() != 0:  # these need to have the edge types as index not one-hot
+            raise Exception("Calling multi-relational model (e.g. RGCN) with wrong edge feature (type-index) encoding")
         x = conv(x=x, edge_index=edge_index, edge_type=edge_attr)
-    else:   # general support for edge features
+    else:  # general support for edge features
         x = conv(x=x, edge_index=edge_index, edge_attr=edge_attr)
     return x
 
 
-class SimpleGNN(torch.nn.Module):
+def get_compatible_model(samples, model_class=SAGEConv, hidden_channels=8, num_layers=3, update_samples=True):
+    first_sample = samples[0]
+    if model_class in hetero_gnn_list and not isinstance(first_sample, Hetero):
+        raise Exception("Calling a hetero GNN model on a non hetero encoding!")
+
+    if isinstance(first_sample, Hetero):
+        model = HeteroGNN(first_sample, model_class, hidden_channels, num_layers)
+        if update_samples:
+            for sample in samples:
+                for edge_features in list(sample.relation_edge_features.values()):
+                    update_edge_features(edge_features, model_class)
+    elif isinstance(first_sample, Bipartite):
+        model = BipartiteGNN(first_sample, model_class, hidden_channels, num_layers)
+        if update_samples:
+            for sample in samples: update_edge_features(sample.graph_source.edge_features, model_class)
+            for sample in samples: update_edge_features(sample.graph_target.edge_features, model_class)
+    else:  # plain graph
+        model = PlainGNN(first_sample, model_class, hidden_channels, num_layers)
+        if update_samples:
+            for sample in samples: update_edge_features(sample.edge_features, model_class)
+
+    return model
+
+
+def update_edge_features(edge_features_list, model_class):
+    if model_class == GCNConv or model_class in multirelational_gnn_list:  # repairing edge features for compatibility
+        if isinstance(edge_features_list[0], List) and len(edge_features_list[0]) > 1:  # only scalars supported here
+            for i, edge_features in enumerate(edge_features_list):
+                non_zero_idx = [i for i, e in enumerate(edge_features) if e > 0.]
+                if len(non_zero_idx) > 1:
+                    raise Exception("Calling (R)GCN on a multi-hot edge feature vector (only scalars supported)")
+                elif edge_features[non_zero_idx[0]] != 1.0:
+                    raise Exception("Calling (R)GCN on a one-hot real value edge feature vector - ambiguous")
+                else:  # standard one-hot back to index
+                    # edge_features.clear()
+                    if model_class == GCNConv:
+                        # edge_features.append(float(non_zero_idx[0] + 1))
+                        edge_features_list[i] = float(non_zero_idx[0] + 1)
+                    else:
+                        edge_features_list[i] = non_zero_idx[0]
+
+
+class PlainGNN(torch.nn.Module):
     def __init__(self, sample=None, model_class=GCNConv, hidden_channels=16, num_layers=3):
         super().__init__()
 
@@ -101,6 +148,9 @@ class BipartiteGNN(torch.nn.Module):
     def __init__(self, sample, model_class=SAGEConv, hidden_channels=16, num_layers=3):
         super().__init__()
 
+        if model_class == GCNConv:
+            raise Exception("GCN does not support Bipartite(Hetero) graphs!")
+
         node_features_source = len(next(iter(sample.graph_source.node_features.items()))[1])
         node_features_target = len(next(iter(sample.graph_target.node_features.items()))[1])
         num_edge_features_s2t = len(sample.graph_source.edge_features[0])
@@ -109,18 +159,20 @@ class BipartiteGNN(torch.nn.Module):
         self.convs_s2t = torch.nn.ModuleList()
         self.convs_s2t.append(
             model_class((node_features_source, node_features_target), hidden_channels,
-                        edge_dim=num_edge_features_s2t, add_self_loops=False))
+                        edge_dim=num_edge_features_s2t, num_relations=num_edge_features_s2t, add_self_loops=False))
         for i in range(num_layers - 1):
             self.convs_s2t.append(
-                model_class(hidden_channels, hidden_channels, edge_dim=num_edge_features_s2t, add_self_loops=False))
+                model_class(hidden_channels, hidden_channels, edge_dim=num_edge_features_s2t,
+                            num_relations=num_edge_features_s2t, add_self_loops=False))
 
         self.convs_t2s = torch.nn.ModuleList()
         self.convs_t2s.append(
             model_class((node_features_target, node_features_source), hidden_channels,
-                        edge_dim=num_edge_features_t2s, add_self_loops=False))
+                        edge_dim=num_edge_features_t2s, num_relations=num_edge_features_t2s, add_self_loops=False))
         for i in range(num_layers - 1):
             self.convs_t2s.append(
-                model_class(hidden_channels, hidden_channels, edge_dim=num_edge_features_t2s, add_self_loops=False))
+                model_class(hidden_channels, hidden_channels, edge_dim=num_edge_features_t2s,
+                            num_relations=num_edge_features_t2s, add_self_loops=False))
 
         self.lin = Linear(hidden_channels, 1)
 
@@ -154,18 +206,23 @@ class BipartiteGNN(torch.nn.Module):
 
 
 class HeteroGNN(torch.nn.Module):
-    base_model: SimpleGNN
+    base_model: PlainGNN
     conv_class: object
 
-    def __init__(self, sample, model_class=RGCNConv, hidden_channels=16, num_layers=3):
+    def __init__(self, sample, model_class=HGTConv, hidden_channels=16, num_layers=3):
         super().__init__()
+
         if not isinstance(sample, Hetero):
             raise Exception("HeteroData representation expected for HeteroGNN")
 
         self.conv_class = model_class
         self.base_model = None
-        if model_class not in [HGTConv]:
-            simpleGNN = SimpleGNN(None, model_class=model_class, hidden_channels=16, num_layers=3)
+
+        supported = hetero_gnn_list
+        if model_class not in supported:
+            raise Exception(f'Only {[sup.__name__ for sup in supported]} models are supported for HeteroGraphs')
+
+            simpleGNN = PlainGNN(None, model_class=model_class, hidden_channels=16, num_layers=3)
             self.base_model = to_hetero(simpleGNN, sample.to_tensors().metadata(), aggr='sum')
         else:
             self.convs = torch.nn.ModuleList()
@@ -194,11 +251,19 @@ class GINConvWrap(GINConv):
     def __init__(self, in_channels, out_channels, **kwargs):
         if isinstance(in_channels, Tuple):
             raise Exception("GIN does not (really) support bipartite graphs!")
-            # gin_nn = torch.nn.Sequential(
-            #     Linear_pyg(in_channels[0], in_channels[1]), torch.nn.Tanh(),
-            #     Linear_pyg(in_channels[1], out_channels))
         else:
             gin_nn = torch.nn.Sequential(
                 Linear_pyg(in_channels, out_channels), torch.nn.Tanh(),
                 Linear_pyg(out_channels, out_channels))
         super().__init__(gin_nn)
+
+
+class GINEConvWrap(GINEConv):
+    def __init__(self, in_channels, out_channels, edge_dim, **kwargs):
+        if isinstance(in_channels, Tuple):
+            raise Exception("GINE does not (really) support bipartite graphs!")
+        else:
+            gin_nn = torch.nn.Sequential(
+                Linear_pyg(in_channels, out_channels), torch.nn.Tanh(),
+                Linear_pyg(out_channels, out_channels))
+        super().__init__(gin_nn, edge_dim=edge_dim)
