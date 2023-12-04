@@ -7,6 +7,10 @@ Predicate = namedtuple("Predicate", "name, arity, types, index")
 Atom = namedtuple("Atom", "predicate, terms")
 
 
+def atom2string(atom):
+    return atom.predicate.name + "(" + ",".join([term.name for term in atom.terms]) + ")"
+
+
 class LogicLanguage:
     objects: [Object]
     predicates: [Predicate]
@@ -64,9 +68,9 @@ class DomainLanguage(LogicLanguage):
         self.unary_predicates = self.arities[1] if 1 in self.arities else []
 
         if types_as_predicates:
-            pred_index = len(self.predicates) + 1  # +1 because of the root type -1
+            pred_index = len(self.predicates)
             type_predicates = {obj_type: Predicate(obj_type, 1, -1, i + pred_index) for i, obj_type in
-                               self.types.items()}
+                               self.types.items() if obj_type != "root"}
             self.unary_predicates.extend(type_predicates.values())
 
         self.nary_predicates = []
@@ -84,8 +88,8 @@ class DomainLanguage(LogicLanguage):
                 self.object_types[obj] = obj_types
 
     def recursive_types(self, obj_type, types):
-        types.append(obj_type)
-        if obj_type == "object":
+        if obj_type == "root":
             return
         else:
+            types.append(obj_type)
             self.recursive_types(self.supertypes[obj_type], types)

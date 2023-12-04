@@ -2,7 +2,7 @@ import pprint
 
 from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, HGTConv, HANConv, FiLMConv, RGATConv, GINEConv
 
-from data_structures import Object2ObjectGraph, Object2ObjectMultiGraph, Object2AtomGraph, Object2AtomBipartiteGraph, \
+from encodings import Object2ObjectGraph, Object2ObjectMultiGraph, Object2AtomGraph, Object2AtomBipartiteGraph, \
     Object2ObjectHeteroGraph, Object2AtomMultiGraph, Object2AtomBipartiteMultiGraph, Object2AtomHeteroGraph, \
     Atom2AtomGraph, Atom2AtomMultiGraph, Atom2AtomHeteroGraph
 
@@ -12,7 +12,9 @@ from parsing import get_datasets
 
 # %% choose a dataset source
 
-folder = "./datasets/rosta/blocks"
+folder = "./datasets/rosta/debug"
+
+# folder = "./datasets/rosta/blocks"
 # folder = "./datasets/rosta/rovers"
 # folder = "./datasets/rosta/transport"
 
@@ -32,34 +34,35 @@ dataset.enrich_states(add_types=True, add_facts=True, add_goal=True)
 # encoding = Object2ObjectHeteroGraph
 # encoding = Object2AtomGraph
 # encoding = Object2AtomMultiGraph
-# encoding = Object2AtomBipartiteGraph
+encoding = Object2AtomBipartiteGraph
 # encoding = Object2AtomBipartiteMultiGraph
 # encoding = Object2AtomHeteroGraph
 # encoding = Atom2AtomGraph
 # encoding = Atom2AtomMultiGraph
-encoding = Atom2AtomHeteroGraph
+# encoding = Atom2AtomHeteroGraph
 
 samples = dataset.get_samples(encoding)
 
 # %% optional sample drawing for debugging purposes
 
-# layout = samples[0].draw(symbolic=True)
-# samples[0].draw(symbolic=False, pos=layout)
+layout = samples[0].draw(symbolic=True)
+samples[0].draw(symbolic=False, pos=layout)
 
 # %% 2) choose a model
 
-# gnn_type = GCNConv
-# gnn_type = SAGEConv
-# gnn_type = GINConvWrap
-gnn_type = GINEConvWrap
-# gnn_type = GATv2Conv
+# gnn_type = SAGEConv   # no edge attribute support
+# gnn_type = GINConvWrap    # no edge attribute support
 
-# gnn_type = RGCNConv
-# gnn_type = FiLMConv
-# gnn_type = RGATConv
+# gnn_type = GCNConv    # scalar edge weights supported
+gnn_type = GATv2Conv    # edge attributes only in (normalized) attention coefficients
+# gnn_type = GINEConvWrap   # edge attributes summed up with node attributes
 
-# gnn_type = HGTConv
-# gnn_type = HANConv
+# gnn_type = RGCNConv   # separate edge types (multi-relational) parameterization support
+# gnn_type = FiLMConv  # separate edge types (multi-relational) parameterization support
+# gnn_type = RGATConv  # separate edge types (multi-relational) parameterization support
+
+# gnn_type = HGTConv    # general hetero-graph support, but reduces to bipartite multi-relational in our case
+# gnn_type = HANConv    # general hetero-graph support, but reduces to bipartite multi-relational in our case
 
 model = get_compatible_model(samples, model_class=gnn_type, num_layers=3, hidden_channels=8, update_samples=True)
 

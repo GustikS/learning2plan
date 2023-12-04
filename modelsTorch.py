@@ -10,7 +10,7 @@ from torch_geometric.nn import GCNConv, SAGEConv, GINConv, global_mean_pool, RGC
     MessagePassing, to_hetero, HGTConv, HANConv, FiLMConv, RGATConv, GINEConv
 from torch_geometric.nn import Linear as Linear_pyg
 
-from data_structures import Bipartite, Hetero, Graph
+from encodings import Bipartite, Hetero, Graph
 
 torch.manual_seed(1)
 
@@ -66,10 +66,10 @@ def model_call(conv, x, edge_index, edge_attr):
 def get_compatible_model(samples, model_class=SAGEConv, hidden_channels=8, num_layers=3, update_samples=True):
     first_sample = samples[0]
     if model_class in hetero_gnn_list and not isinstance(first_sample, Hetero):
-        raise Exception("Calling a hetero GNN model on a non hetero encoding!")
+        raise Exception("Calling a hetero GNN model on a non-hetero encoding!")
 
     if isinstance(first_sample, Hetero):
-        model = HeteroGNN(first_sample, model_class, hidden_channels, num_layers)
+        model = HeteroGNN(samples, model_class, hidden_channels, num_layers)
         if update_samples:
             for sample in samples:
                 for edge_features in list(sample.relation_edge_features.values()):
@@ -209,10 +209,10 @@ class HeteroGNN(torch.nn.Module):
     base_model: PlainGNN
     conv_class: object
 
-    def __init__(self, sample, model_class=HGTConv, hidden_channels=16, num_layers=3):
+    def __init__(self, samples, model_class=HGTConv, hidden_channels=16, num_layers=3):
         super().__init__()
 
-        if not isinstance(sample, Hetero):
+        if not isinstance(samples[0], Hetero):
             raise Exception("HeteroData representation expected for HeteroGNN")
 
         self.conv_class = model_class
@@ -226,9 +226,20 @@ class HeteroGNN(torch.nn.Module):
             self.base_model = to_hetero(simpleGNN, sample.to_tensors().metadata(), aggr='sum')
         else:
             self.convs = torch.nn.ModuleList()
-            self.convs.append(model_class(-1, hidden_channels, sample.to_tensors().metadata()))
+            # we need to collect the relations and object types from all the samples first
+            obj_types = set()
+            rel_types = set()
+            for sample in samples:
+                for obj_type in sample.node_types.keys():
+                    obj_types.add(obj_type)
+                for relation, edges in sample.relation_edges.items():
+                    type1 = edges[0][0].__class__.__name__
+                    type2 = edges[0][1].__class__.__name__
+                    rel_types.add(tuple([type1, relation.name, type2]))
+            meta = tuple([list(obj_types), list(rel_types)])
+            self.convs.append(model_class(-1, hidden_channels, meta))
             for _ in range(num_layers - 1):
-                conv = model_class(hidden_channels, hidden_channels, sample.to_tensors().metadata())
+                conv = model_class(hidden_channels, hidden_channels, meta)
                 self.convs.append(conv)
 
         self.lin = Linear(hidden_channels, 1)

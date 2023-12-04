@@ -8,7 +8,7 @@ from torch_geometric.utils import to_networkx
 import networkx as nx
 from neuralogic.core import Relation, R
 
-from logic import Atom, Predicate, Object
+from logic import Atom, Predicate, Object, atom2string
 from planning import PlanningState
 
 
@@ -68,7 +68,7 @@ class Sample(ABC):
     def __str__(self):
         strings = []
         for atom in self.state.atoms:
-            strings.append(atom.predicate.name + "(" + ",".join([term.name for term in atom.terms]) + ")")
+            strings.append(atom2string(atom))
         return ", ".join(strings)
 
 
@@ -136,12 +136,19 @@ class Graph(Sample, ABC):
             pos = nx.spring_layout(g)
 
         if symbolic:
-            node_names = {index: node.name for node, index in self.node2index.items()}
+            node_names = {}
+            for node, index in self.node2index.items():
+                try:
+                    nodename = node.name
+                except:
+                    nodename = str(atom2string(node))
+                node_names[index] = nodename
+
             node_attr = {self.node2index[node]: features for node, features in self.node_features_symbolic.items()}
             edge_attr = {(self.node2index[node1], self.node2index[node2]): features for (node1, node2), features in
                          self.edge_features_symbolic.items()}
 
-            nx.draw_networkx(g, pos, with_labels=True, labels=node_names)
+            nx.draw_networkx(g, pos, with_labels=True, labels=node_names, font_size=8)
             nx.draw_networkx_edge_labels(g, pos, edge_labels=edge_attr, font_size=6)
 
             pos_attrs = {}
@@ -151,7 +158,7 @@ class Graph(Sample, ABC):
         else:
             node_attr = {self.node2index[node]: features for node, features in self.node_features.items()}
 
-            nx.draw_networkx(g, pos, with_labels=True)
+            nx.draw_networkx(g, pos, with_labels=True, font_size=8)
             nx.draw_networkx_edge_labels(g, pos, edge_labels=nx.get_edge_attributes(g, 'edge_attr'), font_size=6)
 
             pos_attrs = {}
@@ -187,6 +194,68 @@ class Bipartite(Graph, ABC):
                            edge_attr=(edge_s2t_attr_tensor, edges_t2s_attr_tensor), y=float(self.state.label))
         return data_tensor
 
+    def draw(self, symbolic=True, pos=None):
+        data = self.to_tensors()
+
+        num_nodes_source = data.x[0].size()[0]
+        num_nodes_target = data.x[1].size()[0]
+
+        g = nx.DiGraph(node_label_offset=0.2,node_size=0.5)
+        g.add_nodes_from(range(num_nodes_source + num_nodes_target))
+
+        for u, v in data.edge_index[0].t().tolist():
+            g.add_edge(u, v + num_nodes_source)
+        for u, v in data.edge_index[1].t().tolist():
+            g.add_edge(u + num_nodes_source, v)
+
+        if not pos:
+            pos = nx.bipartite_layout(g, list(range(num_nodes_source)), scale=1)
+
+        if symbolic:
+            node_names = {index: node.name for node, index in self.graph_source.node2index.items()}
+            node_names.update(
+                {index + num_nodes_source: atom2string(node) for node, index in self.graph_target.node2index.items()})
+
+            node_attr_source = {self.graph_source.node2index[node]: features for node, features in
+                                self.graph_source.node_features_symbolic.items()}
+            node_attr_target = {self.graph_target.node2index[node] + num_nodes_source: features for node, features in
+                                self.graph_target.node_features_symbolic.items()}
+            node_attr = {**node_attr_source, **node_attr_target}
+            edge_attr = {
+                (self.graph_source.node2index[node1], self.graph_target.node2index[node2] + num_nodes_source): features
+                for (node1, node2), features in self.edge_features_symbolic.items()}
+            edge_attr.update(
+                {(self.graph_target.node2index[node2] + num_nodes_source, self.graph_source.node2index[node1]): features
+                 for (node1, node2), features in self.edge_features_symbolic.items()})
+
+        else:
+            node_names = None
+            node_attr_source = {self.graph_source.node2index[node]: features for node, features in
+                                self.graph_source.node_features.items()}
+            node_attr_target = {self.graph_target.node2index[node] + num_nodes_source: features for node, features in
+                                self.graph_target.node_features.items()}
+            node_attr = {**node_attr_source, **node_attr_target}
+            edge_attr = {(node1, node2 + num_nodes_source): self.graph_source.edge_features[i]
+                         for i, (node1, node2) in enumerate(data.edge_index[0].t().tolist())}
+            edge_attr.update({(node1 + num_nodes_source, node2): self.graph_target.edge_features[i]
+                              for i, (node1, node2) in enumerate(data.edge_index[1].t().tolist())})
+
+        nx.draw_networkx(g, pos, with_labels=True, labels=node_names, font_size=8)
+        nx.draw_networkx_edge_labels(g, pos, edge_labels=edge_attr, font_size=6)
+
+        pos_attrs = {}
+        for node, coords in pos.items():
+            if node < + num_nodes_source:
+                pos_attrs[node] = (coords[0] - 0.1, coords[1] - 0.05)
+            else:
+                pos_attrs[node] = (coords[0] + 0.1, coords[1] - 0.05)
+        nx.draw_networkx_labels(g, pos_attrs, labels=node_attr, font_size=6)
+
+        ax1 = plt.subplot(111)
+        ax1.margins(0.3, 0.05)
+        plt.show()
+        return pos
+
 
 class Hetero(Graph, ABC):
     node_types: {str: Graph}  # Graph is a carrier of node features and indices for each node type (Object|Atom) here
@@ -216,6 +285,9 @@ class Hetero(Graph, ABC):
 
             data[type1, relation.name, type2].edge_attr = torch.tensor(self.relation_edge_features[relation])
         return data
+
+    def draw(self, symbolic=True, pos=None):
+        raise Exception("Drawing not supported for HeteroData")
 
 
 class Multi(Graph, ABC):
