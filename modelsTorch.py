@@ -10,7 +10,7 @@ from torch_geometric.nn import GCNConv, SAGEConv, GINConv, global_mean_pool, RGC
     MessagePassing, to_hetero, HGTConv, HANConv, FiLMConv, RGATConv, GINEConv
 from torch_geometric.nn import Linear as Linear_pyg
 
-from encodings import Bipartite, Hetero, Graph
+from encoding import Bipartite, Hetero, Graph
 
 torch.manual_seed(1)
 

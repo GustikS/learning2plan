@@ -2,7 +2,7 @@ import pprint
 
 from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, HGTConv, HANConv, FiLMConv, RGATConv, GINEConv
 
-from encodings import Object2ObjectGraph, Object2ObjectMultiGraph, Object2AtomGraph, Object2AtomBipartiteGraph, \
+from encoding import Object2ObjectGraph, Object2ObjectMultiGraph, Object2AtomGraph, Object2AtomBipartiteGraph, \
     Object2ObjectHeteroGraph, Object2AtomMultiGraph, Object2AtomBipartiteMultiGraph, Object2AtomHeteroGraph, \
     Atom2AtomGraph, Atom2AtomMultiGraph, Atom2AtomHeteroGraph
 
@@ -12,9 +12,9 @@ from parsing import get_datasets
 
 # %% choose a dataset source
 
-folder = "./datasets/rosta/debug"
+# folder = "./datasets/rosta/debug"
 
-# folder = "./datasets/rosta/blocks"
+folder = "./datasets/rosta/blocks"
 # folder = "./datasets/rosta/rovers"
 # folder = "./datasets/rosta/transport"
 
@@ -34,11 +34,11 @@ dataset.enrich_states(add_types=True, add_facts=True, add_goal=True)
 # encoding = Object2ObjectHeteroGraph
 # encoding = Object2AtomGraph
 # encoding = Object2AtomMultiGraph
-encoding = Object2AtomBipartiteGraph
+# encoding = Object2AtomBipartiteGraph
 # encoding = Object2AtomBipartiteMultiGraph
 # encoding = Object2AtomHeteroGraph
 # encoding = Atom2AtomGraph
-# encoding = Atom2AtomMultiGraph
+encoding = Atom2AtomMultiGraph
 # encoding = Atom2AtomHeteroGraph
 
 samples = dataset.get_samples(encoding)
@@ -54,8 +54,8 @@ samples[0].draw(symbolic=False, pos=layout)
 # gnn_type = GINConvWrap    # no edge attribute support
 
 # gnn_type = GCNConv    # scalar edge weights supported
-gnn_type = GATv2Conv    # edge attributes only in (normalized) attention coefficients
-# gnn_type = GINEConvWrap   # edge attributes summed up with node attributes
+# gnn_type = GATv2Conv    # edge attributes only in (normalized) attention coefficients
+gnn_type = GINEConvWrap   # edge attributes summed up with node attributes
 
 # gnn_type = RGCNConv   # separate edge types (multi-relational) parameterization support
 # gnn_type = FiLMConv  # separate edge types (multi-relational) parameterization support

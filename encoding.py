@@ -50,8 +50,11 @@ class Sample(ABC):
     def to_tensors(self) -> Data:
         pass
 
-    def object_feature_names(self):
-        return self.state.domain.unary_predicates
+    def object_feature_names(self, include_nullary=False):
+        if include_nullary:
+            return self.state.domain.unary_predicates + self.state.domain.nullary_predicates
+        else:
+            return self.state.domain.unary_predicates
 
     def relation_feature_names(self, include_nullary=False, include_unary=False):
         if include_nullary:
@@ -200,7 +203,7 @@ class Bipartite(Graph, ABC):
         num_nodes_source = data.x[0].size()[0]
         num_nodes_target = data.x[1].size()[0]
 
-        g = nx.DiGraph(node_label_offset=0.2,node_size=0.5)
+        g = nx.DiGraph(node_label_offset=0.2, node_size=0.5)
         g.add_nodes_from(range(num_nodes_source + num_nodes_target))
 
         for u, v in data.edge_index[0].t().tolist():
@@ -322,10 +325,18 @@ class Hypergraph(Graph, ABC):
 class Object2ObjectGraph(Graph):
     """"Object-object graph with edges corresponding to relations"""
 
-    def load_nodes(self, state: PlanningState, include_types=True):
-        for i, (obj, properties) in enumerate(state.object_properties.items()):
+    def load_nodes(self, state: PlanningState, include_types=True, add_nullary=True):
+        object_feature_names = self.object_feature_names(include_nullary=add_nullary)
+        object_features = state.object_properties
+
+        if add_nullary:
+            for null_pred in state.domain.nullary_predicates:
+                for props in object_features.values():
+                    props.append(null_pred)
+
+        for i, (obj, properties) in enumerate(object_features.items()):
             self.node2index[obj] = i  # storing also indices for the tensor version
-            feature_vector = multi_hot_object(properties, self.object_feature_names())
+            feature_vector = multi_hot_object(properties, object_feature_names)
             self.node_features[obj] = feature_vector
 
             self.node_features_symbolic[obj] = [prop.name for prop in properties]
@@ -526,30 +537,41 @@ class Atom2AtomGraph(Graph):
 
             self.node_features_symbolic[atom] = [atom.predicate.name]
 
-    def load_edges(self, state: PlanningState, symmetric_edges=True):
-        edge_types = self.get_edge_types(state, symmetric_edges)
+    def load_edges(self, state: PlanningState, symmetric_edges=True, object_ids=False):
+        edge_types = self.get_edge_types(state, symmetric_edges, object_ids=True)
 
         for (atom1, atom2), objects in edge_types.items():
             self.edges.append((atom1, atom2))
-            # edge feature will be the object ids as multi-hot index vector
-            object_ids = multi_hot_object(objects, state.domain.objects)
-            self.edge_features.append(object_ids)
+            if object_ids:  # edge feature will be the object ids as multi-hot index vector
+                feature = multi_hot_object(objects, state.domain.objects)
+            else:  # edge feature will be the COUNT of the shared objects
+                feature = one_hot(len(objects)-1, self.state.domain.max_arity)
+            self.edge_features.append(feature)
 
-    def get_edge_types(self, state, symmetric_edges):
+    def get_edge_types(self, state, symmetric_edges, object_ids=True):
         for atom in state.atoms:
             for term in atom.terms:
                 self.term2atoms.setdefault(term, []).append(atom)
 
         edge_types: {(Atom, Atom): {Object}} = {}
-        for i, atom1 in enumerate(state.atoms):
-            for term in atom1.terms:
+        for atom1 in state.atoms:
+            for i, term in enumerate(atom1.terms):
                 for atom2 in self.term2atoms[term]:
-                    edge_types.setdefault(tuple([atom1, atom2]), set()).add(term)
+                    if object_ids:
+                        edge_types.setdefault(tuple([atom1, atom2]), set()).add(term)
+                    else:
+                        edge_types.setdefault(tuple([atom1, atom2]), set()).add(i)
                     if symmetric_edges:
-                        edge_types.setdefault(tuple([atom2, atom1]), set()).add(term)
+                        if object_ids:
+                            edge_types.setdefault(tuple([atom2, atom1]), set()).add(term)
+                        else:
+                            edge_types.setdefault(tuple([atom2, atom1]), set()).add(atom2.terms.index(term))
 
         for (atom1, atom2), objects in edge_types.items():
-            self.edge_features_symbolic[(atom1, atom2)] = [obj.name for obj in objects]
+            if object_ids:
+                self.edge_features_symbolic[(atom1, atom2)] = [obj.name for obj in objects]
+            else:
+                self.edge_features_symbolic[(atom1, atom2)] = [obj for obj in objects]
 
         return edge_types
 
@@ -557,14 +579,16 @@ class Atom2AtomGraph(Graph):
 class Atom2AtomMultiGraph(Atom2AtomGraph, Multi):
     """Same as Atom2AtomGraph but with parallel edges"""
 
-    def load_edges(self, state: PlanningState, symmetric_edges=True):
-        edge_types = self.get_edge_types(state, symmetric_edges)
+    def load_edges(self, state: PlanningState, symmetric_edges=True, object_ids=False):
+        edge_types = self.get_edge_types(state, symmetric_edges, object_ids=object_ids)
 
         for (atom1, atom2), objects in edge_types.items():
             for obj in objects:
                 self.edges.append((atom1, atom2))
-                # edge feature will be the object id index
-                edge_feature = self.encode_edge_type(state.domain.objects.index(obj), len(state.domain.objects))
+                if object_ids:  # edge feature will be the object id index
+                    edge_feature = self.encode_edge_type(state.domain.objects.index(obj), len(state.domain.objects))
+                else:  # edge feature will be the object POSITION in the atom
+                    edge_feature = self.encode_edge_type(obj, self.state.domain.max_arity)
                 self.edge_features.append(edge_feature)
 
 
@@ -574,8 +598,8 @@ class Atom2AtomHeteroGraph(Atom2AtomGraph, Hetero):
         super().load_nodes(state)
         self.node_types["Atom"] = self
 
-    def load_edges(self, state: PlanningState, symmetric_edges=True):
-        edge_types = self.get_edge_types(state, symmetric_edges)
+    def load_edges(self, state: PlanningState, symmetric_edges=True, object_ids=False):
+        edge_types = self.get_edge_types(state, symmetric_edges, object_ids)
 
         for (atom1, atom2), objects in edge_types.items():
             for obj in objects:

@@ -2,7 +2,7 @@ import os
 import warnings
 
 from planning import *
-from encodings import *
+from encoding import *
 
 
 def get_dataset(file_path: str):
