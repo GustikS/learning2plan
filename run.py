@@ -37,8 +37,8 @@ dataset.enrich_states(add_types=True, add_facts=True, add_goal=True)
 # encoding = Object2AtomBipartiteGraph
 # encoding = Object2AtomBipartiteMultiGraph
 # encoding = Object2AtomHeteroGraph
-# encoding = Atom2AtomGraph
-encoding = Atom2AtomMultiGraph
+encoding = Atom2AtomGraph
+# encoding = Atom2AtomMultiGraph
 # encoding = Atom2AtomHeteroGraph
 
 samples = dataset.get_samples(encoding)
@@ -54,8 +54,8 @@ samples[0].draw(symbolic=False, pos=layout)
 # gnn_type = GINConvWrap    # no edge attribute support
 
 # gnn_type = GCNConv    # scalar edge weights supported
-# gnn_type = GATv2Conv    # edge attributes only in (normalized) attention coefficients
-gnn_type = GINEConvWrap   # edge attributes summed up with node attributes
+gnn_type = GATv2Conv    # edge attributes only in (normalized) attention coefficients
+# gnn_type = GINEConvWrap   # edge attributes summed up with node attributes
 
 # gnn_type = RGCNConv   # separate edge types (multi-relational) parameterization support
 # gnn_type = FiLMConv  # separate edge types (multi-relational) parameterization support

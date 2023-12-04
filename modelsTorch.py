@@ -120,14 +120,14 @@ class PlainGNN(torch.nn.Module):
         self.convs = torch.nn.ModuleList()
         self.convs.append(
             model_class(in_channels=num_node_features, out_channels=hidden_channels, edge_dim=num_edge_features,
-                        add_self_loops=False, num_relations=num_edge_features))
+                        add_self_loops=True, num_relations=num_edge_features))
         for i in range(num_layers - 1):
             self.convs.append(
-                model_class(hidden_channels, hidden_channels, edge_dim=num_edge_features, add_self_loops=False,
+                model_class(hidden_channels, hidden_channels, edge_dim=num_edge_features, add_self_loops=True,
                             num_relations=num_edge_features))
         self.lin = Linear(hidden_channels, 1)
 
-    def forward(self, data_sample: Data, agg="mean"):
+    def forward(self, data_sample: Data, agg="sum"):
         x = data_sample.x
         edge_index = data_sample.edge_index
         edge_attr = data_sample.edge_attr
@@ -176,7 +176,7 @@ class BipartiteGNN(torch.nn.Module):
 
         self.lin = Linear(hidden_channels, 1)
 
-    def forward(self, data_sample: Data, agg="mean"):
+    def forward(self, data_sample: Data, agg="sum"):
         x = data_sample.x
         edge_index = data_sample.edge_index
         edge_attr = data_sample.edge_attr
@@ -253,7 +253,7 @@ class HeteroGNN(torch.nn.Module):
                 x_dict = conv(x_dict, data_sample.edge_index_dict)
 
             x = torch.concat(list(x_dict.values()), dim=0)
-            x = global_mean_pool(x, None)
+            x = global_add_pool(x, None)
             x = self.lin(x)
             return x
 
