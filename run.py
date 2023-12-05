@@ -54,7 +54,7 @@ samples[0].draw(symbolic=False, pos=layout)
 # gnn_type = GINConvWrap    # no edge attribute support
 
 # gnn_type = GCNConv    # scalar edge weights supported
-gnn_type = GATv2Conv    # edge attributes only in (normalized) attention coefficients
+gnn_type = GATv2Conv  # edge attributes only in (normalized) attention coefficients
 # gnn_type = GINEConvWrap   # edge attributes summed up with node attributes
 
 # gnn_type = RGCNConv   # separate edge types (multi-relational) parameterization support

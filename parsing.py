@@ -82,7 +82,7 @@ def get_dataset(file_path: str):
         except:
             warnings.warn("No actions parsed")
 
-        dataset = PlanningDataset(f.name, domain, facts, actions, goal)
+        dataset = PlanningDataset(os.path.basename(f.name), domain, facts, actions, goal)
 
         # states_start = lines.index("BEGIN_STATE_LIST")
         # states_end = lines.index("END_STATE_LIST")

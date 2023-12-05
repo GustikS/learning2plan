@@ -17,7 +17,7 @@ class DistanceHashing:
     true_distances: {int: [PlanningState]}
     predicted_distances: {tuple: [PlanningState]}
 
-    def __init__(self, model, samples, precision=6, repetitions=3, epsilon_check=True, epsilon=1e-6):
+    def __init__(self, model, samples, precision=5, repetitions=3, epsilon_check=True, epsilon=1e-6):
         self.precision = precision
         self.repetitions = repetitions
 
