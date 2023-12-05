@@ -5,7 +5,7 @@ from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, HGTConv, 
 from encoding import Object2ObjectGraph, Object2ObjectMultiGraph, Object2AtomGraph, Object2AtomBipartiteGraph, \
     Object2ObjectHeteroGraph, Object2AtomMultiGraph, Object2AtomBipartiteMultiGraph, Object2AtomHeteroGraph, \
     Atom2AtomGraph, Atom2AtomMultiGraph, Atom2AtomHeteroGraph, ObjectPair2ObjectPairGraph, \
-    ObjectPair2ObjectPairMultiGraph
+    ObjectPair2ObjectPairMultiGraph, Atom2AtomHigherOrderGraph
 
 from hashing import DistanceHashing
 from modelsTorch import PlainGNN, BipartiteGNN, GINConvWrap, HeteroGNN, get_compatible_model, GINEConvWrap
@@ -15,8 +15,8 @@ from parsing import get_datasets
 
 # folder = "./datasets/rosta/debug"
 
-folder = "./datasets/rosta/blocks"
-# folder = "./datasets/rosta/rovers"
+# folder = "./datasets/rosta/blocks"
+folder = "./datasets/rosta/rovers"
 # folder = "./datasets/rosta/transport"
 
 datasets = get_datasets(folder, limit=1, descending=False)  # smallest dataset
@@ -26,12 +26,12 @@ dataset = datasets[0]
 
 # %% add info about types, static facts, goal...
 
-dataset.enrich_states(add_types=True, add_facts=True, add_goal=True)
+dataset.enrich_states(add_types=True, add_facts=False, add_goal=True)
 
 # %%  1) choose an encoding
 
 # encoding = Object2ObjectGraph
-encoding = Object2ObjectMultiGraph
+# encoding = Object2ObjectMultiGraph
 # encoding = Object2ObjectHeteroGraph
 # encoding = Object2AtomGraph
 # encoding = Object2AtomMultiGraph
@@ -45,12 +45,14 @@ encoding = Object2ObjectMultiGraph
 # encoding = ObjectPair2ObjectPairGraph
 # encoding = ObjectPair2ObjectPairMultiGraph
 
+encoding = Atom2AtomHigherOrderGraph
+
 samples = dataset.get_samples(encoding)
 
 # %% optional sample drawing for debugging purposes
 
-layout = samples[0].draw(symbolic=True)
-samples[0].draw(symbolic=False, pos=layout)
+# layout = samples[0].draw(symbolic=True)
+# samples[0].draw(symbolic=False, pos=layout)
 
 # %% 2) choose a model
 

@@ -129,9 +129,16 @@ class Graph(Sample, ABC):
 
     def to_tensors(self) -> Data:
         x = torch.tensor(list(self.node_features.values()), dtype=torch.float)
-        edge_index = [(self.node2index[i], self.node2index[j]) for i, j in self.edges]
-        edge_index_tensor = torch.tensor(edge_index, dtype=torch.long).transpose(0, 1)
-        edge_attr_tensor = torch.tensor(self.edge_features)
+        if self.edges:
+            edge_index = [(self.node2index[i], self.node2index[j]) for i, j in self.edges]
+            edge_index_tensor = torch.tensor(edge_index, dtype=torch.long).transpose(0, 1)
+            edge_attr_tensor = torch.tensor(self.edge_features)
+        else:
+            raise Exception("No edges in the graph - this causes many problems!")
+            num_nodes = range(len(self.node2index))
+            diag = [num_nodes,num_nodes]
+            edge_index_tensor = torch.tensor(diag, dtype=torch.long)
+            edge_attr_tensor = None
 
         data_tensor = Data(x=x, edge_index=edge_index_tensor, edge_attr=edge_attr_tensor, y=float(self.state.label))
 
@@ -382,7 +389,7 @@ class Object2ObjectGraph(Graph):
 class Object2ObjectMultiGraph(Object2ObjectGraph, Multi):
     """Same as Object2ObjectGraph but each relation is a separate one-hot edge instead of one multi-hot"""
 
-    def load_edges(self, state: PlanningState, symmetric_edges=False):
+    def load_edges(self, state: PlanningState, symmetric_edges=True):
         edge_types = self.get_edge_types(state, symmetric_edges)
 
         for constants, predicates in edge_types.items():
@@ -550,21 +557,19 @@ class Atom2AtomGraph(Graph):
     def load_edges(self, state: PlanningState, symmetric_edges=True, object_ids=False, total_count=False):
         edge_types = self.get_edge_types(state, symmetric_edges=False, object_ids=False)
 
-        for (atom1, atom2), objects in edge_types.items():
+        for (atom1, atom2), items in edge_types.items():
             self.edges.append((atom1, atom2))
             if object_ids:  # edge feature will be the object ids as multi-hot index vector
-                feature = multi_hot_object(objects, state.domain.objects)
+                feature = multi_hot_object(items, state.domain.objects)
             else:  # edge feature will be the COUNT of the shared objects
                 if total_count:  # either simple total count of the shared objects between the two atoms
-                    feature = one_hot_index(len(objects) - 1, self.state.domain.max_arity)
+                    feature = one_hot_index(len(items) - 1, self.state.domain.max_arity)
                 else:  # or a count of shared object per each target position (in the atom2)
-                    feature = multi_hot_aggregate(objects, self.state.domain.max_arity)
+                    feature = multi_hot_aggregate(items, self.state.domain.max_arity)
             self.edge_features.append(feature)
 
-    def get_edge_types(self, state, symmetric_edges=False, object_ids=True):
-        for atom in state.atoms:
-            for term in atom.terms:
-                self.term2atoms.setdefault(term, []).append(atom)
+    def get_edge_types(self, state, object_ids=True):
+        self.load_term2atom(state)
 
         edge_types: {(Atom, Atom): {Object}} = {}
         for atom1 in state.atoms:
@@ -574,11 +579,14 @@ class Atom2AtomGraph(Graph):
                         edge_types.setdefault(tuple([atom1, atom2]), []).append(term)
                     else:
                         edge_types.setdefault(tuple([atom1, atom2]), []).append((i, atom2.terms.index(term)))
-                    if symmetric_edges:
-                        if object_ids:
-                            edge_types.setdefault(tuple([atom2, atom1]), []).append(term)
-                        else:
-                            edge_types.setdefault(tuple([atom2, atom1]), []).append((atom2.terms.index(term), i))
+
+                    # this Atom2Atom setting is symmetric by design
+
+                    # if symmetric_edges:
+                    #     if object_ids:
+                    #         edge_types.setdefault(tuple([atom2, atom1]), []).append(term)
+                    #     else:
+                    #         edge_types.setdefault(tuple([atom2, atom1]), []).append((atom2.terms.index(term), i))
 
         for (atom1, atom2), objects in edge_types.items():
             if object_ids:
@@ -587,6 +595,11 @@ class Atom2AtomGraph(Graph):
                 self.edge_features_symbolic[(atom1, atom2)] = [obj for obj in objects]
 
         return edge_types
+
+    def load_term2atom(self, state):
+        for atom in state.atoms:
+            for term in atom.terms:
+                self.term2atoms.setdefault(term, []).append(atom)
 
 
 class Atom2AtomMultiGraph(Atom2AtomGraph, Multi):
@@ -714,3 +727,55 @@ class ObjectPair2ObjectPairMultiGraph(ObjectPair2ObjectPairGraph, Multi):
                 self.edges.append((constants[0], constants[1]))
                 feature_vector = self.encode_edge_type(relations_scope.index(predicate), len(relations_scope))
                 self.edge_features.append(feature_vector)
+
+
+class Atom2AtomHigherOrderGraph(Atom2AtomGraph, ObjectPair2ObjectPairGraph):
+
+    def __init__(self, state: PlanningState):
+        Atom2AtomGraph.__init__(self, state)
+        ObjectPair2ObjectPairGraph.__init__(self, state)
+
+    def load_nodes(self, state: PlanningState, include_types=True):
+        Atom2AtomGraph.load_nodes(self, state, include_types)
+
+    def load_edges(self, state: PlanningState, combine_edges=True, **kwargs):
+        edge_types_relations = self.get_edge_types(state)
+        edges = set(edge_types_relations.keys())
+        if combine_edges:   # also include the edge features based on the SHARED objects?
+            edge_types_objects = Atom2AtomGraph.get_edge_types(self, state, object_ids=False)
+            edges.update(edge_types_objects.keys())
+
+        relations_scope = self.relation_feature_names(include_nullary=False, include_unary=False)
+
+        for atom_pair in edges:
+            self.edges.append(atom_pair)
+            relations = edge_types_relations.get(atom_pair,[])
+            feature = multi_hot_object(relations, relations_scope)
+            if combine_edges:
+                shared_objects_index_count = edge_types_objects.get(atom_pair,[])
+                feature += multi_hot_aggregate(shared_objects_index_count, self.state.domain.max_arity)
+            self.edge_features.append(feature)
+
+    def get_edge_types(self, state, **kwargs):
+        self.load_term2atom(state)
+
+        edge_types: {(Atom, Atom): {Predicate}} = {}
+        for atom1 in state.atoms:
+            for i, term in enumerate(atom1.terms):  # we are NOT doing all atom-atom pairs here...
+                for atom2 in self.term2atoms[term]:  # atom1 and atom2 must have at least SOME object in common
+                    if atom1 == atom2: continue  # but not all objects!
+                    terms1 = set(atom1.terms)
+                    terms2 = set(atom2.terms)
+                    unique1 = terms1 - terms2
+                    unique2 = terms2 - terms1  # we then remove the shared objects
+                    if not unique1 or not unique2: continue
+                    relations = set()  # and add the relations of all the REMAINING object pairs as edge features
+                    for term1 in unique1:
+                        for term2 in unique2:
+                            relations.update(self.obj_pair2relations[tuple(get_canonical([term1, term2]))])
+                    edge_types.setdefault((atom1, atom2), set()).update(relations)
+
+        for (atom1, atom2), relations in edge_types.items():
+            self.edge_features_symbolic[(atom1, atom2)] = [rel.name for rel in relations]
+
+        return edge_types
