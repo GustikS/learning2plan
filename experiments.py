@@ -58,12 +58,15 @@ def run_folder(folder, encodings, gnns, layer_nums, log_file, hidden_dim=8):
             instance.enrich_states(add_types=True, add_facts=True, add_goal=True)
             for encoding in encodings:
                 samples = instance.get_samples(encoding)
+                prev_gnn = None
                 for gnn_type in gnns:
                     for num_layers in layer_nums:
                         logger.log_setting(domain, instance, encoding, gnn_type, num_layers)
                         try:
                             model = get_compatible_model(samples, model_class=gnn_type, num_layers=num_layers,
-                                                         hidden_channels=hidden_dim, update_samples=True)
+                                                         hidden_channels=hidden_dim, previous_model=prev_gnn)
+                            prev_gnn = gnn_type
+
                             distance_hashing = DistanceHashing(model, samples)
 
                             all_collisions = len(distance_hashing.get_all_collisions())
@@ -72,8 +75,11 @@ def run_folder(folder, encodings, gnns, layer_nums, log_file, hidden_dim=8):
 
                             logger.log_results(all_collisions, bad_collisions, sample_compression, class_compression)
 
+                        except MyException as err:
+                            logger.log_err(err)
                         except Exception as err:
                             logger.log_err(err)
+                            raise err
                             print(f"{err=}, {type(err)=}")
     logger.close()
 

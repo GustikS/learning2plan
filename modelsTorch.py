@@ -1,3 +1,4 @@
+import copy
 import warnings
 from typing import List, Tuple
 
@@ -60,38 +61,52 @@ def model_call(conv, x, edge_index, edge_attr):
             x = conv(x=x, edge_index=edge_index)
     elif conv.__class__ in multirelational_gnn_list:
         if edge_attr[0].dim() != 0:  # these need to have the edge types as index not one-hot
-            raise MyException("Calling multi-relational model (e.g. RGCN) with wrong edge feature (type-index) encoding")
+            raise MyException(
+                "Calling multi-relational model (e.g. RGCN) with wrong edge feature (type-index) encoding")
         x = conv(x=x, edge_index=edge_index, edge_type=edge_attr)
     else:  # general support for edge features
         x = conv(x=x, edge_index=edge_index, edge_attr=edge_attr)
     return x
 
 
-def get_compatible_model(samples, model_class=SAGEConv, hidden_channels=8, num_layers=3, update_samples=True):
+def get_compatible_model(samples, model_class=SAGEConv, num_layers=3, hidden_channels=8, previous_model=None):
     first_sample = samples[0]
     if model_class in hetero_gnn_list and not isinstance(first_sample, Hetero):
         raise MyException("Calling a hetero GNN model on a non-hetero encoding!")
 
     if isinstance(first_sample, Hetero):
-        model = HeteroGNN(samples, model_class, hidden_channels, num_layers)
-        if update_samples:
+        if model_class != previous_model:
             for sample in samples:
-                for edge_features in list(sample.relation_edge_features.values()):
+                for relation, edge_features in sample.relation_edge_features.items():
+                    check_cache(sample)
                     update_edge_features(edge_features, model_class)
+        model = HeteroGNN(samples, model_class, hidden_channels, num_layers)
     elif isinstance(first_sample, Bipartite):
+        if model_class != previous_model:
+            for sample in samples:
+                check_cache(sample.graph_source)
+                update_edge_features(sample.graph_source.edge_features, model_class)
+                check_cache(sample.graph_target)
+                update_edge_features(sample.graph_target.edge_features, model_class)
         model = BipartiteGNN(first_sample, model_class, hidden_channels, num_layers)
-        if update_samples:
-            for sample in samples: update_edge_features(sample.graph_source.edge_features, model_class)
-            for sample in samples: update_edge_features(sample.graph_target.edge_features, model_class)
     else:  # plain graph
+        if model_class != previous_model:
+            for sample in samples:
+                check_cache(sample)
+                update_edge_features(sample.edge_features, model_class)
         model = PlainGNN(first_sample, model_class, hidden_channels, num_layers)
-        if update_samples:
-            for sample in samples: update_edge_features(sample.edge_features, model_class)
 
     return model
 
 
-def update_edge_features(edge_features_list, model_class):
+def check_cache(sample):
+    if sample.cache:
+        sample.edge_features = copy.deepcopy(sample.cache)
+    else:
+        sample.cache = copy.deepcopy(sample.edge_features)
+
+
+def update_edge_features(edge_features_list: [], model_class):
     if model_class == GCNConv or model_class in multirelational_gnn_list:  # repairing edge features for compatibility
         if isinstance(edge_features_list[0], List) and len(edge_features_list[0]) > 1:  # only scalars supported here
             for i, edge_features in enumerate(edge_features_list):
@@ -127,10 +142,10 @@ class PlainGNN(torch.nn.Module):
         self.convs = torch.nn.ModuleList()
         self.convs.append(
             model_class(in_channels=num_node_features, out_channels=hidden_channels, edge_dim=num_edge_features,
-                        add_self_loops=True, num_relations=num_edge_features))
+                        add_self_loops=False, num_relations=num_edge_features))
         for i in range(num_layers - 1):
             self.convs.append(
-                model_class(hidden_channels, hidden_channels, edge_dim=num_edge_features, add_self_loops=True,
+                model_class(hidden_channels, hidden_channels, edge_dim=num_edge_features, add_self_loops=False,
                             num_relations=num_edge_features))
         self.lin = Linear(hidden_channels, 1)
 
@@ -160,8 +175,14 @@ class BipartiteGNN(torch.nn.Module):
 
         node_features_source = len(next(iter(sample.graph_source.node_features.items()))[1])
         node_features_target = len(next(iter(sample.graph_target.node_features.items()))[1])
-        num_edge_features_s2t = len(sample.graph_source.edge_features[0])
-        num_edge_features_t2s = len(sample.graph_target.edge_features[0])
+        try:
+            num_edge_features_s2t = len(sample.graph_source.edge_features[0])
+        except:
+            num_edge_features_s2t = 1
+        try:
+            num_edge_features_t2s = len(sample.graph_target.edge_features[0])
+        except:
+            num_edge_features_t2s = 1
 
         self.convs_s2t = torch.nn.ModuleList()
         self.convs_s2t.append(

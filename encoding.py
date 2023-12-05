@@ -1,3 +1,4 @@
+import copy
 from abc import abstractmethod, ABC
 from typing import Union
 
@@ -45,9 +46,12 @@ class Sample(ABC):
 
     node2index: {Union[Object, Atom]: int}
 
+    cache: {}  # caching the original edge features that some models need to modify post-hoc
+
     def __init__(self, state: PlanningState):
         self.state = state
         self.node2index = {}
+        self.cache = {}
 
     @abstractmethod
     def to_relations(self) -> [Relation]:
