@@ -13,7 +13,7 @@ from logic import Atom, Predicate, Object, atom2string
 from planning import PlanningState
 
 
-def one_hot(index, length) -> [float]:
+def one_hot_index(index, length) -> [float]:
     vector = [0.0] * length
     vector[index] = 1.0
     return vector
@@ -318,7 +318,7 @@ class Multi(Graph, ABC):
         elif edge_type_format == "weight":
             return [float(index + 1)]  # if scalar we start indexing from 1 (not to multiply by 0)
         else:  # one-hot
-            return one_hot(index, max_index)
+            return one_hot_index(index, max_index)
 
 
 class Hypergraph(Graph, ABC):
@@ -366,13 +366,12 @@ class Object2ObjectGraph(Graph):
         edge_types: {[Object]: {Predicate}} = {}  # remember constants and all the predicates they satisfy
         for atom in state.atoms:
             if atom.predicate.arity >= 2:  # split n-ary relations into multiple binary relations
-                for const1 in atom.terms:  # connect every constant with every other
-                    for const2 in atom.terms:
-                        if const1 == const2:
-                            continue
-                        edge_types.setdefault(tuple([const1, const2]), set()).add(atom.predicate)
+                num_terms = len(atom.terms)
+                for i in range(num_terms):
+                    for j in range(i + 1, num_terms):
+                        edge_types.setdefault(tuple([atom.terms[i], atom.terms[j]]), set()).add(atom.predicate)
                         if symmetric_edges:
-                            edge_types.setdefault(tuple([const2, const1]), set()).add(atom.predicate)
+                            edge_types.setdefault(tuple([atom.terms[j], atom.terms[i]]), set()).add(atom.predicate)
 
         for constants, predicates in edge_types.items():
             self.edge_features_symbolic[(constants[0], constants[1])] = [pred.name for pred in predicates]
@@ -383,7 +382,7 @@ class Object2ObjectGraph(Graph):
 class Object2ObjectMultiGraph(Object2ObjectGraph, Multi):
     """Same as Object2ObjectGraph but each relation is a separate one-hot edge instead of one multi-hot"""
 
-    def load_edges(self, state: PlanningState, symmetric_edges=True):
+    def load_edges(self, state: PlanningState, symmetric_edges=False):
         edge_types = self.get_edge_types(state, symmetric_edges)
 
         for constants, predicates in edge_types.items():
@@ -543,7 +542,7 @@ class Atom2AtomGraph(Graph):
         relations_scope = self.relation_feature_names(include_nullary=True, include_unary=True)
         for i, atom in enumerate(state.atoms):
             self.node2index[atom] = i
-            feature_vector = one_hot(relations_scope.index(atom.predicate), len(relations_scope))
+            feature_vector = one_hot_index(relations_scope.index(atom.predicate), len(relations_scope))
             self.node_features[atom] = feature_vector
 
             self.node_features_symbolic[atom] = [atom.predicate.name]
@@ -556,9 +555,9 @@ class Atom2AtomGraph(Graph):
             if object_ids:  # edge feature will be the object ids as multi-hot index vector
                 feature = multi_hot_object(objects, state.domain.objects)
             else:  # edge feature will be the COUNT of the shared objects
-                if total_count: # either simple total count of the shared objects between the two atoms
-                    feature = one_hot(len(objects) - 1, self.state.domain.max_arity)
-                else:   # or a count of shared object per each target position (in the atom2)
+                if total_count:  # either simple total count of the shared objects between the two atoms
+                    feature = one_hot_index(len(objects) - 1, self.state.domain.max_arity)
+                else:  # or a count of shared object per each target position (in the atom2)
                     feature = multi_hot_aggregate(objects, self.state.domain.max_arity)
             self.edge_features.append(feature)
 
@@ -623,3 +622,95 @@ class Atom2AtomHeteroGraph(Atom2AtomGraph, Hetero):
                 self.relation_edges.setdefault(obj, []).append((atom1, atom2))
                 # no edge features here - each relation is a separate dimension already
                 self.relation_edge_features.setdefault(obj, []).append([1.0])
+
+
+# %% HIGHER ORDER
+
+def get_canonical(objects: [Object]):
+    return sorted(objects, key=lambda x: x.name)
+
+
+class ObjectPair2ObjectPairGraph(Object2ObjectGraph):
+
+    def __init__(self, state: PlanningState):
+        super().__init__(state)
+
+        self.binary_predicates = state.domain.arities[2]
+
+        sorted_objects = get_canonical(state.domain.objects)
+        num_objects = len(sorted_objects)
+        obj_pair2relations: {(Object, Object): {Predicate}} = {}
+
+        for i in range(num_objects):
+            for j in range(i + 1, num_objects):
+                pair_key = (sorted_objects[i], sorted_objects[j])
+                obj_pair2relations[pair_key] = set()
+
+        for atom in state.atoms:
+            sorted_terms = get_canonical(atom.terms)
+            num_terms = len(sorted_terms)
+            for i in range(num_terms):
+                for j in range(i + 1, num_terms):
+                    obj_pair2relations[(sorted_terms[i], sorted_terms[j])].add(atom.predicate)
+
+        self.obj_pair2relations = obj_pair2relations
+
+    def load_nodes(self, state: PlanningState, include_types=True, add_nullary=True):
+        object_feature_names = self.object_feature_names(include_nullary=add_nullary)
+        if add_nullary:
+            for null_pred in state.domain.nullary_predicates:
+                for props in state.object_properties.values():
+                    props.append(null_pred)
+
+        for i, (obj_pair, relations) in enumerate(self.obj_pair2relations.items()):
+            self.node2index[obj_pair] = i
+            feature_vector1 = multi_hot_object(state.object_properties[obj_pair[0]], object_feature_names)
+            feature_vector2 = multi_hot_object(state.object_properties[obj_pair[1]], object_feature_names)
+            feature_vector3 = multi_hot_object(self.obj_pair2relations[obj_pair], self.binary_predicates)
+            self.node_features[obj_pair] = feature_vector1 + feature_vector2 + feature_vector3
+
+            self.node_features_symbolic[obj_pair] = state.object_properties[obj_pair[0]] + state.object_properties[
+                obj_pair[1]] + list(self.obj_pair2relations[obj_pair])
+
+    def load_edges(self, state: PlanningState, symmetric_edges=True):
+        edge_types = self.get_edge_types(state, symmetric_edges)
+
+        for constants, predicates in edge_types.items():
+            self.edges.append((constants[0], constants[1]))
+            feature_vector = multi_hot_object(predicates, self.relation_feature_names())
+            self.edge_features.append(feature_vector)
+
+    def get_edge_types(self, state, symmetric_edges):
+        edge_types: {((Object, Object), (Object, Object)): {Predicate}} = {}
+
+        obj_pairs = list(self.obj_pair2relations.keys())
+        num_obj_pairs = len(obj_pairs)
+
+        for i in range(num_obj_pairs):
+            for j in range(i + 1, num_obj_pairs):
+                if obj_pairs[i][0] == obj_pairs[j][0]:
+                    distinct_pair = (obj_pairs[i][1], obj_pairs[j][1])
+                elif obj_pairs[i][1] == obj_pairs[j][1]:
+                    distinct_pair = (obj_pairs[i][0], obj_pairs[j][0])
+                elif obj_pairs[i][0] == obj_pairs[j][1]:
+                    distinct_pair = (obj_pairs[i][1], obj_pairs[j][0])
+                else:
+                    distinct_pair = (obj_pairs[i][0], obj_pairs[j][1])
+
+                edge_types[(obj_pairs[i], obj_pairs[j])] = self.obj_pair2relations[distinct_pair]
+                if symmetric_edges:
+                    edge_types[(obj_pairs[j], obj_pairs[i])] = self.obj_pair2relations[distinct_pair]
+
+        return edge_types
+
+
+class ObjectPair2ObjectPairMultiGraph(ObjectPair2ObjectPairGraph, Multi):
+    def load_edges(self, state: PlanningState, symmetric_edges=True):
+        edge_types = self.get_edge_types(state, symmetric_edges)
+
+        relations_scope = self.relation_feature_names()
+        for constants, predicates in edge_types.items():
+            for predicate in predicates:
+                self.edges.append((constants[0], constants[1]))
+                feature_vector = self.encode_edge_type(relations_scope.index(predicate), len(relations_scope))
+                self.edge_features.append(feature_vector)

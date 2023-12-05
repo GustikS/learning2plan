@@ -1,3 +1,4 @@
+import warnings
 from dataclasses import dataclass
 from os import listdir
 
@@ -79,7 +80,7 @@ def run_folder(folder, encodings, gnns, layer_nums, log_file, hidden_dim=8):
                             logger.log_err(err)
                         except Exception as err:
                             logger.log_err(err)
-                            raise err
+                            warnings.warn(str(err))
                             print(f"{err=}, {type(err)=}")
     logger.close()
 

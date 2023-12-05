@@ -4,7 +4,8 @@ from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, HGTConv, 
 
 from encoding import Object2ObjectGraph, Object2ObjectMultiGraph, Object2AtomGraph, Object2AtomBipartiteGraph, \
     Object2ObjectHeteroGraph, Object2AtomMultiGraph, Object2AtomBipartiteMultiGraph, Object2AtomHeteroGraph, \
-    Atom2AtomGraph, Atom2AtomMultiGraph, Atom2AtomHeteroGraph
+    Atom2AtomGraph, Atom2AtomMultiGraph, Atom2AtomHeteroGraph, ObjectPair2ObjectPairGraph, \
+    ObjectPair2ObjectPairMultiGraph
 
 from hashing import DistanceHashing
 from modelsTorch import PlainGNN, BipartiteGNN, GINConvWrap, HeteroGNN, get_compatible_model, GINEConvWrap
@@ -41,6 +42,9 @@ encoding = Object2ObjectMultiGraph
 # encoding = Atom2AtomMultiGraph
 # encoding = Atom2AtomHeteroGraph
 
+# encoding = ObjectPair2ObjectPairGraph
+# encoding = ObjectPair2ObjectPairMultiGraph
+
 samples = dataset.get_samples(encoding)
 
 # %% optional sample drawing for debugging purposes
@@ -54,10 +58,10 @@ samples[0].draw(symbolic=False, pos=layout)
 # gnn_type = GINConvWrap    # no edge attribute support
 
 # gnn_type = GCNConv    # scalar edge weights supported
-# gnn_type = GATv2Conv  # edge attributes only in (normalized) attention coefficients
+gnn_type = GATv2Conv  # edge attributes only in (normalized) attention coefficients
 # gnn_type = GINEConvWrap   # edge attributes summed up with node attributes
 
-gnn_type = RGCNConv   # separate edge types (multi-relational) parameterization support
+# gnn_type = RGCNConv   # separate edge types (multi-relational) parameterization support
 # gnn_type = FiLMConv  # separate edge types (multi-relational) parameterization support
 # gnn_type = RGATConv  # separate edge types (multi-relational) parameterization support
 

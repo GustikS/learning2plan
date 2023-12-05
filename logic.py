@@ -8,7 +8,10 @@ Atom = namedtuple("Atom", "predicate, terms")
 
 
 def atom2string(atom):
-    return atom.predicate.name + "(" + ",".join([term.name for term in atom.terms]) + ")"
+    if isinstance(atom, Atom):
+        return atom.predicate.name + "(" + ",".join([term.name for term in atom.terms]) + ")"
+    else:
+        return str(atom)
 
 
 class LogicLanguage:
