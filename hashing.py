@@ -1,6 +1,7 @@
 import sys
 import warnings
 from decimal import Decimal, Context, ROUND_HALF_DOWN
+from math import comb
 
 import numpy as np
 import torch
@@ -76,19 +77,29 @@ class DistanceHashing:
 
     def get_all_collisions(self):
         """Remember that collisions are not always bad due to the desired symmetry invariance(s)"""
-        return {distance: collisions for distance, collisions in self.predicted_distances.items() if
-                len(collisions) > 1}
+        confusions = {}
+        pairwise_count = 0
+        for distance, collisions in self.predicted_distances.items():
+            if len(collisions) > 1:
+                confusions[distance] = collisions
+                pairwise_count += comb(len(collisions), 2)    # all 2-size subsets
+        return pairwise_count, confusions
 
     def get_bad_collisions(self):
         """Collisions that are of a different true distance - that is always bad"""
         confusions = {}
+        pairwise_count = 0
         for distance, collisions in self.predicted_distances.items():
             if len(collisions) > 1:
-                for sample1 in collisions:
-                    for sample2 in collisions:
+                num_collisions = len(collisions)
+                for i in range(num_collisions):
+                    for j in range(i + 1, num_collisions):
+                        sample1 = collisions[i]
+                        sample2 = collisions[j]
                         if sample1.state.label != sample2.state.label:
+                            pairwise_count += 1
                             confusions.setdefault(sample1, []).append(sample2)
-        return confusions
+        return pairwise_count, confusions
 
     def get_compression_rates(self):
         class_compression = len(self.true_distances) / len(self.predicted_distances)

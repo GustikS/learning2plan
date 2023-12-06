@@ -666,7 +666,7 @@ class ObjectPair2ObjectPairGraph(Object2ObjectGraph):
         obj_pair2relations: {(Object, Object): {Predicate}} = {}
 
         for i in range(num_objects):
-            for j in range(i + 1, num_objects):
+            for j in range(i, num_objects):
                 pair_key = (sorted_objects[i], sorted_objects[j])
                 obj_pair2relations[pair_key] = set()
 
@@ -697,7 +697,7 @@ class ObjectPair2ObjectPairGraph(Object2ObjectGraph):
                 self.obj_pair2relations[obj_pair])
             self.node_features_symbolic[obj_pair] = [prop.name for prop in properties]
 
-    def get_edge_types(self, state, symmetric_edges):
+    def get_edge_types(self, state, symmetric_edges, local_edges_only=False):
         edge_types: {((Object, Object), (Object, Object)): {Predicate}} = {}
 
         obj_pairs = list(self.obj_pair2relations.keys())
@@ -716,9 +716,11 @@ class ObjectPair2ObjectPairGraph(Object2ObjectGraph):
                 else:
                     continue
 
-                edge_types[(obj_pairs[i], obj_pairs[j])] = self.obj_pair2relations[distinct_pair]
-                if symmetric_edges:
-                    edge_types[(obj_pairs[j], obj_pairs[i])] = self.obj_pair2relations[distinct_pair]
+                relations = self.obj_pair2relations[distinct_pair]
+                if relations or not local_edges_only:
+                    edge_types[(obj_pairs[i], obj_pairs[j])] = relations
+                    if symmetric_edges:
+                        edge_types[(obj_pairs[j], obj_pairs[i])] = relations
 
         for obj_pairs, relations in edge_types.items():
             self.edge_features_symbolic[obj_pairs] = [rel.name for rel in relations]
@@ -727,12 +729,12 @@ class ObjectPair2ObjectPairGraph(Object2ObjectGraph):
 
 
 class ObjectPair2ObjectPairMultiGraph(ObjectPair2ObjectPairGraph, Multi):
-    def load_edges(self, state: PlanningState, symmetric_edges=True):
+    def load_edges(self, state: PlanningState, symmetric_edges=True, local_edges_only=False):
         edge_types = self.get_edge_types(state, symmetric_edges)
 
         relations_scope = self.relation_feature_names()
         for constants, predicates in edge_types.items():
-            if not predicates:
+            if not predicates and not local_edges_only:
                 self.edges.append((constants[0], constants[1])) # edge but with empty features
                 self.edge_features.append(multi_hot_object([], relations_scope))
             for predicate in predicates:

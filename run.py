@@ -1,6 +1,7 @@
 import pprint
 
-from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, HGTConv, HANConv, FiLMConv, RGATConv, GINEConv
+from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, HGTConv, HANConv, FiLMConv, RGATConv, GINEConv, \
+    GENConv
 
 from encoding import Object2ObjectGraph, Object2ObjectMultiGraph, Object2AtomGraph, Object2AtomBipartiteGraph, \
     Object2ObjectHeteroGraph, Object2AtomMultiGraph, Object2AtomBipartiteMultiGraph, Object2AtomHeteroGraph, \
@@ -13,20 +14,21 @@ from parsing import get_datasets
 
 # %% choose a dataset source
 
-# folder = "./datasets/rosta/debug"
+folder = "./datasets/rosta/debug/"
+# folder = "./datasets/all/pipesworld-notankage"
 
-folder = "./datasets/rosta/blocks"
+# folder = "./datasets/rosta/blocks"
 # folder = "./datasets/rosta/rovers"
 # folder = "./datasets/rosta/transport"
 
-datasets = get_datasets(folder, limit=1, descending=False)  # smallest dataset
+datasets = get_datasets(folder, limit=1, descending=True)  # smallest dataset
 # datasets = get_datasets(folder, limit=1, descending=True)  # largest dataset
 
 dataset = datasets[0]
 
 # %% add info about types, static facts, goal...
 
-dataset.enrich_states(add_types=True, add_facts=False, add_goal=True)
+dataset.enrich_states(add_types=True, add_facts=True, add_goal=True)
 
 # %%  1) choose an encoding
 
@@ -51,8 +53,8 @@ samples = dataset.get_samples(encoding)
 
 # %% optional sample drawing for debugging purposes
 
-layout = samples[0].draw(symbolic=True)
-samples[0].draw(symbolic=False, pos=layout)
+# layout = samples[0].draw(symbolic=True)
+# samples[0].draw(symbolic=False, pos=layout)
 
 # %% 2) choose a model
 
@@ -62,6 +64,7 @@ samples[0].draw(symbolic=False, pos=layout)
 # gnn_type = GCNConv    # scalar edge weights supported
 gnn_type = GATv2Conv  # edge attributes only in (normalized) attention coefficients
 # gnn_type = GINEConvWrap   # edge attributes summed up with node attributes
+# gnn_type = GENConv
 
 # gnn_type = RGCNConv   # separate edge types (multi-relational) parameterization support
 # gnn_type = FiLMConv  # separate edge types (multi-relational) parameterization support
@@ -76,10 +79,10 @@ model = get_compatible_model(samples, model_class=gnn_type, num_layers=3, hidden
 
 distance_hashing = DistanceHashing(model, samples)
 
-collisions = distance_hashing.get_all_collisions()
-# collisions = distance_hashing.get_bad_collisions()
+pairwise_count, collisions = distance_hashing.get_all_collisions()
+# pairwise_count, confusions = distance_hashing.get_bad_collisions()
 
-print("====Indistinguishable states detected:=====")
+print(f"{pairwise_count} indistinguishable state-pairs detected:")
 pprint.pprint(collisions)
 print("Resulting [class] and [sample] compression rates:")
 print(distance_hashing.get_compression_rates())
