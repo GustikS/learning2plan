@@ -15,7 +15,7 @@ from parsing import get_datasets
 # %% choose a dataset source
 
 folder = "./datasets/rosta/debug/"
-# folder = "./datasets/all/pipesworld-notankage"
+# folder = "./datasets/all/satellite"
 
 # folder = "./datasets/rosta/blocks"
 # folder = "./datasets/rosta/rovers"
@@ -45,9 +45,9 @@ dataset.enrich_states(add_types=True, add_facts=True, add_goal=True)
 # encoding = Atom2AtomHeteroGraph
 
 # encoding = ObjectPair2ObjectPairGraph
-# encoding = ObjectPair2ObjectPairMultiGraph
+encoding = ObjectPair2ObjectPairMultiGraph
 
-encoding = Atom2AtomHigherOrderGraph
+# encoding = Atom2AtomHigherOrderGraph
 
 samples = dataset.get_samples(encoding)
 
@@ -62,11 +62,11 @@ samples = dataset.get_samples(encoding)
 # gnn_type = GINConvWrap    # no edge attribute support
 
 # gnn_type = GCNConv    # scalar edge weights supported
-gnn_type = GATv2Conv  # edge attributes only in (normalized) attention coefficients
+# gnn_type = GATv2Conv  # edge attributes only in (normalized) attention coefficients
 # gnn_type = GINEConvWrap   # edge attributes summed up with node attributes
 # gnn_type = GENConv
 
-# gnn_type = RGCNConv   # separate edge types (multi-relational) parameterization support
+gnn_type = RGCNConv   # separate edge types (multi-relational) parameterization support
 # gnn_type = FiLMConv  # separate edge types (multi-relational) parameterization support
 # gnn_type = RGATConv  # separate edge types (multi-relational) parameterization support
 

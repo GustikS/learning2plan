@@ -108,9 +108,11 @@ def check_cache(sample):
 
 def update_edge_features(edge_features_list: [], model_class):
     if model_class == GCNConv or model_class in multirelational_gnn_list:  # repairing edge features for compatibility
-        if isinstance(edge_features_list[0], List) and len(edge_features_list[0]) > 1:  # only scalars supported here
+        if isinstance(edge_features_list[0], List):  # only scalars supported here
             for i, edge_features in enumerate(edge_features_list):
                 non_zero_idx = [i for i, e in enumerate(edge_features) if e > 0.]
+                if len(non_zero_idx) == 0:
+                    raise MyException("Calling (R)GCN on an EMPTY edge feature vector, can't extract edge type!)")
                 if len(non_zero_idx) > 1:
                     raise MyException("Calling (R)GCN on a multi-hot edge feature vector (only scalars supported)")
                 elif edge_features[non_zero_idx[0]] != 1.0:
