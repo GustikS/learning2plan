@@ -2,11 +2,12 @@ import warnings
 from dataclasses import dataclass
 from os import listdir
 
-from torch_geometric.nn import GCNConv, RGCNConv
+from torch_geometric.nn import GCNConv, RGCNConv, GATv2Conv, RGATConv
 
-from encoding import Object2ObjectMultiGraph, Object2AtomBipartiteMultiGraph, Atom2AtomMultiGraph
+from encoding import Object2ObjectMultiGraph, Object2AtomBipartiteMultiGraph, Atom2AtomMultiGraph, \
+    Object2AtomMultiGraph, Atom2AtomHigherOrderGraph, ObjectPair2ObjectPairMultiGraph
 from hashing import DistanceHashing
-from modelsTorch import get_compatible_model, GINEConvWrap, MyException
+from modelsTorch import get_compatible_model, GINEConvWrap, MyException, GINConvWrap
 from parsing import get_datasets
 
 
@@ -54,11 +55,17 @@ class Logger:
 def run_folder(folder, encodings, gnns, layer_nums, log_file, hidden_dim=8):
     logger = Logger(log_file)
     for domain in listdir(folder):
+        print(domain)
         instances = get_datasets(folder + domain, descending=False)
         for instance in instances:
             instance.enrich_states(add_types=True, add_facts=True, add_goal=True)
             for encoding in encodings:
-                samples = instance.get_samples(encoding)
+                try:
+                    samples = instance.get_samples(encoding)
+                except Exception as err:
+                    warnings.warn(str(err))
+                    print(f"{err=}, {type(err)=}")
+                    continue
                 prev_gnn = None
                 for gnn_type in gnns:
                     for num_layers in layer_nums:
@@ -80,6 +87,7 @@ def run_folder(folder, encodings, gnns, layer_nums, log_file, hidden_dim=8):
                             logger.log_err(err)
                         except Exception as err:
                             logger.log_err(err)
+                            # raise err
                             warnings.warn(str(err))
                             print(f"{err=}, {type(err)=}")
     logger.close()
@@ -87,8 +95,9 @@ def run_folder(folder, encodings, gnns, layer_nums, log_file, hidden_dim=8):
 
 # %%
 
-encodings = [Object2ObjectMultiGraph, Object2AtomBipartiteMultiGraph, Atom2AtomMultiGraph]
-convs = [GCNConv, GINEConvWrap, RGCNConv]
+encodings = [Object2ObjectMultiGraph, Object2AtomMultiGraph, Object2AtomBipartiteMultiGraph,
+             Atom2AtomMultiGraph, ObjectPair2ObjectPairMultiGraph, Atom2AtomHigherOrderGraph]
+convs = [GINConvWrap, GCNConv, GINEConvWrap, GATv2Conv, RGCNConv]
 layers = [2, 8]
 
-run_folder('./datasets/rosta/', encodings, convs, layers, "./results/results.csv")
+run_folder('./datasets/all/', encodings, convs, layers, "./results/results_all2.csv")

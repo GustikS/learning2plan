@@ -42,10 +42,10 @@ dataset.enrich_states(add_types=True, add_facts=False, add_goal=True)
 # encoding = Atom2AtomMultiGraph
 # encoding = Atom2AtomHeteroGraph
 
-# encoding = ObjectPair2ObjectPairGraph
+encoding = ObjectPair2ObjectPairGraph
 # encoding = ObjectPair2ObjectPairMultiGraph
 
-encoding = Atom2AtomHigherOrderGraph
+# encoding = Atom2AtomHigherOrderGraph
 
 samples = dataset.get_samples(encoding)
 
