@@ -1,6 +1,6 @@
 import copy
 from abc import abstractmethod, ABC
-from typing import Union
+from typing import Union, Tuple
 
 import torch
 from matplotlib import pyplot as plt
@@ -9,7 +9,7 @@ from torch_geometric.utils import to_networkx
 import networkx as nx
 from neuralogic.core import Relation, R
 
-from logic import Atom, Predicate, Object, atom2string
+from logic import Atom, Predicate, Object
 from planning import PlanningState
 
 
@@ -32,6 +32,22 @@ def multi_hot_object(predicates: [Predicate], predicate_list: [Predicate]) -> [f
         predicate_index = predicate_list.index(predicate)
         feature_vector[predicate_index] = 1.0
     return feature_vector
+
+
+def node2string(node):
+    if isinstance(node, Atom):
+        return node.predicate.name + "(" + ",".join([term.name for term in node.terms]) + ")"
+    elif isinstance(node, Object):
+        return node.name
+    elif isinstance(node, tuple):
+        item1 = node[0]
+        item2 = node[1]
+        if isinstance(item1, Object):
+            return node[0].name + " - " + node[1].name
+        else:
+            return item1.predicate.name + "(" + ",".join(
+                [term.name for term in item1.terms]) + ") - " + item2.predicate.name + "(" + ",".join(
+                [term.name for term in item2.terms]) + ")"
 
 
 def multi_hot_aggregate(int_pairs: [(int, int)], max_arity):
@@ -82,7 +98,7 @@ class Sample(ABC):
     def __str__(self):
         strings = []
         for atom in self.state.atoms:
-            strings.append(atom2string(atom))
+            strings.append(node2string(atom))
         return ", ".join(strings)
 
 
@@ -159,10 +175,7 @@ class Graph(Sample, ABC):
         if symbolic:
             node_names = {}
             for node, index in self.node2index.items():
-                try:
-                    nodename = node.name
-                except:
-                    nodename = str(atom2string(node))
+                nodename = node2string(node)
                 node_names[index] = nodename
 
             node_attr = {self.node2index[node]: features for node, features in self.node_features_symbolic.items()}
@@ -235,7 +248,7 @@ class Bipartite(Graph, ABC):
         if symbolic:
             node_names = {index: node.name for node, index in self.graph_source.node2index.items()}
             node_names.update(
-                {index + num_nodes_source: atom2string(node) for node, index in self.graph_target.node2index.items()})
+                {index + num_nodes_source: node2string(node) for node, index in self.graph_target.node2index.items()})
 
             node_attr_source = {self.graph_source.node2index[node]: features for node, features in
                                 self.graph_source.node_features_symbolic.items()}
@@ -590,9 +603,9 @@ class Atom2AtomGraph(Graph):
 
         for (atom1, atom2), objects in edge_types.items():
             if object_ids:
-                self.edge_features_symbolic[(atom1, atom2)] = [obj.name for obj in objects]
+                self.edge_features_symbolic.setdefault((atom1, atom2),[]).extend([obj.name for obj in objects])
             else:
-                self.edge_features_symbolic[(atom1, atom2)] = [obj for obj in objects]
+                self.edge_features_symbolic.setdefault((atom1, atom2),[]).extend(objects)
 
         return edge_types
 
@@ -680,8 +693,9 @@ class ObjectPair2ObjectPairGraph(Object2ObjectGraph):
             feature_vector3 = multi_hot_object(self.obj_pair2relations[obj_pair], self.state.domain.nary_predicates)
             self.node_features[obj_pair] = feature_vector1 + feature_vector2 + feature_vector3
 
-            self.node_features_symbolic[obj_pair] = state.object_properties[obj_pair[0]] + state.object_properties[
-                obj_pair[1]] + list(self.obj_pair2relations[obj_pair])
+            properties = state.object_properties[obj_pair[0]] + state.object_properties[obj_pair[1]] + list(
+                self.obj_pair2relations[obj_pair])
+            self.node_features_symbolic[obj_pair] = [prop.name for prop in properties]
 
     def get_edge_types(self, state, symmetric_edges):
         edge_types: {((Object, Object), (Object, Object)): {Predicate}} = {}
@@ -706,6 +720,9 @@ class ObjectPair2ObjectPairGraph(Object2ObjectGraph):
                 if symmetric_edges:
                     edge_types[(obj_pairs[j], obj_pairs[i])] = self.obj_pair2relations[distinct_pair]
 
+        for obj_pairs, relations in edge_types.items():
+            self.edge_features_symbolic[obj_pairs] = [rel.name for rel in relations]
+
         return edge_types
 
 
@@ -715,6 +732,9 @@ class ObjectPair2ObjectPairMultiGraph(ObjectPair2ObjectPairGraph, Multi):
 
         relations_scope = self.relation_feature_names()
         for constants, predicates in edge_types.items():
+            if not predicates:
+                self.edges.append((constants[0], constants[1])) # edge but with empty features
+                self.edge_features.append(multi_hot_object([], relations_scope))
             for predicate in predicates:
                 self.edges.append((constants[0], constants[1]))
                 feature_vector = self.encode_edge_type(relations_scope.index(predicate), len(relations_scope))
@@ -768,6 +788,6 @@ class Atom2AtomHigherOrderGraph(Atom2AtomGraph, ObjectPair2ObjectPairGraph):
                     edge_types.setdefault((atom1, atom2), set()).update(relations)
 
         for (atom1, atom2), relations in edge_types.items():
-            self.edge_features_symbolic[(atom1, atom2)] = [rel.name for rel in relations]
+            self.edge_features_symbolic.setdefault((atom1, atom2),[]).extend([rel.name for rel in relations])
 
         return edge_types

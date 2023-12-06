@@ -15,8 +15,8 @@ from parsing import get_datasets
 
 # folder = "./datasets/rosta/debug"
 
-# folder = "./datasets/rosta/blocks"
-folder = "./datasets/rosta/rovers"
+folder = "./datasets/rosta/blocks"
+# folder = "./datasets/rosta/rovers"
 # folder = "./datasets/rosta/transport"
 
 datasets = get_datasets(folder, limit=1, descending=False)  # smallest dataset
@@ -42,17 +42,17 @@ dataset.enrich_states(add_types=True, add_facts=False, add_goal=True)
 # encoding = Atom2AtomMultiGraph
 # encoding = Atom2AtomHeteroGraph
 
-encoding = ObjectPair2ObjectPairGraph
+# encoding = ObjectPair2ObjectPairGraph
 # encoding = ObjectPair2ObjectPairMultiGraph
 
-# encoding = Atom2AtomHigherOrderGraph
+encoding = Atom2AtomHigherOrderGraph
 
 samples = dataset.get_samples(encoding)
 
 # %% optional sample drawing for debugging purposes
 
-# layout = samples[0].draw(symbolic=True)
-# samples[0].draw(symbolic=False, pos=layout)
+layout = samples[0].draw(symbolic=True)
+samples[0].draw(symbolic=False, pos=layout)
 
 # %% 2) choose a model
 
