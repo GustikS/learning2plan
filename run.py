@@ -45,16 +45,16 @@ dataset.enrich_states(add_types=True, add_facts=True, add_goal=True)
 # encoding = Atom2AtomHeteroGraph
 
 # encoding = ObjectPair2ObjectPairGraph
-encoding = ObjectPair2ObjectPairMultiGraph
+# encoding = ObjectPair2ObjectPairMultiGraph
 
-# encoding = Atom2AtomHigherOrderGraph
+encoding = Atom2AtomHigherOrderGraph
 
 samples = dataset.get_samples(encoding)
 
 # %% optional sample drawing for debugging purposes
 
-# layout = samples[0].draw(symbolic=True)
-# samples[0].draw(symbolic=False, pos=layout)
+layout = samples[0].draw(symbolic=True)
+samples[0].draw(symbolic=False, pos=layout)
 
 # %% 2) choose a model
 
@@ -64,9 +64,9 @@ samples = dataset.get_samples(encoding)
 # gnn_type = GCNConv    # scalar edge weights supported
 # gnn_type = GATv2Conv  # edge attributes only in (normalized) attention coefficients
 # gnn_type = GINEConvWrap   # edge attributes summed up with node attributes
-# gnn_type = GENConv
+gnn_type = GENConv
 
-gnn_type = RGCNConv   # separate edge types (multi-relational) parameterization support
+# gnn_type = RGCNConv   # separate edge types (multi-relational) parameterization support
 # gnn_type = FiLMConv  # separate edge types (multi-relational) parameterization support
 # gnn_type = RGATConv  # separate edge types (multi-relational) parameterization support
 

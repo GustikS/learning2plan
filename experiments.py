@@ -121,13 +121,13 @@ def run_folder(folder, encodings, gnns, layer_nums, log_file, hidden_dim=8):
 
 # encodings = [Object2ObjectMultiGraph, Object2AtomMultiGraph, Object2AtomBipartiteMultiGraph,
 #              Atom2AtomMultiGraph, ObjectPair2ObjectPairMultiGraph, Atom2AtomHigherOrderGraph]
-encodings = [Object2ObjectGraph, Object2AtomGraph, Object2AtomBipartiteGraph,
-             Atom2AtomGraph, ObjectPair2ObjectPairGraph, Atom2AtomHigherOrderGraph]
+encodings = [Object2ObjectGraph, Object2ObjectMultiGraph, Object2AtomBipartiteMultiGraph, Object2AtomGraph, Object2AtomBipartiteGraph,
+             Atom2AtomGraph, Atom2AtomMultiGraph, Atom2AtomHigherOrderGraph]
 # encodings = [Atom2AtomGraph, ObjectPair2ObjectPairGraph]
 # convs = [GINConvWrap, GCNConv, GINEConvWrap, GATv2Conv, RGCNConv]
-convs = [GINEConvWrap]
+convs = [GINEConvWrap, RGCNConv]
 
 # layers = [2, 8]
 layers = [4]
 
-run_folder('./datasets/all/', encodings, convs, layers, "./results/results_all_rest.csv")
+run_folder('./datasets/all/', encodings, convs, layers, "./results/results_all_rest4.csv")

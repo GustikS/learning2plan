@@ -182,7 +182,8 @@ class Graph(Sample, ABC):
             edge_attr = {(self.node2index[node1], self.node2index[node2]): features for (node1, node2), features in
                          self.edge_features_symbolic.items()}
 
-            nx.draw_networkx(g, pos, with_labels=True, labels=node_names, font_size=8)
+            nx.draw_networkx(g, pos, with_labels=True, labels=node_names, font_size=8,
+                             connectionstyle='arc3, rad = 0.05')
             nx.draw_networkx_edge_labels(g, pos, edge_labels=edge_attr, font_size=6)
 
             pos_attrs = {}
@@ -192,7 +193,7 @@ class Graph(Sample, ABC):
         else:
             node_attr = {self.node2index[node]: features for node, features in self.node_features.items()}
 
-            nx.draw_networkx(g, pos, with_labels=True, font_size=8)
+            nx.draw_networkx(g, pos, with_labels=True, font_size=8, connectionstyle='arc3, rad = 0.05')
             nx.draw_networkx_edge_labels(g, pos, edge_labels=nx.get_edge_attributes(g, 'edge_attr'), font_size=6)
 
             pos_attrs = {}
@@ -589,9 +590,11 @@ class Atom2AtomGraph(Graph):
             for i, term in enumerate(atom1.terms):
                 for atom2 in self.term2atoms[term]:
                     if object_ids:
-                        edge_types.setdefault(tuple([atom1, atom2]), []).append(term)
+                        edge_types.setdefault(tuple([atom1, atom2]), []).extend([t for t in atom2.terms if t == term])
                     else:
-                        edge_types.setdefault(tuple([atom1, atom2]), []).append((i, atom2.terms.index(term)))
+                        if atom1 == atom2: continue
+                        indices = [(i, j) for j, x in enumerate(atom2.terms) if x == term]
+                        edge_types.setdefault(tuple([atom1, atom2]), []).extend(indices)
 
                     # this Atom2Atom setting is symmetric by design
 
@@ -603,16 +606,16 @@ class Atom2AtomGraph(Graph):
 
         for (atom1, atom2), objects in edge_types.items():
             if object_ids:
-                self.edge_features_symbolic.setdefault((atom1, atom2),[]).extend([obj.name for obj in objects])
+                self.edge_features_symbolic.setdefault((atom1, atom2), []).extend([obj.name for obj in objects])
             else:
-                self.edge_features_symbolic.setdefault((atom1, atom2),[]).extend(objects)
+                self.edge_features_symbolic.setdefault((atom1, atom2), []).extend(objects)
 
         return edge_types
 
     def load_term2atom(self, state):
         for atom in state.atoms:
             for term in atom.terms:
-                self.term2atoms.setdefault(term, []).append(atom)
+                self.term2atoms.setdefault(term, set()).add(atom)
 
 
 class Atom2AtomMultiGraph(Atom2AtomGraph, Multi):
@@ -735,7 +738,7 @@ class ObjectPair2ObjectPairMultiGraph(ObjectPair2ObjectPairGraph, Multi):
         relations_scope = self.relation_feature_names()
         for constants, predicates in edge_types.items():
             if not predicates and not local_edges_only:
-                self.edges.append((constants[0], constants[1])) # edge but with empty features
+                self.edges.append((constants[0], constants[1]))  # edge but with empty features
                 self.edge_features.append(multi_hot_object([], relations_scope))
             for predicate in predicates:
                 self.edges.append((constants[0], constants[1]))
@@ -790,6 +793,6 @@ class Atom2AtomHigherOrderGraph(Atom2AtomGraph, ObjectPair2ObjectPairGraph):
                     edge_types.setdefault((atom1, atom2), set()).update(relations)
 
         for (atom1, atom2), relations in edge_types.items():
-            self.edge_features_symbolic.setdefault((atom1, atom2),[]).extend([rel.name for rel in relations])
+            self.edge_features_symbolic.setdefault((atom1, atom2), []).extend([rel.name for rel in relations])
 
         return edge_types
