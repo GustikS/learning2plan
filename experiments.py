@@ -5,11 +5,12 @@ from dataclasses import dataclass
 from os import listdir
 from timeit import default_timer as timer
 
-from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, RGATConv, GENConv, FiLMConv
+from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, RGATConv, GENConv, FiLMConv, HGTConv, HANConv
 
 from encoding import Object2ObjectMultiGraph, Object2AtomBipartiteMultiGraph, Atom2AtomMultiGraph, \
     Object2AtomMultiGraph, Atom2AtomHigherOrderGraph, ObjectPair2ObjectPairMultiGraph, Object2ObjectGraph, \
-    Object2AtomGraph, Object2AtomBipartiteGraph, Atom2AtomGraph, ObjectPair2ObjectPairGraph
+    Object2AtomGraph, Object2AtomBipartiteGraph, Atom2AtomGraph, ObjectPair2ObjectPairGraph, Object2ObjectHeteroGraph, \
+    Object2AtomHeteroGraph, Atom2AtomHeteroGraph
 from hashing import DistanceHashing
 from modelsTorch import get_compatible_model, GINEConvWrap, MyException, GINConvWrap
 from parsing import get_datasets
@@ -19,14 +20,15 @@ class Logger:
     def __init__(self, file, separator=","):
         self.file = open(file, "w", buffering=1)
         self.file.write(
-            "domain, instance, samples, encoding, model, num_layers, "
+            "domain, instance, samples, encoding, model, num_layers, aggr, "
             "all_pairwise_collisions, bad_pairwise_collisions, near_collisions, sample_compression, class_compression, "
             "instance_encoding_time, model_creation_time, predictions_eval_time, my exception, other error")
         self.file.write("\n")
 
-    def log_setting(self, domain, instance, samples, encoding, model, num_layers):
+    def log_setting(self, domain, instance, samples, encoding, model, num_layers, aggr):
         self.file.write(
-            ", ".join([domain, instance.name, str(samples), encoding.__name__, model.__name__, str(num_layers)]) + ", ")
+            ", ".join([domain, instance.name, str(samples), encoding.__name__, model.__name__,
+                       str(num_layers), aggr]) + ", ")
 
     def log_results(self, all_collisions, bad_collisions, near_collisions, sample_compression, class_compression,
                     instance_encoding_time, model_encoding_time, collision_eval_time):
@@ -48,7 +50,7 @@ class Logger:
         self.file.close()
 
 
-def run_domain(domain_folder, encodings, gnns, layer_nums, logger, hidden_dim=8):
+def run_domain(domain_folder, encodings, gnns, layer_nums, logger, aggrs=["add"], hidden_dim=8):
     print("==============" + domain_folder + "==============")
     instances = get_datasets(domain_folder, descending=False)
     for instance in instances:
@@ -69,40 +71,42 @@ def run_domain(domain_folder, encodings, gnns, layer_nums, logger, hidden_dim=8)
             prev_gnn = None
             for gnn_type in gnns:
                 for num_layers in layer_nums:
-                    logger.log_setting(domain_folder, instance, len(samples), encoding, gnn_type, num_layers)
-                    try:
-                        model_encoding_timer = timer()
-                        model = get_compatible_model(samples, model_class=gnn_type, num_layers=num_layers,
-                                                     hidden_channels=hidden_dim, previous_model=prev_gnn)
-                        model_encoding_time = timer() - model_encoding_timer
-                        # print(f'model_encoding_time: {model_encoding_time}')
+                    for aggr in aggrs:
+                        logger.log_setting(domain_folder.split("/")[-1], instance, len(samples), encoding,
+                                           gnn_type, num_layers, aggr)
+                        try:
+                            model_encoding_timer = timer()
+                            model = get_compatible_model(samples, model_class=gnn_type, num_layers=num_layers,
+                                                         hidden_channels=hidden_dim, aggr=aggr, previous_model=prev_gnn)
+                            model_encoding_time = timer() - model_encoding_timer
+                            # print(f'model_encoding_time: {model_encoding_time}')
 
-                        prev_gnn = gnn_type
+                            prev_gnn = gnn_type
 
-                        collision_eval_timer = timer()
-                        distance_hashing = DistanceHashing(model, samples, epsilon_check=False)
+                            collision_eval_timer = timer()
+                            distance_hashing = DistanceHashing(model, samples, epsilon_check=False)
 
-                        all_pairwise_collisions, _ = distance_hashing.get_all_collisions()
-                        bad_pairwise_collisions, _ = distance_hashing.get_bad_collisions()
-                        sample_compression, class_compression = distance_hashing.get_compression_rates()
-                        near_collisions = distance_hashing.epsilon_sanity_check()
+                            all_pairwise_collisions, _ = distance_hashing.get_all_collisions()
+                            bad_pairwise_collisions, _ = distance_hashing.get_bad_collisions()
+                            sample_compression, class_compression = distance_hashing.get_compression_rates()
+                            near_collisions = distance_hashing.epsilon_sanity_check()
 
-                        collision_eval_time = timer() - collision_eval_timer
-                        # print(f'collision_eval_time: {collision_eval_time}')
+                            collision_eval_time = timer() - collision_eval_timer
+                            # print(f'collision_eval_time: {collision_eval_time}')
 
-                        logger.log_results(all_pairwise_collisions, bad_pairwise_collisions, near_collisions,
-                                           sample_compression, class_compression,
-                                           instance_encoding_time, model_encoding_time, collision_eval_time)
+                            logger.log_results(all_pairwise_collisions, bad_pairwise_collisions, near_collisions,
+                                               sample_compression, class_compression,
+                                               instance_encoding_time, model_encoding_time, collision_eval_time)
 
-                    except MyException as err:
-                        logger.log_err(err)
-                        # raise err
-                        # print(str(err))
-                    except Exception as err:
-                        logger.log_err(err)
-                        # raise err
-                        warnings.warn(str(err))
-                        print(f"{err=}, {type(err)=}")
+                        except MyException as err:
+                            logger.log_err(err)
+                            # raise err
+                            # print(str(err))
+                        except Exception as err:
+                            logger.log_err(err)
+                            raise err
+                            warnings.warn(str(err))
+                            print(f"{err=}, {type(err)=}")
             print(f"all_models_eval_time: {timer() - all_models_eval_time}")
 
 
@@ -111,14 +115,19 @@ def run_domain(domain_folder, encodings, gnns, layer_nums, logger, hidden_dim=8)
 encodings = [Object2ObjectGraph, Object2ObjectMultiGraph,
              Object2AtomGraph, Object2AtomMultiGraph, Object2AtomBipartiteGraph, Object2AtomBipartiteMultiGraph,
              Atom2AtomGraph, Atom2AtomMultiGraph,
+             Object2ObjectHeteroGraph, Object2AtomHeteroGraph, Atom2AtomHeteroGraph,
              Atom2AtomHigherOrderGraph]
-# encodings = [ObjectPair2ObjectPairGraph, ObjectPair2ObjectPairMultiGraph]
+# encodings = [ObjectPair2ObjectPairGraph, ObjectPair2ObjectPairMultiGraph] # long runtime
 
-convs = [GCNConv, SAGEConv, GINConvWrap, GATv2Conv, GINEConvWrap, GENConv, RGCNConv, FiLMConv]
-# convs = [GINEConvWrap, RGCNConv]
+# convs = [GCNConv, SAGEConv, GINConvWrap, GATv2Conv, GINEConvWrap, GENConv, RGCNConv, FiLMConv, HGTConv, HANConv]    # all
+# convs = [SAGEConv, GENConv, RGCNConv, FiLMConv] # supports aggr
+convs = [RGCNConv, FiLMConv, HGTConv, HANConv]  # hetero
 
-# layers = [4]
-layers = [2, 8]
+layers = [2]
+# layers = [2, 8, 16]   # 16 is too much for adding
+
+# aggregations = ["add", "mean", "max"]
+aggregations = ["add"]
 
 
 def main(source_folder, experiment_name):
@@ -127,37 +136,13 @@ def main(source_folder, experiment_name):
     source_items = sorted(listdir(source_folder))
     if os.path.isdir(source_folder + "/" + source_items[0]):
         for domain in source_items:
-            run_domain(source_folder + "/" + domain, encodings, convs, layers, logger)
+            run_domain(source_folder + "/" + domain, encodings, convs, layers, logger, aggrs=aggregations)
     else:
         run_domain(source_folder, encodings, convs, layers, logger)
     logger.close()
 
 
-def create_script(dataset):
-    script = "#!/bin/bash \n#SBATCH --partition=cpufast\n#SBATCH --mem=24g \n\n"
-    script += "ml PyTorch-Geometric/2.3.1-foss-2022a-CUDA-11.7.0 \n"
-    script += "cd /home/souregus/planning/ \n"
-    # script += "pip install neuralogic \n"
-    script += "python ./code/experiments.py " + dataset
-    return script
-
-
-def create_scripts(source_folder):
-    datasets = sorted(listdir(source_folder))
-    script_names = []
-    for dataset in datasets:
-        script = create_script(source_folder + "/" + dataset)
-        script_name = dataset.split("/")[-1] + ".sh"
-        with open("./scripts/" + script_name, 'w', newline='\n') as f:
-            f.write(script)
-        script_names.append(script_name)
-    with open("./scripts/_batch.sh", 'w', newline='\n') as f:
-        for script_name in script_names:
-            f.write("sbatch " + script_name + "\n")
-
-
 if __name__ == "__main__":
-    # create_scripts(sys.argv[1])
 
     args = sys.argv[1:]
     source_folder = args[0]

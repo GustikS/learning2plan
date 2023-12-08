@@ -7,7 +7,7 @@ import numpy as np
 import torch
 
 from modelsLRNN import GNN, get_predictions_LRNN, get_relational_dataset
-from modelsTorch import get_tensor_dataset, get_predictions_torch
+from modelsTorch import get_tensor_dataset, get_predictions_torch, MyException
 from planning import PlanningDataset, PlanningState
 
 
@@ -63,19 +63,23 @@ class DistanceHashing:
     def epsilon_sanity_check(self, epsilon=1e-6):
         """Possibly expensive call for pairwise comparisons"""
         near_collisions = 0
+        epsilon = Decimal(epsilon)
         for i, (distances1, collisions1) in enumerate(self.predicted_distances.items()):
             for j, (distances2, collisions2) in enumerate(self.predicted_distances.items()):
                 if i >= j: continue
                 difference = sum(abs(d1 - d2) for d1, d2 in zip(distances1, distances2))
-                if difference < epsilon:
-                    near_collisions += 1
-                    warnings.warn(("A different but very close prediction detected:"))
-                    print('========Similar predicted values========')
-                    print(distances1)
-                    print(distances2)
-                    print("For the following 2 sets of states:")
-                    print(collisions1)
-                    print(collisions2)
+                try:
+                    if difference < epsilon:
+                        near_collisions += 1
+                        warnings.warn(("A different but very close prediction detected:"))
+                        print('========Similar predicted values========')
+                        print(distances1)
+                        print(distances2)
+                        print("For the following 2 sets of states:")
+                        print(collisions1)
+                        print(collisions2)
+                except:
+                    raise MyException("Numeric overflow, maybe sum-pooling and the number of layers too high?")
         return near_collisions
 
     def get_all_collisions(self):

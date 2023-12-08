@@ -648,6 +648,8 @@ class Atom2AtomHeteroGraph(Atom2AtomGraph, Hetero):
 
         for (atom1, atom2), objects in edge_types.items():
             for obj in objects:
+                if not object_ids:
+                    obj = Predicate("XY" + str(obj), 0, tuple([]), -1)
                 self.relation_edges.setdefault(obj, []).append((atom1, atom2))
                 # no edge features here - each relation is a separate dimension already
                 self.relation_edge_features.setdefault(obj, []).append([1.0])
