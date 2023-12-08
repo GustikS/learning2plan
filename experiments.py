@@ -64,7 +64,7 @@ def run_domain(domain_folder, encodings, gnns, layer_nums, logger, aggrs=["add"]
                 print(f'{encoding.__name__} - encoding_time: {instance_encoding_time}', end=" ")
             except Exception as err:
                 warnings.warn(str(err))
-                raise err
+                # raise err
                 print(f"{err=}, {type(err)=}")
                 continue
             all_models_eval_time = timer()
@@ -104,7 +104,7 @@ def run_domain(domain_folder, encodings, gnns, layer_nums, logger, aggrs=["add"]
                             # print(str(err))
                         except Exception as err:
                             logger.log_err(err)
-                            raise err
+                            # raise err
                             warnings.warn(str(err))
                             print(f"{err=}, {type(err)=}")
             print(f"all_models_eval_time: {timer() - all_models_eval_time}")
@@ -119,16 +119,16 @@ encodings = [Object2ObjectGraph, Object2ObjectMultiGraph,
              Atom2AtomHigherOrderGraph]
 # encodings = [ObjectPair2ObjectPairGraph, ObjectPair2ObjectPairMultiGraph] # long runtime
 
-# convs = [GCNConv, SAGEConv, GINConvWrap, GATv2Conv, GINEConvWrap, GENConv, RGCNConv, FiLMConv, HGTConv, HANConv]    # all
+convs = [GCNConv, SAGEConv, GINConvWrap, GATv2Conv, GINEConvWrap, GENConv, RGCNConv, FiLMConv, HGTConv, HANConv]    # all
 # convs = [SAGEConv, GENConv, RGCNConv, FiLMConv] # supports aggr
-convs = [RGCNConv, FiLMConv, HGTConv, HANConv]  # hetero
+# convs = [RGCNConv, FiLMConv, HGTConv, HANConv]  # hetero
 
-layers = [2]
-# layers = [2, 8, 16]   # 16 is too much for adding
+layers = [4]
+# layers = [2, 8]   # 16 is too much for adding
 
 # aggregations = ["add", "mean", "max"]
+# aggregations = ["add", "mean"]
 aggregations = ["add"]
-
 
 def main(source_folder, experiment_name):
     target_file = "./results/" + experiment_name + "_" + source_folder.split("/")[-1] + ".csv"

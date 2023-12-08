@@ -39,5 +39,5 @@ def load_results(path, result_name="_merged_results.csv"):
         f.writelines(merged_lines)
 
 
-# create_scripts("./datasets/rosta")
-load_results("Y:/planning/results")
+create_scripts("./datasets/rosta")
+# load_results("Y:/planning/results")

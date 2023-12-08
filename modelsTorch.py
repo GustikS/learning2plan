@@ -89,13 +89,13 @@ def get_compatible_model(samples, model_class=SAGEConv, num_layers=3, hidden_cha
                 update_edge_features(sample.graph_source.edge_features, model_class)
                 check_cache(sample.graph_target)
                 update_edge_features(sample.graph_target.edge_features, model_class)
-        model = BipartiteGNN(first_sample, model_class, hidden_channels, num_layers, aggr=aggr)
+        model = BipartiteGNN(samples, model_class, hidden_channels, num_layers, aggr=aggr)
     else:  # plain graph
         if model_class != previous_model:
             for sample in samples:
                 check_cache(sample)
                 update_edge_features(sample.edge_features, model_class)
-        model = PlainGNN(first_sample, model_class, hidden_channels, num_layers, aggr=aggr)
+        model = PlainGNN(samples, model_class, hidden_channels, num_layers, aggr=aggr)
 
     return model
 
@@ -130,9 +130,10 @@ def update_edge_features(edge_features_list: [], model_class):
 
 
 class PlainGNN(torch.nn.Module):
-    def __init__(self, sample=None, model_class=GCNConv, hidden_channels=16, num_layers=3, aggr="add"):
+    def __init__(self, samples=None, model_class=GCNConv, hidden_channels=16, num_layers=3, aggr="add"):
         super().__init__()
         self.aggr = aggr
+        sample = samples[0]
 
         if sample:
             first_node_features = next(iter(sample.node_features.items()))[1]
@@ -140,7 +141,11 @@ class PlainGNN(torch.nn.Module):
             try:
                 num_edge_features = len(sample.edge_features[0])
             except:
-                num_edge_features = max(sample.edge_features) + 1
+                num_edge_features = -1
+                for sam in samples:
+                    curr = max(sam.edge_features) + 1
+                    if curr > num_edge_features:
+                        num_edge_features = curr
         else:
             num_node_features = -1
             num_edge_features = -1
@@ -173,9 +178,10 @@ class PlainGNN(torch.nn.Module):
 
 
 class BipartiteGNN(torch.nn.Module):
-    def __init__(self, sample, model_class=SAGEConv, hidden_channels=16, num_layers=3, aggr="add"):
+    def __init__(self, samples, model_class=SAGEConv, hidden_channels=16, num_layers=3, aggr="add"):
         super().__init__()
         self.aggr = aggr
+        sample = samples[0]
 
         if model_class in [GCNConv, RGATConv]:
             raise MyException("The selected GNN does not support Bipartite(Hetero) graphs!")
@@ -185,11 +191,19 @@ class BipartiteGNN(torch.nn.Module):
         try:
             num_edge_features_s2t = len(sample.graph_source.edge_features[0])
         except:
-            num_edge_features_s2t = max(sample.graph_source.edge_features) + 1
+            num_edge_features_s2t = -1
+            for sam in samples:
+                curr = max(sam.graph_source.edge_features) + 1
+                if curr > num_edge_features_s2t:
+                    num_edge_features_s2t = curr
         try:
             num_edge_features_t2s = len(sample.graph_target.edge_features[0])
         except:
-            num_edge_features_t2s = max(sample.graph_target.edge_features) + 1
+            num_edge_features_t2s = -1
+            for sam in samples:
+                curr = max(sam.graph_target.edge_features) + 1
+                if curr > num_edge_features_t2s:
+                    num_edge_features_t2s = curr
 
         self.convs_s2t = torch.nn.ModuleList()
         self.convs_s2t.append(
