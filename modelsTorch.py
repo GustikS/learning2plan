@@ -108,6 +108,8 @@ def check_cache(sample):
 
 def update_edge_features(edge_features_list: [], model_class):
     if model_class == GCNConv or model_class in multirelational_gnn_list:  # repairing edge features for compatibility
+        if len(edge_features_list) == 0:
+            return
         if isinstance(edge_features_list[0], List):  # only scalars supported here
             for i, edge_features in enumerate(edge_features_list):
                 non_zero_idx = [i for i, e in enumerate(edge_features) if e > 0.]

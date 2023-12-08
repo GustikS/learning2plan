@@ -34,6 +34,13 @@ def multi_hot_object(predicates: [Predicate], predicate_list: [Predicate]) -> [f
     return feature_vector
 
 
+def multi_hot_aggregate(int_pairs: [(int, int)], max_arity):
+    vector = [0.0] * max_arity
+    for int_pair in int_pairs:
+        vector[int_pair[1]] += 1
+    return vector
+
+
 def node2string(node):
     if isinstance(node, Atom):
         return node.predicate.name + "(" + ",".join([term.name for term in node.terms]) + ")"
@@ -48,13 +55,6 @@ def node2string(node):
             return item1.predicate.name + "(" + ",".join(
                 [term.name for term in item1.terms]) + ") - " + item2.predicate.name + "(" + ",".join(
                 [term.name for term in item2.terms]) + ")"
-
-
-def multi_hot_aggregate(int_pairs: [(int, int)], max_arity):
-    vector = [0.0] * max_arity
-    for int_pair in int_pairs:
-        vector[int_pair[1]] += 1
-    return vector
 
 
 class Sample(ABC):
@@ -624,15 +624,15 @@ class Atom2AtomMultiGraph(Atom2AtomGraph, Multi):
     def load_edges(self, state: PlanningState, symmetric_edges=True, object_ids=False, **kwargs):
         edge_types = self.get_edge_types(state, object_ids=object_ids)
 
-        for (atom1, atom2), objects in edge_types.items():
-            for obj in objects:
+        for (atom1, atom2), items in edge_types.items():
+            for item in items:
                 self.edges.append((atom1, atom2))
                 if object_ids:  # edge feature will be the object id index
-                    edge_feature = self.encode_edge_type(state.domain.objects.index(obj), len(state.domain.objects))
+                    edge_feature = self.encode_edge_type(state.domain.objects.index(item), len(state.domain.objects))
                 else:  # edge feature will be the object POSITION pair source_atom_position -> target_atom_position
-                    edge_feature = self.encode_edge_type(obj[0], self.state.domain.max_arity,
+                    edge_feature = self.encode_edge_type(item[0], self.state.domain.max_arity,
                                                          edge_type_format="one-hot") + \
-                                   self.encode_edge_type(obj[1], self.state.domain.max_arity,
+                                   self.encode_edge_type(item[1], self.state.domain.max_arity,
                                                          edge_type_format="one-hot")
                 self.edge_features.append(edge_feature)
 

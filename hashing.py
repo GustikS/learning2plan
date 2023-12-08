@@ -62,11 +62,13 @@ class DistanceHashing:
 
     def epsilon_sanity_check(self, epsilon=1e-6):
         """Possibly expensive call for pairwise comparisons"""
+        near_collisions = 0
         for i, (distances1, collisions1) in enumerate(self.predicted_distances.items()):
             for j, (distances2, collisions2) in enumerate(self.predicted_distances.items()):
                 if i >= j: continue
                 difference = sum(abs(d1 - d2) for d1, d2 in zip(distances1, distances2))
                 if difference < epsilon:
+                    near_collisions += 1
                     warnings.warn(("A different but very close prediction detected:"))
                     print('========Similar predicted values========')
                     print(distances1)
@@ -74,6 +76,7 @@ class DistanceHashing:
                     print("For the following 2 sets of states:")
                     print(collisions1)
                     print(collisions2)
+        return near_collisions
 
     def get_all_collisions(self):
         """Remember that collisions are not always bad due to the desired symmetry invariance(s)"""
@@ -82,7 +85,7 @@ class DistanceHashing:
         for distance, collisions in self.predicted_distances.items():
             if len(collisions) > 1:
                 confusions[distance] = collisions
-                pairwise_count += comb(len(collisions), 2)    # all 2-size subsets
+                pairwise_count += comb(len(collisions), 2)  # all 2-size subsets
         return pairwise_count, confusions
 
     def get_bad_collisions(self):

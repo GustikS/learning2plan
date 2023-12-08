@@ -14,14 +14,14 @@ from parsing import get_datasets
 
 # %% choose a dataset source
 
-folder = "./datasets/rosta/debug/"
-# folder = "./datasets/all/satellite"
+folder = "./datasets/broken/debug/"
+# folder = "./datasets/rosta/pegsol"
 
 # folder = "./datasets/rosta/blocks"
 # folder = "./datasets/rosta/rovers"
 # folder = "./datasets/rosta/transport"
 
-datasets = get_datasets(folder, limit=1, descending=True)  # smallest dataset
+datasets = get_datasets(folder, limit=1, descending=False)  # smallest dataset
 # datasets = get_datasets(folder, limit=1, descending=True)  # largest dataset
 
 dataset = datasets[0]
@@ -35,7 +35,7 @@ dataset.enrich_states(add_types=True, add_facts=True, add_goal=True)
 # encoding = Object2ObjectGraph
 # encoding = Object2ObjectMultiGraph
 # encoding = Object2ObjectHeteroGraph
-# encoding = Object2AtomGraph
+encoding = Object2AtomGraph
 # encoding = Object2AtomMultiGraph
 # encoding = Object2AtomBipartiteGraph
 # encoding = Object2AtomBipartiteMultiGraph
@@ -47,24 +47,24 @@ dataset.enrich_states(add_types=True, add_facts=True, add_goal=True)
 # encoding = ObjectPair2ObjectPairGraph
 # encoding = ObjectPair2ObjectPairMultiGraph
 
-encoding = Atom2AtomHigherOrderGraph
+# encoding = Atom2AtomHigherOrderGraph
 
 samples = dataset.get_samples(encoding)
 
 # %% optional sample drawing for debugging purposes
 
-layout = samples[0].draw(symbolic=True)
-samples[0].draw(symbolic=False, pos=layout)
+# layout = samples[0].draw(symbolic=True)
+# samples[0].draw(symbolic=False, pos=layout)
 
 # %% 2) choose a model
 
 # gnn_type = SAGEConv   # no edge attribute support
 # gnn_type = GINConvWrap    # no edge attribute support
 
-# gnn_type = GCNConv    # scalar edge weights supported
+gnn_type = GCNConv    # scalar edge weights supported
 # gnn_type = GATv2Conv  # edge attributes only in (normalized) attention coefficients
 # gnn_type = GINEConvWrap   # edge attributes summed up with node attributes
-gnn_type = GENConv
+# gnn_type = GENConv
 
 # gnn_type = RGCNConv   # separate edge types (multi-relational) parameterization support
 # gnn_type = FiLMConv  # separate edge types (multi-relational) parameterization support
