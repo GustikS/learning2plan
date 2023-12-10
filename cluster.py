@@ -1,8 +1,9 @@
+import os.path
 from os import listdir
 
 
 def create_script(dataset):
-    script = "#!/bin/bash \n#SBATCH --partition=cpufast\n#SBATCH --mem=24g \n\n"
+    script = "#!/bin/bash \n#SBATCH --partition=amdfast\n#SBATCH --mem=24g \n\n"
     script += "ml PyTorch-Geometric/2.4.0-foss-2022a-CUDA-11.7.0 \n"
     script += "cd /home/souregus/planning/ \n"
     # script += "pip install neuralogic \n"
@@ -28,16 +29,17 @@ def load_results(path, result_name="_merged_results.csv"):
     datasets = sorted(listdir(path))
     merged_lines = []
     for dataset in datasets:
-        with open(path + "/" + dataset) as f:
-            lines = f.readlines()
-            if merged_lines:
-                merged_lines.extend(lines[1:])
-            else:
-                merged_lines.extend(lines)
+        if dataset.endswith(".csv"):
+            with open(path + "/" + dataset) as f:
+                lines = f.readlines()
+                if merged_lines:
+                    merged_lines.extend(lines[1:])
+                else:
+                    merged_lines.extend(lines)
 
     with open(path + "/" + result_name, 'w') as f:
         f.writelines(merged_lines)
 
 
-create_scripts("./datasets/rosta")
-# load_results("Y:/planning/results")
+# create_scripts("./datasets/rosta")
+load_results("Y:/planning/results")

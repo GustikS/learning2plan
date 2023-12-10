@@ -3,12 +3,10 @@ import warnings
 from typing import List, Tuple
 
 import torch
-import torch.nn.functional as F
 from torch.nn import Linear, ReLU, Sequential
 from torch_geometric.data import Data, HeteroData
-from torch_geometric.graphgym.models.layer import LayerConfig
 from torch_geometric.nn import GCNConv, SAGEConv, GINConv, global_mean_pool, RGCNConv, GATv2Conv, global_add_pool, \
-    MessagePassing, to_hetero, HGTConv, HANConv, FiLMConv, RGATConv, GINEConv
+    MessagePassing, to_hetero, HGTConv, HANConv, FiLMConv, RGATConv, GINEConv, NNConv, PDNConv
 from torch_geometric.nn import Linear as Linear_pyg
 
 from encoding import Bipartite, Hetero, Graph
@@ -153,11 +151,13 @@ class PlainGNN(torch.nn.Module):
         self.convs = torch.nn.ModuleList()
         self.convs.append(
             model_class(in_channels=num_node_features, out_channels=hidden_channels, edge_dim=num_edge_features,
-                        add_self_loops=False, num_relations=num_edge_features, aggr=aggr))
+                        add_self_loops=False, num_relations=num_edge_features, aggr=aggr,
+                        hidden_channels=hidden_channels, in_edge_channels=num_edge_features))
         for i in range(num_layers - 1):
             self.convs.append(
                 model_class(hidden_channels, hidden_channels, edge_dim=num_edge_features, add_self_loops=False,
-                            num_relations=num_edge_features, aggr=aggr))
+                            num_relations=num_edge_features, aggr=aggr, hidden_channels=hidden_channels,
+                            in_edge_channels=num_edge_features))
         self.lin = Linear(hidden_channels, 1)
 
     def forward(self, data_sample: Data):
@@ -183,7 +183,7 @@ class BipartiteGNN(torch.nn.Module):
         self.aggr = aggr
         sample = samples[0]
 
-        if model_class in [GCNConv, RGATConv]:
+        if model_class in [GCNConv, RGATConv, PDNConv]:
             raise MyException("The selected GNN does not support Bipartite(Hetero) graphs!")
 
         node_features_source = len(next(iter(sample.graph_source.node_features.items()))[1])
@@ -209,21 +209,23 @@ class BipartiteGNN(torch.nn.Module):
         self.convs_s2t.append(
             model_class((node_features_source, node_features_target), hidden_channels,
                         edge_dim=num_edge_features_s2t, num_relations=num_edge_features_s2t, add_self_loops=False,
-                        aggr=aggr))
+                        aggr=aggr, hidden_channels=hidden_channels, in_edge_channels=num_edge_features_s2t))
         for i in range(num_layers - 1):
             self.convs_s2t.append(
                 model_class(hidden_channels, hidden_channels, edge_dim=num_edge_features_s2t,
-                            num_relations=num_edge_features_s2t, add_self_loops=False, aggr=aggr))
+                            num_relations=num_edge_features_s2t, add_self_loops=False, aggr=aggr,
+                            hidden_channels=hidden_channels, in_edge_channels=num_edge_features_s2t))
 
         self.convs_t2s = torch.nn.ModuleList()
         self.convs_t2s.append(
             model_class((node_features_target, node_features_source), hidden_channels,
                         edge_dim=num_edge_features_t2s, num_relations=num_edge_features_t2s, add_self_loops=False,
-                        aggr=aggr))
+                        aggr=aggr, hidden_channels=hidden_channels, in_edge_channels=num_edge_features_t2s))
         for i in range(num_layers - 1):
             self.convs_t2s.append(
                 model_class(hidden_channels, hidden_channels, edge_dim=num_edge_features_t2s,
-                            num_relations=num_edge_features_t2s, add_self_loops=False, aggr=aggr))
+                            num_relations=num_edge_features_t2s, add_self_loops=False, aggr=aggr,
+                            hidden_channels=hidden_channels, in_edge_channels=num_edge_features_t2s))
 
         self.lin = Linear(hidden_channels, 1)
 
@@ -321,7 +323,7 @@ class GINConvWrap(GINConv):
             gin_nn = torch.nn.Sequential(
                 Linear_pyg(in_channels, out_channels), torch.nn.Tanh(),
                 Linear_pyg(out_channels, out_channels))
-        super().__init__(gin_nn)
+        super().__init__(gin_nn, **kwargs)
 
 
 class GINEConvWrap(GINEConv):
@@ -332,4 +334,15 @@ class GINEConvWrap(GINEConv):
             gin_nn = torch.nn.Sequential(
                 Linear_pyg(in_channels, out_channels), torch.nn.Tanh(),
                 Linear_pyg(out_channels, out_channels))
-        super().__init__(gin_nn, edge_dim=edge_dim)
+        super().__init__(gin_nn, edge_dim=edge_dim, **kwargs)
+
+
+class NNConvWrap(NNConv):
+    def __init__(self, in_channels, out_channels, edge_dim, **kwargs):
+        if isinstance(in_channels, Tuple):
+            raise MyException("NNConv does not (really) support bipartite graphs!")
+        else:
+            gin_nn = torch.nn.Sequential(
+                Linear_pyg(edge_dim, out_channels), torch.nn.Tanh(),
+                Linear_pyg(out_channels, in_channels*out_channels))
+        super().__init__(in_channels, out_channels, nn=gin_nn, **kwargs)

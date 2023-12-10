@@ -5,14 +5,15 @@ from dataclasses import dataclass
 from os import listdir
 from timeit import default_timer as timer
 
-from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, RGATConv, GENConv, FiLMConv, HGTConv, HANConv
+from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, RGATConv, GENConv, FiLMConv, HGTConv, HANConv, \
+    TransformerConv, PDNConv, GeneralConv
 
 from encoding import Object2ObjectMultiGraph, Object2AtomBipartiteMultiGraph, Atom2AtomMultiGraph, \
     Object2AtomMultiGraph, Atom2AtomHigherOrderGraph, ObjectPair2ObjectPairMultiGraph, Object2ObjectGraph, \
     Object2AtomGraph, Object2AtomBipartiteGraph, Atom2AtomGraph, ObjectPair2ObjectPairGraph, Object2ObjectHeteroGraph, \
     Object2AtomHeteroGraph, Atom2AtomHeteroGraph
 from hashing import DistanceHashing
-from modelsTorch import get_compatible_model, GINEConvWrap, MyException, GINConvWrap
+from modelsTorch import get_compatible_model, GINEConvWrap, MyException, GINConvWrap, NNConvWrap
 from parsing import get_datasets
 
 
@@ -115,13 +116,14 @@ def run_domain(domain_folder, encodings, gnns, layer_nums, logger, aggrs=["add"]
 encodings = [Object2ObjectGraph, Object2ObjectMultiGraph,
              Object2AtomGraph, Object2AtomMultiGraph, Object2AtomBipartiteGraph, Object2AtomBipartiteMultiGraph,
              Atom2AtomGraph, Atom2AtomMultiGraph,
-             Object2ObjectHeteroGraph, Object2AtomHeteroGraph, Atom2AtomHeteroGraph,
+             # Object2ObjectHeteroGraph, Object2AtomHeteroGraph, Atom2AtomHeteroGraph,
              Atom2AtomHigherOrderGraph]
 # encodings = [ObjectPair2ObjectPairGraph, ObjectPair2ObjectPairMultiGraph] # long runtime
 
-convs = [GCNConv, SAGEConv, GINConvWrap, GATv2Conv, GINEConvWrap, GENConv, RGCNConv, FiLMConv, HGTConv, HANConv]    # all
+# convs = [GCNConv, SAGEConv, GINConvWrap, GATv2Conv, GINEConvWrap, GENConv, RGCNConv, FiLMConv, HGTConv, HANConv]    # all
 # convs = [SAGEConv, GENConv, RGCNConv, FiLMConv] # supports aggr
 # convs = [RGCNConv, FiLMConv, HGTConv, HANConv]  # hetero
+convs = [NNConvWrap, TransformerConv, PDNConv, GeneralConv]  # new ones
 
 layers = [4]
 # layers = [2, 8]   # 16 is too much for adding
@@ -129,6 +131,7 @@ layers = [4]
 # aggregations = ["add", "mean", "max"]
 # aggregations = ["add", "mean"]
 aggregations = ["add"]
+
 
 def main(source_folder, experiment_name):
     target_file = "./results/" + experiment_name + "_" + source_folder.split("/")[-1] + ".csv"
@@ -149,5 +152,5 @@ if __name__ == "__main__":
     try:
         experiment_name = args[1]
     except:
-        experiment_name = "test"
+        experiment_name = "newgnns"
     main(source_folder, experiment_name)

@@ -69,7 +69,7 @@ class DistanceHashing:
                 if i >= j: continue
                 difference = sum(abs(d1 - d2) for d1, d2 in zip(distances1, distances2))
                 try:
-                    if difference < epsilon:
+                    if difference < epsilon:        # todo make epsilon relative
                         near_collisions += 1
                         warnings.warn(("A different but very close prediction detected:"))
                         print('========Similar predicted values========')
@@ -79,7 +79,7 @@ class DistanceHashing:
                         print(collisions1)
                         print(collisions2)
                 except:
-                    raise MyException("Numeric overflow, maybe sum-pooling and the number of layers too high?")
+                    raise MyException("Numeric overflow - maybe sum-pooling and the number of layers too high?")
         return near_collisions
 
     def get_all_collisions(self):

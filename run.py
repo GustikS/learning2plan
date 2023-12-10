@@ -1,7 +1,7 @@
 import pprint
 
 from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, HGTConv, HANConv, FiLMConv, RGATConv, GINEConv, \
-    GENConv, NNConv
+    GENConv, NNConv, TransformerConv, PNAConv, PDNConv, GeneralConv
 
 from encoding import Object2ObjectGraph, Object2ObjectMultiGraph, Object2AtomGraph, Object2AtomBipartiteGraph, \
     Object2ObjectHeteroGraph, Object2AtomMultiGraph, Object2AtomBipartiteMultiGraph, Object2AtomHeteroGraph, \
@@ -9,7 +9,7 @@ from encoding import Object2ObjectGraph, Object2ObjectMultiGraph, Object2AtomGra
     ObjectPair2ObjectPairMultiGraph, Atom2AtomHigherOrderGraph
 
 from hashing import DistanceHashing
-from modelsTorch import PlainGNN, BipartiteGNN, GINConvWrap, HeteroGNN, get_compatible_model, GINEConvWrap
+from modelsTorch import PlainGNN, BipartiteGNN, GINConvWrap, HeteroGNN, get_compatible_model, GINEConvWrap, NNConvWrap
 from parsing import get_datasets
 
 # %% choose a dataset source
@@ -65,9 +65,13 @@ samples = dataset.get_samples(encoding)
 # gnn_type = GATv2Conv  # edge attributes only in (normalized) attention coefficients
 # gnn_type = GINEConvWrap   # edge attributes summed up with node attributes
 # gnn_type = GENConv    # edge attributes (weighted) summed up
-# gnn_type = NNConv
 
-gnn_type = RGCNConv   # separate edge types (multi-relational) parameterization support
+gnn_type = NNConvWrap
+# gnn_type = TransformerConv
+# gnn_type = PDNConv
+# gnn_type = GeneralConv
+
+# gnn_type = RGCNConv   # separate edge types (multi-relational) parameterization support
 # gnn_type = FiLMConv  # separate edge types (multi-relational) parameterization support
 # gnn_type = RGATConv  # separate edge types (multi-relational) parameterization support
 
