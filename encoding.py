@@ -166,6 +166,8 @@ class Graph(Sample, ABC):
         return data_tensor
 
     def draw(self, symbolic=True, pos=None):
+        # todo - kresleni embeddings?
+
         data = self.to_tensors()
 
         g = to_networkx(data, node_attrs=["x"], edge_attrs=["edge_attr"], graph_attrs=["y"])
@@ -343,7 +345,7 @@ class Multi(Graph, ABC):
 
 
 class Hypergraph(Graph, ABC):
-    # hyperedges are the atoms
+    # todo - hyperedges are the atoms
     incidence: []
 
 
@@ -485,6 +487,8 @@ class Object2AtomMultiGraph(Object2AtomGraph, Multi):
 
 class Object2AtomBipartiteGraph(Object2AtomGraph, Bipartite):
     """Object-atom bipartite graph, i.e. with 2 explicitly different types of nodes with different features"""
+
+    # todo - unarni atomy / features prepinac
 
     def __init__(self, state: PlanningState):
         super().__init__(state)
@@ -657,6 +661,8 @@ class Atom2AtomHeteroGraph(Atom2AtomGraph, Hetero):
 
 # %% HIGHER ORDER
 
+# todo pridat k-GNN higher-order z https://github.com/GraphPKU/PygHO ?
+
 def get_canonical(objects: [Object]):
     return sorted(objects, key=lambda x: x.name)
 
@@ -798,3 +804,5 @@ class Atom2AtomHigherOrderGraph(Atom2AtomGraph, ObjectPair2ObjectPairGraph):
             self.edge_features_symbolic.setdefault((atom1, atom2), []).extend([rel.name for rel in relations])
 
         return edge_types
+
+# todo - design an ultimate object-object-atom-atom encoding

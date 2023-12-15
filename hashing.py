@@ -71,13 +71,13 @@ class DistanceHashing:
                 try:
                     if difference < epsilon:        # todo make epsilon relative
                         near_collisions += 1
-                        warnings.warn(("A different but very close prediction detected:"))
-                        print('========Similar predicted values========')
-                        print(distances1)
-                        print(distances2)
-                        print("For the following 2 sets of states:")
-                        print(collisions1)
-                        print(collisions2)
+                        # warnings.warn(("A different but very close prediction detected:"))
+                        # print('========Similar predicted values========')
+                        # print(distances1)
+                        # print(distances2)
+                        # print("For the following 2 sets of states:")
+                        # print(collisions1)
+                        # print(collisions2)
                 except:
                     raise MyException("Numeric overflow - maybe sum-pooling and the number of layers too high?")
         return near_collisions

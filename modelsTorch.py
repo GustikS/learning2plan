@@ -99,6 +99,7 @@ def get_compatible_model(samples, model_class=SAGEConv, num_layers=3, hidden_cha
 
 
 def check_cache(sample):
+    # todo - timing - copying edge features is slow! Replace by keeping both versions from the start and switching
     if sample.cache:
         sample.edge_features = copy.deepcopy(sample.cache)
     else:

@@ -33,7 +33,7 @@ dataset.enrich_states(add_types=True, add_facts=True, add_goal=True)
 # %%  1) choose an encoding
 
 # encoding = Object2ObjectGraph
-encoding = Object2ObjectMultiGraph
+# encoding = Object2ObjectMultiGraph
 # encoding = Object2ObjectHeteroGraph
 # encoding = Object2AtomGraph
 # encoding = Object2AtomMultiGraph
@@ -47,7 +47,7 @@ encoding = Object2ObjectMultiGraph
 # encoding = ObjectPair2ObjectPairGraph
 # encoding = ObjectPair2ObjectPairMultiGraph
 #
-# encoding = Atom2AtomHigherOrderGraph
+encoding = Atom2AtomHigherOrderGraph
 
 samples = dataset.get_samples(encoding)
 
@@ -66,12 +66,12 @@ samples = dataset.get_samples(encoding)
 # gnn_type = GINEConvWrap   # edge attributes summed up with node attributes
 # gnn_type = GENConv    # edge attributes (weighted) summed up
 
-gnn_type = NNConvWrap
+# gnn_type = NNConvWrap
 # gnn_type = TransformerConv
 # gnn_type = PDNConv
 # gnn_type = GeneralConv
 
-# gnn_type = RGCNConv   # separate edge types (multi-relational) parameterization support
+gnn_type = RGCNConv   # separate edge types (multi-relational) parameterization support
 # gnn_type = FiLMConv  # separate edge types (multi-relational) parameterization support
 # gnn_type = RGATConv  # separate edge types (multi-relational) parameterization support
 
