@@ -115,13 +115,13 @@ def run_domain(domain_folder, encodings, gnns, logger, layer_nums=[4], aggrs=["a
 
 # %%
 
-# encodings = [Object2ObjectGraph, Object2ObjectMultiGraph,
-#              Object2AtomGraph, Object2AtomMultiGraph, Object2AtomBipartiteGraph, Object2AtomBipartiteMultiGraph,
-#              Atom2AtomGraph, Atom2AtomMultiGraph,
-#              # Object2ObjectHeteroGraph, Object2AtomHeteroGraph, Atom2AtomHeteroGraph,
-#              Atom2AtomHigherOrderGraph]
+encodings = [Object2ObjectGraph, Object2ObjectMultiGraph,
+             Object2AtomGraph, Object2AtomMultiGraph, Object2AtomBipartiteGraph, Object2AtomBipartiteMultiGraph,
+             Atom2AtomGraph, Atom2AtomMultiGraph,
+             # Object2ObjectHeteroGraph, Object2AtomHeteroGraph, Atom2AtomHeteroGraph,
+             Atom2AtomHigherOrderGraph]
 # encodings = [Atom2AtomHigherOrderGraph, ObjectPair2ObjectPairGraph, ObjectPair2ObjectPairMultiGraph]  # long runtime
-encodings = [ObjectPair2ObjectPairMultiGraph]
+# encodings = [ObjectPair2ObjectPairMultiGraph]
 
 convs = [GCNConv, SAGEConv, GINConvWrap, GATv2Conv, GINEConvWrap, GENConv, RGCNConv, FiLMConv, HGTConv, HANConv]    # all
 # convs = [SAGEConv, GENConv, RGCNConv, FiLMConv, NNConvWrap, GeneralConv]  # supports aggr
@@ -131,9 +131,9 @@ convs = [GCNConv, SAGEConv, GINConvWrap, GATv2Conv, GINEConvWrap, GENConv, RGCNC
 layers = [4]
 # layers = [2, 8, 16]  # 16 is too much for adding
 
-# aggregations = ["add", "mean", "max"]
+aggregations = ["add", "mean", "max"]
 # aggregations = ["add", "mean"]
-aggregations = ["add"]
+# aggregations = ["add"]
 
 # hidden = [8, 32, 128]
 hidden = [8]
