@@ -9,8 +9,8 @@ from torch_geometric.utils import to_networkx
 import networkx as nx
 from neuralogic.core import Relation, R
 
-from logic import Atom, Predicate, Object
-from planning import PlanningState
+from ..logic import Atom, Predicate, Object
+from ..planning import PlanningState
 
 
 def one_hot_index(index, length) -> [float]:

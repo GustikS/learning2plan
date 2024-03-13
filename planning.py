@@ -1,12 +1,6 @@
-import neuralogic
-from neuralogic.core import R
-from neuralogic.dataset import Dataset
-from torch_geometric.data import DataLoader
-
 from logic import DomainLanguage, Atom, Object, Predicate
 
 goal_relation_prefix = "goal_"
-
 
 class PlanningState:
     domain: DomainLanguage

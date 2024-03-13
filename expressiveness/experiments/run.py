@@ -1,16 +1,12 @@
 import pprint
 
-from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, HGTConv, HANConv, FiLMConv, RGATConv, GINEConv, \
-    GENConv, NNConv, TransformerConv, PNAConv, PDNConv, GeneralConv
+from torch_geometric.nn import SAGEConv
 
-from encoding import Object2ObjectGraph, Object2ObjectMultiGraph, Object2AtomGraph, Object2AtomBipartiteGraph, \
-    Object2ObjectHeteroGraph, Object2AtomMultiGraph, Object2AtomBipartiteMultiGraph, Object2AtomHeteroGraph, \
-    Atom2AtomGraph, Atom2AtomMultiGraph, Atom2AtomHeteroGraph, ObjectPair2ObjectPairGraph, \
-    ObjectPair2ObjectPairMultiGraph, Atom2AtomHigherOrderGraph
+from ...expressiveness.encoding import Object2ObjectGraph
 
-from hashing import DistanceHashing
-from modelsTorch import PlainGNN, BipartiteGNN, GINConvWrap, HeteroGNN, get_compatible_model, GINEConvWrap, NNConvWrap
-from parsing import get_datasets
+from ..hashing import DistanceHashing
+from ...learning.modelsTorch import get_compatible_model
+from ...parsing import get_datasets
 
 # %% choose a dataset source
 

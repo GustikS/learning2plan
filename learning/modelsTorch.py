@@ -3,13 +3,13 @@ import warnings
 from typing import List, Tuple
 
 import torch
-from torch.nn import Linear, ReLU, Sequential
+from torch.nn import Linear
 from torch_geometric.data import Data, HeteroData
-from torch_geometric.nn import GCNConv, SAGEConv, GINConv, global_mean_pool, RGCNConv, GATv2Conv, global_add_pool, \
-    MessagePassing, to_hetero, HGTConv, HANConv, FiLMConv, RGATConv, GINEConv, NNConv, PDNConv
+from torch_geometric.nn import GCNConv, SAGEConv, GINConv, global_mean_pool, RGCNConv, global_add_pool, \
+    to_hetero, HGTConv, HANConv, FiLMConv, RGATConv, GINEConv, NNConv, PDNConv
 from torch_geometric.nn import Linear as Linear_pyg
 
-from encoding import Bipartite, Hetero, Graph
+from ..expressiveness.encoding import Bipartite, Hetero
 
 torch.manual_seed(1)
 

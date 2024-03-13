@@ -4,8 +4,6 @@ from neuralogic.dataset import Dataset
 from neuralogic.nn import get_evaluator
 from neuralogic.optim import Adam
 
-from planning import PlanningDataset
-
 neuralogic.manual_seed(1)
 
 generic_name = "relation"

@@ -1,20 +1,17 @@
 import os.path
 import sys
 import warnings
-from dataclasses import dataclass
 from os import listdir
 from timeit import default_timer as timer
 
-from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, RGATConv, GENConv, FiLMConv, HGTConv, HANConv, \
-    TransformerConv, PDNConv, GeneralConv
+from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, GENConv, FiLMConv, HGTConv, HANConv
 
-from encoding import Object2ObjectMultiGraph, Object2AtomBipartiteMultiGraph, Atom2AtomMultiGraph, \
-    Object2AtomMultiGraph, Atom2AtomHigherOrderGraph, ObjectPair2ObjectPairMultiGraph, Object2ObjectGraph, \
-    Object2AtomGraph, Object2AtomBipartiteGraph, Atom2AtomGraph, ObjectPair2ObjectPairGraph, Object2ObjectHeteroGraph, \
-    Object2AtomHeteroGraph, Atom2AtomHeteroGraph
-from hashing import DistanceHashing
-from modelsTorch import get_compatible_model, GINEConvWrap, MyException, GINConvWrap, NNConvWrap
-from parsing import get_datasets
+from ..encoding import Object2ObjectMultiGraph, Object2AtomBipartiteMultiGraph, Atom2AtomMultiGraph, \
+    Object2AtomMultiGraph, Atom2AtomHigherOrderGraph, Object2ObjectGraph, \
+    Object2AtomGraph, Object2AtomBipartiteGraph, Atom2AtomGraph
+from ..hashing import DistanceHashing
+from ...learning.modelsTorch import get_compatible_model, GINEConvWrap, MyException, GINConvWrap
+from ...parsing import get_datasets
 
 
 class Logger:
