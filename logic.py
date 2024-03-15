@@ -2,9 +2,13 @@ from collections import namedtuple
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+from code.solving.lrnn import jlist
+
+# todo replace with the backend types
 Object = namedtuple("Object", "name, type, index")
 Predicate = namedtuple("Predicate", "name, arity, types, index")
 Atom = namedtuple("Atom", "predicate, terms")
+
 
 class LogicLanguage:
     objects: [Object]
@@ -33,6 +37,21 @@ class LogicLanguage:
         constants = tuple([self.objects[i] for i in ints[1:]])
         atom = Atom(predicate, constants)  # no index just yet
         return atom
+
+    @staticmethod
+    def to_backend(atoms: [Atom], backend):
+        literals = jlist([])  # todo speedup by replacing for the backend types in advance
+        for atom in atoms:
+            terms = jlist([backend.constant.construct(term.name) for term in atom.terms])
+            literals.append(backend.literal(atom.predicate.name, terms))
+        return literals
+
+    @staticmethod
+    def from_backend(literals) -> [Atom]:
+        atoms = []
+        for literal in literals:
+            atoms.append(Atom(literal.predicate.name, [term.name for term in literal.arguments()]))
+        return atoms
 
 
 class DomainLanguage(LogicLanguage):

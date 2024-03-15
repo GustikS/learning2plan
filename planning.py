@@ -1,11 +1,13 @@
-from logic import DomainLanguage, Atom, Object, Predicate
+from code.solving.lrnn import jlist, Backend
+from logic import DomainLanguage, Atom, Object, Predicate, LogicLanguage
 
 goal_relation_prefix = "goal_"
+
 
 class PlanningState:
     domain: DomainLanguage
 
-    label: int
+    label: int  # optional
 
     atoms: [Atom]  # all atoms
     propositions: [Atom]  # zero arity atoms
@@ -46,6 +48,15 @@ class PlanningState:
         state = PlanningState(domain, facts, label)
         return state
 
+    def to_backend(self, backend: Backend):
+        literals = LogicLanguage.to_backend(self.atoms, backend)
+        return backend.state(literals)
+
+    @staticmethod
+    def from_backend(backend_state):
+        atoms = LogicLanguage.from_backend(backend_state.clause.literals())
+        PlanningState(None, atoms)
+
 
 # %%
 
@@ -69,6 +80,8 @@ class Action:
         self.add_effects = [self.parse_atom(add_effect) for add_effect in add_effects]
         self.delete_effects = [self.parse_atom(delete_effect) for delete_effect in delete_effects]
 
+        self.backend_action = None
+
     def parse_atom(self, int_line: str) -> Atom:
         ints = [int(i) for i in int_line.split(" ")]
         predicate = self.domain.predicates[ints[0]]
@@ -76,28 +89,53 @@ class Action:
         atom = Atom(predicate, arguments)
         return atom
 
+    def to_backend(self, backend):
+        if self.backend_action is not None:
+            return self.backend_action
+        else:
+            preconditions = LogicLanguage.to_backend(self.preconditions, backend)
+            add_effects = LogicLanguage.to_backend(self.add_effects, backend)
+            delete_effects = LogicLanguage.to_backend(self.delete_effects, backend)
+            self.backend_action = backend.action(preconditions, add_effects, delete_effects)
+            return self.backend_action
 
-class PlanningDataset:
+
+class PlanningInstance:
     name: str
 
     domain: DomainLanguage
 
     static_facts: [Atom]
+    init: [Atom]
     actions: [Action]
     goal: [Atom]
 
-    states: [PlanningState]
-
     goal_predicates: {Predicate: Predicate}  # original -> goal version
 
-    def __init__(self, name, domain: DomainLanguage, static_facts: [Atom], actions: [Action], goal: [Atom],
-                 duplicate_goal_predicates=True, remove_duplicate_states=True):
+    def __init__(self, name, domain: DomainLanguage, static_facts: [Atom], init: [Atom], actions: [Action],
+                 goal: [Atom]):
         self.name = name
         self.domain = domain
 
         self.static_facts = static_facts
+        self.init = init
         self.actions = actions
         self.goal = goal
+
+    def to_backend(self, backend):
+        static_facts = LogicLanguage.to_backend(self.static_facts, backend)
+        init_state = LogicLanguage.to_backend(self.init, backend)
+        goal_state = LogicLanguage.to_backend(self.goal, backend)
+        actions = jlist([action.to_backend(backend) for action in self.actions])
+        return backend.instance(self.name, static_facts, init_state, goal_state, actions)
+
+
+class PlanningDataset(PlanningInstance):
+    states: [PlanningState]
+
+    def __init__(self, name, domain: DomainLanguage, static_facts: [Atom], actions: [Action], goal: [Atom],
+                 duplicate_goal_predicates=True, remove_duplicate_states=True):
+        super().__init__(name, domain, static_facts, None, actions, goal)
 
         self.states = []
 

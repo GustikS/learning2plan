@@ -2,8 +2,12 @@ from abc import ABC
 
 import neuralogic
 import jpype
+import jpype.imports
+# from java.util import ArrayList
 
 from neuralogic.core import R, V, C
+
+from code.logic import Atom
 
 
 # %%
@@ -21,6 +25,7 @@ class Backend:
         self.instance = self.get_java("cz.cvut.fel.ida.logic.grounding.planning.Instance")
         self.action = self.get_java("cz.cvut.fel.ida.logic.grounding.planning.Action")
         self.planner = self.get_java("cz.cvut.fel.ida.logic.grounding.planning.Planner")
+        self.matching = self.get_java("cz.cvut.fel.ida.logic.subsumption.Matching")
 
         self.constant = self.get_java("cz.cvut.fel.ida.logic.Constant")
         self.variable = self.get_java("cz.cvut.fel.ida.logic.Variable")

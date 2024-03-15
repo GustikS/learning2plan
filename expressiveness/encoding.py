@@ -4,6 +4,7 @@ from typing import Union, Tuple
 
 import torch
 from matplotlib import pyplot as plt
+from neuralogic.core.constructs.relation import BaseRelation
 from torch_geometric.data import Data, HeteroData
 from torch_geometric.utils import to_networkx
 import networkx as nx
@@ -70,7 +71,7 @@ class Sample(ABC):
         self.cache = {}
 
     @abstractmethod
-    def to_relations(self) -> [Relation]:
+    def to_relations(self) -> [BaseRelation]:
         pass
 
     @abstractmethod
@@ -131,7 +132,7 @@ class Graph(Sample, ABC):
     def load_edges(self, state: PlanningState, symmetric_edges=True):
         pass
 
-    def to_relations(self) -> [Relation]:
+    def to_relations(self) -> [BaseRelation]:
         relations = []
         for node, features in self.node_features.items():
             relations.append(R.get("node")(node.name)[features])
