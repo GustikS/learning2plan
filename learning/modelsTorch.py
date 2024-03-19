@@ -28,8 +28,9 @@ def get_tensor_dataset(samples):
     return data_tensors
 
 
-def get_predictions_torch(model, tensor_samples):
-    reset_model_weights(model)
+def get_predictions_torch(model, tensor_samples, reset_weights=True):
+    if reset_weights:
+        reset_model_weights(model)
     model.eval()
     predictions = []
     for tensor_sample in tensor_samples:
@@ -345,5 +346,5 @@ class NNConvWrap(NNConv):
         else:
             gin_nn = torch.nn.Sequential(
                 Linear_pyg(edge_dim, out_channels), torch.nn.Tanh(),
-                Linear_pyg(out_channels, in_channels*out_channels))
+                Linear_pyg(out_channels, in_channels * out_channels))
         super().__init__(in_channels, out_channels, nn=gin_nn, **kwargs)

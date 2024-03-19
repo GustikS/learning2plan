@@ -59,9 +59,10 @@ class LogicLanguage:
 
     def from_backend(self, literals) -> [Atom]:
         atoms = []
-        for literal in literals:
-            atoms.append(Atom(self.predicate_names[literal.predicate().name],
-                              [self.object_names[term.name()] for term in literal.arguments()]))
+        if literals:
+            for literal in literals:
+                atoms.append(Atom(self.predicate_names[literal.predicate().name],
+                                  [self.object_names[term.name()] for term in literal.arguments()]))
         return atoms
 
 

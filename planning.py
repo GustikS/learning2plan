@@ -113,6 +113,16 @@ class Action:
             self.backend_action = backend.action(self.name, preconditions, add_effects, delete_effects)
             return self.backend_action
 
+class GroundAction(Action):
+
+    def __init__(self, groundAction, domain):
+        self.domain = domain
+        self.name = groundAction.lifted.name
+
+        self.preconditions = domain.from_backend(groundAction.preconditions)
+        self.add_effects = domain.from_backend(groundAction.addEffects)
+        self.delete_effects = domain.from_backend(groundAction.deleteEffects)
+
 
 class PlanningInstance:
     name: str

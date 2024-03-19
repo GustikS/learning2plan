@@ -8,7 +8,7 @@ from torch_geometric.nn import GENConv
 
 from learning2plan.expressiveness.encoding import Object2ObjectGraph, Sample
 from learning2plan.parsing import get_datasets
-from learning2plan.planning import PlanningDataset, PlanningInstance, PlanningState
+from learning2plan.planning import PlanningDataset, PlanningInstance, PlanningState, GroundAction
 from learning2plan.solving.lrnn import Backend
 from learning2plan.solving.scoring import Scorer, TorchScorer
 
@@ -45,15 +45,15 @@ class Greedy(Search):
         plan.append((None, state))
 
         while not backend_instance.isGoal(backend_state, self.backend.matching):
-            possible_ground_actions = set()
+            backend_ground_actions = set()
             for action in backend_instance.actions:
                 substitutions = self.get_substitutions(backend_state, action)
                 ground_actions = self.ground_actions(action, substitutions)
-                possible_ground_actions.update(ground_actions)
+                backend_ground_actions.update(ground_actions)
 
-            # todo work here with the frontend actions instead?
-            sorted_action_scores = self.scorer.score_actions(state, possible_ground_actions)
-            for ground_action, action_score in sorted_action_scores.items():
+            frontend_ground_actions = [GroundAction(action, instance.domain) for action in backend_ground_actions]
+            sorted_ground_actions = self.scorer.score_actions(backend_state, state, backend_ground_actions, frontend_ground_actions)
+            for ground_action, action_score in sorted_ground_actions.items():
                 next_state = self.next_state(backend_state, ground_action)
                 if next_state not in closed:
                     backend_state = next_state
@@ -74,6 +74,6 @@ if __name__ == "__main__":
     instance.init = instance.states[0].atoms
 
     backend = Backend()
-    scorer = TorchScorer(GENConv, Object2ObjectGraph, backend)
+    scorer = TorchScorer(GENConv, Object2ObjectGraph, backend, instance)
     search = Greedy(scorer, backend)
     search.solve(instance)
