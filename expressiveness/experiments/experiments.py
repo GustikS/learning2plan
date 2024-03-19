@@ -6,12 +6,12 @@ from timeit import default_timer as timer
 
 from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, GENConv, FiLMConv, HGTConv, HANConv
 
-from ..encoding import Object2ObjectMultiGraph, Object2AtomBipartiteMultiGraph, Atom2AtomMultiGraph, \
+from learning2plan.expressiveness.encoding import Object2ObjectMultiGraph, Object2AtomBipartiteMultiGraph, Atom2AtomMultiGraph, \
     Object2AtomMultiGraph, Atom2AtomHigherOrderGraph, Object2ObjectGraph, \
     Object2AtomGraph, Object2AtomBipartiteGraph, Atom2AtomGraph
-from ..hashing import DistanceHashing
-from ...learning.modelsTorch import get_compatible_model, GINEConvWrap, MyException, GINConvWrap
-from ...parsing import get_datasets
+from learning2plan.expressiveness.hashing import DistanceHashing
+from learning2plan.learning.modelsTorch import get_compatible_model, GINEConvWrap, MyException, GINConvWrap
+from learning2plan.parsing import get_datasets
 
 
 class Logger:

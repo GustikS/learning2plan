@@ -1,5 +1,5 @@
-from code.solving.lrnn import jlist, Backend
-from logic import DomainLanguage, Atom, Object, Predicate, LogicLanguage
+from learning2plan.solving.lrnn import jlist, Backend
+from learning2plan.logic import DomainLanguage, Atom, Object, Predicate, LogicLanguage
 
 goal_relation_prefix = "goal_"
 
@@ -53,9 +53,23 @@ class PlanningState:
         return backend.state(literals)
 
     @staticmethod
-    def from_backend(backend_state):
-        atoms = LogicLanguage.from_backend(backend_state.clause.literals())
-        PlanningState(None, atoms)
+    def from_backend(backend_state, domain: DomainLanguage):
+        atoms = domain.from_backend(backend_state.clause.literals())
+        return PlanningState(domain, atoms)
+
+    def get_sample(self, structure_class: object.__class__):
+        sample = structure_class(self)
+        sample.load_state(self)
+        return sample
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        strings = []
+        for atom in self.atoms:
+            strings.append(atom.predicate.name + "(" + ",".join([term.name for term in atom.terms]) + ")")
+        return ", ".join(strings)
 
 
 # %%
@@ -96,7 +110,7 @@ class Action:
             preconditions = LogicLanguage.to_backend(self.preconditions, backend)
             add_effects = LogicLanguage.to_backend(self.add_effects, backend)
             delete_effects = LogicLanguage.to_backend(self.delete_effects, backend)
-            self.backend_action = backend.action(preconditions, add_effects, delete_effects)
+            self.backend_action = backend.action(self.name, preconditions, add_effects, delete_effects)
             return self.backend_action
 
 
@@ -105,8 +119,8 @@ class PlanningInstance:
 
     domain: DomainLanguage
 
-    static_facts: [Atom]
     init: [Atom]
+    static_facts: [Atom]
     actions: [Action]
     goal: [Atom]
 
@@ -134,7 +148,7 @@ class PlanningDataset(PlanningInstance):
     states: [PlanningState]
 
     def __init__(self, name, domain: DomainLanguage, static_facts: [Atom], actions: [Action], goal: [Atom],
-                 duplicate_goal_predicates=True, remove_duplicate_states=True):
+                 duplicate_goal_predicates=False, remove_duplicate_states=True):
         super().__init__(name, domain, static_facts, None, actions, goal)
 
         self.states = []

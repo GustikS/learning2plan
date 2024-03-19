@@ -2,7 +2,7 @@ from collections import namedtuple
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from code.solving.lrnn import jlist
+from learning2plan.solving.lrnn import jlist
 
 # todo replace with the backend types
 Object = namedtuple("Object", "name, type, index")
@@ -14,6 +14,9 @@ class LogicLanguage:
     objects: [Object]
     predicates: [Predicate]
 
+    object_names: {}
+    predicate_names: {}
+
     types: {int: str}
     supertypes: {str: str}  # type -> supertype
 
@@ -23,6 +26,7 @@ class LogicLanguage:
         self.supertypes = {obj_type: self.types[int(parent)] for i, parent, obj_type in types}
 
         self.objects = [Object(obj_name, self.types[int(obj_type)], int(i)) for i, obj_type, obj_name in objects]
+        self.object_names = {obj.name: obj for obj in self.objects}
 
         self.predicates = []
         for pred in predicates:
@@ -30,6 +34,7 @@ class LogicLanguage:
             pred_name = pred[-1]
             predicate = Predicate(pred_name, len(pred_types), tuple(pred_types), int(pred[0]))
             self.predicates.append(predicate)
+        self.predicate_names = {pred.name: pred for pred in self.predicates}
 
     def parse_atom(self, int_line: str) -> Atom:
         ints = [int(i) for i in int_line.split(" ")]
@@ -42,15 +47,21 @@ class LogicLanguage:
     def to_backend(atoms: [Atom], backend):
         literals = jlist([])  # todo speedup by replacing for the backend types in advance
         for atom in atoms:
-            terms = jlist([backend.constant.construct(term.name) for term in atom.terms])
-            literals.append(backend.literal(atom.predicate.name, terms))
+            terms = []
+            for term in atom.terms:
+                if isinstance(term, Object):
+                    terms.append(backend.constant.construct(term.name))
+                else:
+                    terms.append(backend.variable.construct(term))
+            termlist = jlist(terms)
+            literals.append(backend.literal(atom.predicate.name, termlist))
         return literals
 
-    @staticmethod
-    def from_backend(literals) -> [Atom]:
+    def from_backend(self, literals) -> [Atom]:
         atoms = []
         for literal in literals:
-            atoms.append(Atom(literal.predicate.name, [term.name for term in literal.arguments()]))
+            atoms.append(Atom(self.predicate_names[literal.predicate().name],
+                              [self.object_names[term.name()] for term in literal.arguments()]))
         return atoms
 
 
