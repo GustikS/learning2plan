@@ -6,6 +6,7 @@ from neuralogic.nn.module import GCNConv
 from neuralogic.optim import Adam
 from typing_extensions import deprecated
 
+from learning2plan.logic import LogicLanguage
 from learning2plan.planning import PlanningDataset
 
 neuralogic.manual_seed(1)
@@ -36,9 +37,10 @@ def get_predictions_LRNN(model, built_dataset, reset_weights=True):
 
 
 def get_trained_model_lrnn(dataset: PlanningDataset, encoding, model_type, learning_rate=0.001, epochs=100,
-                           batch_size=1):
+                           batch_size=1, include_actions=True):
     samples = [state.get_sample(encoding) for state in dataset.states]
-    model = LRNN(samples, model_class=model_type, num_layers=3, hidden_channels=8, aggr="add")
+    actions = dataset.actions if include_actions else None
+    model = LRNN(samples, actions=actions, model_class=model_type, num_layers=1, hidden_channels=8, aggr="add")
     model.settings.learning_rate = learning_rate
     model.settings.epochs = epochs
     model.train(samples, batch_size=batch_size)
@@ -49,7 +51,7 @@ class LRNN:
     template: Template
     model: object
 
-    def __init__(self, samples, model_class=GCNConv, num_layers=3, hidden_channels=8, aggr="add"):
+    def __init__(self, samples, actions=None, model_class=GCNConv, num_layers=3, hidden_channels=8, aggr="add"):
         sample = samples[0]
         if sample:
             first_node_features = next(iter(sample.node_features.items()))[1]
@@ -77,6 +79,8 @@ class LRNN:
 
         self.template = Template()
         self.load_gnn_template(self.template)
+        self.load_actions_template(self.template, actions)
+        self.template.draw()
         self.model = self.template.build(self.settings)
 
     def get_aggregation(self, aggr):
@@ -103,10 +107,23 @@ class LRNN:
 
         template += R.get(label_name) / 0 | [Transformation.IDENTITY]
 
+    def load_actions_template(self, template, actions):
+        for action in actions:
+            all_terms = set()
+            preconditions = []
+            for prec in action.preconditions:
+                all_terms.update(prec.terms)
+                preconditions.append(R.get(prec.predicate.name)(prec.terms)[self.hidden_channels, 1])
+            template += R.get(action.name)(all_terms) <= preconditions
+            template += R.get(label_name)[1, self.hidden_channels] <= R.get(action.name)(all_terms)[
+                self.hidden_channels, self.hidden_channels]
+
     def train(self, samples, batch_size=1):
         evaluator = get_evaluator(self.template, self.settings)
         relational_dataset = get_relational_dataset(samples)
         built_dataset = evaluator.build_dataset(relational_dataset, batch_size=batch_size)
+        for sample in built_dataset:
+            sample.draw()
         for current_total_loss, number_of_samples in evaluator.train(built_dataset.samples):
             print(current_total_loss)
         # todo check trained model retains weights
