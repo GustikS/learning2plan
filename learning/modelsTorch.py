@@ -3,13 +3,16 @@ import warnings
 from typing import List, Tuple
 
 import torch
-from torch.nn import Linear
+from torch.nn import Linear, MSELoss
+from torch.optim import Adam
 from torch_geometric.data import Data, HeteroData
+from torch_geometric.loader import DataLoader
 from torch_geometric.nn import GCNConv, SAGEConv, GINConv, global_mean_pool, RGCNConv, global_add_pool, \
     to_hetero, HGTConv, HANConv, FiLMConv, RGATConv, GINEConv, NNConv, PDNConv
 from torch_geometric.nn import Linear as Linear_pyg
 
 from learning2plan.expressiveness.encoding import Bipartite, Hetero
+from learning2plan.planning import PlanningDataset
 
 torch.manual_seed(1)
 
@@ -37,6 +40,30 @@ def get_predictions_torch(model, tensor_samples, reset_weights=True):
         prediction = model(tensor_sample)
         predictions.append(prediction.detach().item())
     return predictions
+
+
+def get_trained_model_torch(dataset: PlanningDataset, encoding, model_type, learning_rate=0.001, epochs=100,
+                            batch_size=1):
+    samples = [state.get_sample(encoding) for state in dataset.states]
+    tensor_dataset = get_tensor_dataset(samples)
+    model = get_compatible_model(samples, model_class=model_type, num_layers=2, hidden_channels=8)
+
+    criterion = MSELoss(reduction='sum')
+    optimizer = Adam(model.parameters(), lr=learning_rate)
+    dataloader = DataLoader(tensor_dataset, batch_size=batch_size)
+
+    for epoch in range(epochs):
+        lossum = 0
+        for data in dataloader:
+            optimizer.zero_grad()  # Clear gradients.
+            out = model(data)  # Perform a single forward pass.
+            loss = criterion(out, data.y)
+            loss.backward()  # Derive gradients.
+            optimizer.step()  # Update parameters based on gradients.
+            lossum += loss
+        print(epoch, " : ", lossum.detach().numpy())
+
+    return model
 
 
 def reset_model_weights(layer):

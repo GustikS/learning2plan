@@ -146,6 +146,9 @@ class PlanningInstance:
         self.actions = actions
         self.goal = goal
 
+    def load_init(self, state):
+        self.init = state.atoms
+
     def to_backend(self, backend):
         static_facts = LogicLanguage.to_backend(self.static_facts, backend)
         init_state = LogicLanguage.to_backend(self.init, backend)

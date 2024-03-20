@@ -6,6 +6,8 @@ from neuralogic.nn.module import GCNConv
 from neuralogic.optim import Adam
 from typing_extensions import deprecated
 
+from learning2plan.planning import PlanningDataset
+
 neuralogic.manual_seed(1)
 
 generic_name = "relation"
@@ -31,6 +33,16 @@ def get_predictions_LRNN(model, built_dataset, reset_weights=True):
     # output = model.evaluator.test(built_dataset, generator=False)
     output = model.model(built_dataset)
     return output
+
+
+def get_trained_model_lrnn(dataset: PlanningDataset, encoding, model_type, learning_rate=0.001, epochs=100,
+                           batch_size=1):
+    samples = [state.get_sample(encoding) for state in dataset.states]
+    model = LRNN(samples, model_class=model_type, num_layers=3, hidden_channels=8, aggr="add")
+    model.settings.learning_rate = learning_rate
+    model.settings.epochs = epochs
+    model.train(samples, batch_size=batch_size)
+    return model
 
 
 class LRNN:
@@ -90,6 +102,14 @@ class LRNN:
         template += R.get(label_name)[1,] <= R.get("node")(V.X)[1, self.num_node_features]
 
         template += R.get(label_name) / 0 | [Transformation.IDENTITY]
+
+    def train(self, samples, batch_size=1):
+        evaluator = get_evaluator(self.template, self.settings)
+        relational_dataset = get_relational_dataset(samples)
+        built_dataset = evaluator.build_dataset(relational_dataset, batch_size=batch_size)
+        for current_total_loss, number_of_samples in evaluator.train(built_dataset.samples):
+            print(current_total_loss)
+        # todo check trained model retains weights
 
     @deprecated
     def get_rules(self) -> [Rule]:

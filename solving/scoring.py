@@ -8,9 +8,8 @@ from learning2plan.planning import PlanningState, Action
 
 class Scorer(ABC):
 
-    def __init__(self, model_type, encoding_type, backend, instance):
-        # todo - need to pass a pretrained model instead of creating a new one here!
-        self.model_type = model_type
+    def __init__(self, model, encoding_type, backend, instance):
+        self.model = model
         self.encoding_type = encoding_type
         self.backend = backend
         self.instance = instance
@@ -25,17 +24,13 @@ class Scorer(ABC):
 
 class TorchScorer(Scorer):
 
-    def __init__(self, model_type, encoding_type, backend, instance):
-        super().__init__(model_type, encoding_type, backend, instance)
-        self.model = None
+    def __init__(self, model, encoding_type, backend, instance):
+        super().__init__(model, encoding_type, backend, instance)
 
     def score_states(self, states: [PlanningState]) -> {PlanningState: float}:
         samples = []
         for state in states:
             samples.append(state.get_sample(self.encoding_type))
-
-        if not self.model:
-            self.model = get_compatible_model(samples, model_class=self.model_type, num_layers=2, hidden_channels=8)
 
         tensor_dataset = get_tensor_dataset(samples)
         return get_predictions_torch(self.model, tensor_dataset, reset_weights=False)
@@ -54,17 +49,13 @@ class TorchScorer(Scorer):
 
 class LRNNScorer(Scorer):
 
-    def __init__(self, model_type, encoding_type, backend, instance):
-        super().__init__(model_type, encoding_type, backend, instance)
-        self.model = None
+    def __init__(self, model, encoding_type, backend, instance):
+        super().__init__(model, encoding_type, backend, instance)
 
     def score_states(self, states: [PlanningState]) -> {PlanningState: float}:
         samples = []
         for state in states:
             samples.append(state.get_sample(self.encoding_type))
-
-        if not self.model:
-            self.model = LRNN(samples, model_class=self.model_type, num_layers=3, hidden_channels=8, aggr="add")
 
         relational_dataset = get_relational_dataset(samples)
         built_dataset = self.model.model.build_dataset(relational_dataset)

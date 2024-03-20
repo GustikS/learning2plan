@@ -11,6 +11,8 @@ from neuralogic.nn.module import GINConv as GINrel
 from torch_geometric.nn import GCNConv
 
 from learning2plan.expressiveness.encoding import Object2ObjectGraph, Sample
+from learning2plan.learning.modelsLRNN import LRNN, get_trained_model_lrnn
+from learning2plan.learning.modelsTorch import get_trained_model_torch
 from learning2plan.parsing import get_datasets
 from learning2plan.planning import PlanningDataset, PlanningInstance, PlanningState, GroundAction
 from learning2plan.solving.lrnn import Backend
@@ -40,7 +42,7 @@ class Greedy(Search):
 
     def solve(self, instance: PlanningInstance):
         plan = []
-        closed = set()
+        closed = jpype.java.util.HashSet()
 
         backend_instance = instance.to_backend(self.backend)
         state = PlanningState(instance.domain, instance.init)
@@ -49,7 +51,12 @@ class Greedy(Search):
         plan.append((None, state))
 
         i = 0
+        last_state = None
         while not backend_instance.isGoal(backend_state, self.backend.matching):
+            if last_state == backend_state:
+                print("greedy search got stuck: no unvisited states left to expand")
+                break
+
             backend_ground_actions = set()
             for action in backend_instance.actions:
                 substitutions = self.get_substitutions(backend_state, action)
@@ -59,16 +66,22 @@ class Greedy(Search):
             frontend_ground_actions = [GroundAction(action, instance.domain) for action in backend_ground_actions]
             sorted_ground_actions = self.scorer.score_actions(backend_state, state, backend_ground_actions,
                                                               frontend_ground_actions)
+
             for ground_action, action_score in sorted_ground_actions.items():
+                # todo merge this so that the grounding is done only once
                 next_state = self.next_state(backend_state, ground_action)
-                if next_state not in closed:
+                if next_state.clause not in closed:
                     backend_state = next_state
                     state = PlanningState.from_backend(backend_state, instance.domain)
-                    closed.add(next_state)  # just check for cycles...
+                    closed.add(next_state.clause)  # just check for cycles...
                     plan.append((ground_action, state))
                     print(i, " : ", state)
                     i += 1
                     break
+                else:
+                    print("already visited")
+                    last_state = backend_state
+                    continue
         return plan
 
 
@@ -76,12 +89,18 @@ class Greedy(Search):
 
 if __name__ == "__main__":
     folder = "../../datasets/rosta/blocks"
-    datasets = get_datasets(folder, limit=1, descending=False)  # smallest dataset
-    instance = datasets[0]
-    instance.init = instance.states[0].atoms
+    datasets = get_datasets(folder, limit=1, descending=False)  # smallest first
+    instance = datasets[0]  # choose one
+    instance.load_init(instance.states[0])  # setup an artificial init state
 
+    encoding = Object2ObjectGraph
     backend = Backend()
-    scorer = TorchScorer(GCNConv, Object2ObjectGraph, backend, instance)
-    # scorer = LRNNScorer(GCNrel, Object2ObjectGraph, backend, instance)
+
+    model = get_trained_model_lrnn(instance, encoding=encoding, model_type=GCNrel, epochs=10)
+    scorer = LRNNScorer(model, encoding, backend, instance)
+
+    # model = get_trained_model_torch(instance, encoding=encoding, model_type=GCNConv, epochs=10)
+    # scorer = TorchScorer(model, encoding, backend, instance)
+
     search = Greedy(scorer, backend)
     search.solve(instance)
