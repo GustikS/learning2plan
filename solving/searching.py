@@ -4,13 +4,17 @@ import jpype
 import neuralogic
 from collections import deque
 
-from torch_geometric.nn import GENConv
+from neuralogic.nn.module import GCNConv as GCNrel
+from neuralogic.nn.module import SAGEConv as SAGErel
+from neuralogic.nn.module import GATv2Conv as GATrel
+from neuralogic.nn.module import GINConv as GINrel
+from torch_geometric.nn import GCNConv
 
 from learning2plan.expressiveness.encoding import Object2ObjectGraph, Sample
 from learning2plan.parsing import get_datasets
 from learning2plan.planning import PlanningDataset, PlanningInstance, PlanningState, GroundAction
 from learning2plan.solving.lrnn import Backend
-from learning2plan.solving.scoring import Scorer, TorchScorer
+from learning2plan.solving.scoring import Scorer, TorchScorer, LRNNScorer
 
 
 class Search(ABC):
@@ -44,6 +48,7 @@ class Greedy(Search):
 
         plan.append((None, state))
 
+        i = 0
         while not backend_instance.isGoal(backend_state, self.backend.matching):
             backend_ground_actions = set()
             for action in backend_instance.actions:
@@ -52,7 +57,8 @@ class Greedy(Search):
                 backend_ground_actions.update(ground_actions)
 
             frontend_ground_actions = [GroundAction(action, instance.domain) for action in backend_ground_actions]
-            sorted_ground_actions = self.scorer.score_actions(backend_state, state, backend_ground_actions, frontend_ground_actions)
+            sorted_ground_actions = self.scorer.score_actions(backend_state, state, backend_ground_actions,
+                                                              frontend_ground_actions)
             for ground_action, action_score in sorted_ground_actions.items():
                 next_state = self.next_state(backend_state, ground_action)
                 if next_state not in closed:
@@ -60,7 +66,8 @@ class Greedy(Search):
                     state = PlanningState.from_backend(backend_state, instance.domain)
                     closed.add(next_state)  # just check for cycles...
                     plan.append((ground_action, state))
-                    print(state)
+                    print(i, " : ", state)
+                    i += 1
                     break
         return plan
 
@@ -74,6 +81,7 @@ if __name__ == "__main__":
     instance.init = instance.states[0].atoms
 
     backend = Backend()
-    scorer = TorchScorer(GENConv, Object2ObjectGraph, backend, instance)
+    scorer = TorchScorer(GCNConv, Object2ObjectGraph, backend, instance)
+    # scorer = LRNNScorer(GCNrel, Object2ObjectGraph, backend, instance)
     search = Greedy(scorer, backend)
     search.solve(instance)
