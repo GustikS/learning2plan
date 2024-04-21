@@ -84,7 +84,9 @@ class LRNN:
 
         self.template = Template()
         self.load_gnn_template(self.template)
-        self.load_actions_template(self.template, actions)
+        if actions is not None:
+            self.load_actions_template(self.template, actions)
+            self.contains_actions = True
         self.template.draw(filename="./template_img.png")
         self.model = self.template.build(self.settings)
 
@@ -128,7 +130,7 @@ class LRNN:
         relational_dataset = get_relational_dataset(samples)
         built_dataset = evaluator.build_dataset(relational_dataset, batch_size=batch_size)
         for sample in built_dataset:
-            sample.draw(filename="sample.png")
+            # sample.draw(filename="sample.png")
             break
         for i, (current_total_loss, number_of_samples) in enumerate(evaluator.train(built_dataset.samples)):
             print(i, ": ", current_total_loss)

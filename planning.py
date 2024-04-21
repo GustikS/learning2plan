@@ -1,4 +1,4 @@
-from learning2plan.solving.lrnn import jlist, Backend
+from learning2plan.solving.backend import jlist, Backend
 from learning2plan.logic import DomainLanguage, Atom, Object, Predicate, LogicLanguage
 
 goal_relation_prefix = "goal_"
@@ -62,6 +62,12 @@ class PlanningState:
         sample.load_state(self)
         return sample
 
+    def __eq__(self, other):
+        return isinstance(other, PlanningState) and frozenset([str(atom) for atom in self.atoms]) == frozenset([str(atom) for atom in other.atoms])
+
+    def __hash__(self):
+        return hash(frozenset([str(atom) for atom in self.atoms]))
+
     def __repr__(self):
         return self.__str__()
 
@@ -70,6 +76,12 @@ class PlanningState:
         for atom in self.atoms:
             strings.append(atom.predicate.name + "(" + ",".join([term.name for term in atom.terms]) + ")")
         return ", ".join(strings)
+
+    def __lt__(self, other):
+        return True  # dummy as we don't care about random splits
+
+    def __le__(self, other):
+        return True  # dummy as we don't care about random splits
 
 
 # %%
@@ -80,6 +92,7 @@ class Action:
     domain: DomainLanguage
 
     parameter_types: [str]  # term types
+    parameter_names: [str]
 
     preconditions: [Atom]
     add_effects: [Atom]
@@ -90,6 +103,7 @@ class Action:
         self.name = name
         self.domain = domain
         self.parameter_types = [self.domain.types[int(par.split(" ")[1])] for par in parameters]
+        self.parameter_names = ["X" + str(i) for i in range(len(self.parameter_types))]
         self.preconditions = [self.parse_atom(precondition) for precondition in preconditions]
         self.add_effects = [self.parse_atom(add_effect) for add_effect in add_effects]
         self.delete_effects = [self.parse_atom(delete_effect) for delete_effect in delete_effects]
@@ -112,6 +126,7 @@ class Action:
             delete_effects = LogicLanguage.to_backend(self.delete_effects, backend)
             self.backend_action = backend.action(self.name, preconditions, add_effects, delete_effects)
             return self.backend_action
+
 
 class GroundAction(Action):
 
