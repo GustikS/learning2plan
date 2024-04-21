@@ -2,8 +2,9 @@ import neuralogic
 from neuralogic.core import Relation, R, V, Template, Settings, Transformation, Aggregation, Rule
 from neuralogic.dataset import Dataset
 from neuralogic.nn import get_evaluator
+from neuralogic.nn.loss import MSE
 from neuralogic.nn.module import GCNConv
-from neuralogic.optim import Adam
+from neuralogic.optim import Adam, SGD
 from typing_extensions import deprecated
 
 from learning2plan.logic import LogicLanguage
@@ -15,11 +16,13 @@ generic_name = "relation"
 label_name = "distance"
 
 
-def get_relational_dataset(samples):
+def get_relational_dataset(samples, include_raw_relations=True):
     logic_dataset = Dataset()
 
     for sample in samples:
         structure = sample.to_relations()
+        if include_raw_relations:
+            structure.extend(sample.raw_relations())
         logic_dataset.add_example(structure)
         logic_dataset.add_query(R.get(label_name)[sample.state.label])
 
@@ -36,11 +39,13 @@ def get_predictions_LRNN(model, built_dataset, reset_weights=True):
     return output
 
 
-def get_trained_model_lrnn(dataset: PlanningDataset, encoding, model_type, learning_rate=0.001, epochs=100,
+def get_trained_model_lrnn(dataset: PlanningDataset, encoding, model_type,
+                           optimizer="ADAM", learning_rate=0.001, epochs=100,
                            batch_size=1, include_actions=True):
     samples = [state.get_sample(encoding) for state in dataset.states]
     actions = dataset.actions if include_actions else None
     model = LRNN(samples, actions=actions, model_class=model_type, num_layers=1, hidden_channels=8, aggr="add")
+    model.settings.optimizer = Adam(learning_rate) if optimizer == "ADAM" else SGD(learning_rate)
     model.settings.learning_rate = learning_rate
     model.settings.epochs = epochs
     model.train(samples, batch_size=batch_size)
@@ -74,13 +79,13 @@ class LRNN:
         self.aggregation = self.get_aggregation(aggr)
 
         self.settings = Settings(chain_pruning=True, iso_value_compression=False,
-                                 rule_transformation=Transformation.TANH, relation_transformation=Transformation.TANH,
-                                 rule_aggregation=self.aggregation)
+                                 rule_transformation=Transformation.RELU, relation_transformation=Transformation.RELU,
+                                 rule_aggregation=self.aggregation, error_function=MSE())
 
         self.template = Template()
         self.load_gnn_template(self.template)
         self.load_actions_template(self.template, actions)
-        self.template.draw()
+        self.template.draw(filename="./template_img.png")
         self.model = self.template.build(self.settings)
 
     def get_aggregation(self, aggr):
@@ -101,7 +106,7 @@ class LRNN:
                 self.model_class(in_channels=self.hidden_channels, out_channels=self.hidden_channels,
                                  output_name=f"h{l}", feature_name=f"h{l - 1}", edge_name="edge")
             )
-        template += R.get(label_name)[1, self.hidden_channels] <= R.get(f"h{self.num_layers}")(V.X)
+        template += R.get(label_name)[1, self.hidden_channels] <= R.get(f"h{self.num_layers - 1}")(V.X)
         # todo add this?
         template += R.get(label_name)[1,] <= R.get("node")(V.X)[1, self.num_node_features]
 
@@ -123,9 +128,10 @@ class LRNN:
         relational_dataset = get_relational_dataset(samples)
         built_dataset = evaluator.build_dataset(relational_dataset, batch_size=batch_size)
         for sample in built_dataset:
-            sample.draw()
-        for current_total_loss, number_of_samples in evaluator.train(built_dataset.samples):
-            print(current_total_loss)
+            sample.draw(filename="sample.png")
+            break
+        for i, (current_total_loss, number_of_samples) in enumerate(evaluator.train(built_dataset.samples)):
+            print(i, ": ", current_total_loss)
         # todo check trained model retains weights
 
     @deprecated

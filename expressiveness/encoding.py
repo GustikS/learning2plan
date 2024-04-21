@@ -93,6 +93,12 @@ class Sample(ABC):
         else:
             return self.state.domain.nary_predicates
 
+    def raw_relations(self):
+        relations = []
+        for atom in self.state.atoms:
+            relations.append(R.get(atom.predicate.name)([term.name for term in atom.terms]))  # just add the facts as is
+        return relations
+
     def __repr__(self):
         return self.__str__()
 
@@ -806,4 +812,4 @@ class Atom2AtomHigherOrderGraph(Atom2AtomGraph, ObjectPair2ObjectPairGraph):
 
         return edge_types
 
-# todo - design an ultimate object-object-atom-atom encoding
+# todo - merge into an ultimate object-object-atom-atom encoding
