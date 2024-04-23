@@ -222,7 +222,7 @@ if __name__ == "__main__":
     encoding = Object2ObjectGraph
     backend = Backend()
 
-    model = get_trained_model_lrnn(instance, encoding=encoding, model_type=GCNrel, epochs=10)
+    model = get_trained_model_lrnn(instance, encoding=encoding, model_type=SAGErel, epochs=10)
     scorer = LRNNScorer(model, encoding, backend, instance)
 
     # model = get_trained_model_torch(instance, encoding=encoding, model_type=GCNConv, epochs=10)

@@ -8,13 +8,14 @@ from neuralogic.nn.module import GCNConv as GCNrel
 from neuralogic.nn.module import SAGEConv as SAGErel
 from neuralogic.nn.module import GATv2Conv as GATrel
 from neuralogic.nn.module import GINConv as GINrel
-from torch_geometric.nn import GCNConv
+
+from torch_geometric.nn import GCNConv, SAGEConv
 
 def train(dataset, encoding=Object2ObjectGraph, framework="lrnn", epochs=100):
     if framework == "lrnn":
-        model = get_trained_model_lrnn(dataset, encoding=encoding, model_type=GCNrel, optimizer="ADAM", epochs=epochs)
+        model = get_trained_model_lrnn(dataset, encoding=encoding, model_type=SAGErel, optimizer="ADAM", epochs=epochs)
     elif framework == "torch":
-        model = get_trained_model_torch(dataset, encoding=encoding, model_type=GCNConv, optimizer="ADAM", epochs=epochs)
+        model = get_trained_model_torch(dataset, encoding=encoding, model_type=SAGEConv, optimizer="ADAM", epochs=epochs)
     return model
 
 
