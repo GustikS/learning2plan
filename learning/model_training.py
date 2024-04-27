@@ -20,7 +20,7 @@ def train(dataset, encoding=Object2ObjectGraph, framework="lrnn", epochs=100):
 
 
 if __name__ == "__main__":
-    folder = "../datasets/blocks"
+    folder = "../datasets/textfiles/blocks"
     datasets = get_datasets(folder, limit=1, descending=False)  # smallest first
     instance = datasets[0]  # choose one
     model = train(instance, framework="lrnn")
