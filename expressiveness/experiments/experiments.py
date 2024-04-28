@@ -6,12 +6,12 @@ from timeit import default_timer as timer
 
 from torch_geometric.nn import GCNConv, SAGEConv, RGCNConv, GATv2Conv, GENConv, FiLMConv, HGTConv, HANConv
 
-from learning2plan.expressiveness.encoding import Object2ObjectMultiGraph, Object2AtomBipartiteMultiGraph, Atom2AtomMultiGraph, \
+from expressiveness.encoding import Object2ObjectMultiGraph, Object2AtomBipartiteMultiGraph, Atom2AtomMultiGraph, \
     Object2AtomMultiGraph, Atom2AtomHigherOrderGraph, Object2ObjectGraph, \
     Object2AtomGraph, Object2AtomBipartiteGraph, Atom2AtomGraph
-from learning2plan.expressiveness.hashing import DistanceHashing
-from learning2plan.learning.modelsTorch import get_compatible_model, GINEConvWrap, MyException, GINConvWrap
-from learning2plan.parsing import get_datasets
+from expressiveness.hashing import DistanceHashing
+from learning.modelsTorch import get_compatible_model, GINEConvWrap, MyException, GINConvWrap
+from parsing import get_datasets
 
 
 class Logger:
@@ -105,8 +105,8 @@ def run_domain(domain_folder, encodings, gnns, logger, layer_nums=[4], aggrs=["a
                             except Exception as err:
                                 logger.log_err(err)
                                 # raise err
-                                warnings.warn(str(err))
-                                print(f"{err=}, {type(err)=}")
+                                # warnings.warn(str(err))
+                                # print(f"{err=}, {type(err)=}")
             print(f"all_models_eval_time: {timer() - all_models_eval_time}")
 
 
@@ -137,6 +137,7 @@ hidden = [8]
 
 
 def main(source_folder, experiment_name, **kwargs):
+    os.makedirs("./results/", exist_ok=True)
     target_file = "./results/" + experiment_name + "_" + source_folder.split("/")[-1] + ".csv"
     logger = Logger(target_file)
     source_items = sorted(listdir(source_folder))
@@ -153,7 +154,10 @@ def main(source_folder, experiment_name, **kwargs):
 if __name__ == "__main__":
 
     args = sys.argv[1:]
-    source_folder = args[0]
+    try:
+        source_folder = args[0]
+    except:
+        source_folder = "../../datasets/textfiles"
     try:
         experiment_name = args[1]
     except:

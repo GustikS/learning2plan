@@ -2,17 +2,16 @@ import pprint
 
 from torch_geometric.nn import SAGEConv
 
-from learning2plan.expressiveness.encoding import Object2ObjectGraph
+from expressiveness.encoding import Object2ObjectGraph
 
-from learning2plan.expressiveness.hashing import DistanceHashing
-from learning2plan.learning.modelsTorch import get_compatible_model
-from learning2plan.parsing import get_datasets
+from expressiveness.hashing import DistanceHashing
+from learning.modelsTorch import get_compatible_model
+from parsing import get_datasets
 
 # %% choose a dataset source
 
-# folder = "./datasets/broken/debug/"
-# folder = "./datasets/rosta/tidybot"
-folder = "./datasets/beluga"
+# folder = "../../datasets/textfiles/tidybot"
+folder = "../../datasets/textfiles/beluga"
 
 # folder = "./datasets/orig/blocks"
 # folder = "./datasets/orig/rovers"
@@ -55,7 +54,7 @@ samples = dataset.get_samples(encoding)
 
 # %% 2) choose a model
 
-gnn_type = SAGEConv   # no edge attribute support
+gnn_type = SAGEConv  # no edge attribute support
 # gnn_type = GINConvWrap    # no edge attribute support
 
 # gnn_type = GCNConv    # scalar edge weights supported

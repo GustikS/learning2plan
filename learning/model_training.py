@@ -1,7 +1,7 @@
-from learning2plan.expressiveness.encoding import Object2ObjectGraph, Object2AtomGraph, Atom2AtomGraph
-from learning2plan.learning.modelsLRNN import get_trained_model_lrnn
-from learning2plan.learning.modelsTorch import get_trained_model_torch
-from learning2plan.parsing import get_datasets
+from expressiveness.encoding import Object2ObjectGraph, Object2AtomGraph, Atom2AtomGraph
+from learning.modelsLRNN import get_trained_model_lrnn
+from learning.modelsTorch import get_trained_model_torch
+from parsing import get_datasets
 
 
 from neuralogic.nn.module import GCNConv as GCNrel

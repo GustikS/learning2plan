@@ -1,5 +1,5 @@
-from learning2plan.solving.backend import jlist, Backend
-from learning2plan.logic import DomainLanguage, Atom, Object, Predicate, LogicLanguage
+from solving.backend import jlist, Backend
+from logic import DomainLanguage, Atom, Object, Predicate, LogicLanguage
 
 goal_relation_prefix = "goal_"
 
@@ -63,7 +63,8 @@ class PlanningState:
         return sample
 
     def __eq__(self, other):
-        return isinstance(other, PlanningState) and frozenset([str(atom) for atom in self.atoms]) == frozenset([str(atom) for atom in other.atoms])
+        return isinstance(other, PlanningState) and frozenset([str(atom) for atom in self.atoms]) == frozenset(
+            [str(atom) for atom in other.atoms])
 
     def __hash__(self):
         return hash(frozenset([str(atom) for atom in self.atoms]))

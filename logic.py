@@ -2,7 +2,7 @@ from collections import namedtuple
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from learning2plan.solving.backend import jlist
+from solving.backend import jlist
 
 # todo replace with the backend types
 Object = namedtuple("Object", "name, type, index")

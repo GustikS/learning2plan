@@ -1,21 +1,24 @@
 import logging
 
-import seaborn
-from matplotlib import pyplot as plt
-from matplotlib.pyplot import figure
 from neuralogic.core import R, Settings, Template, Transformation, V
 from neuralogic.dataset import FileDataset
 from neuralogic.nn import get_evaluator
 from neuralogic.nn.loss import MSE, CrossEntropy
 from neuralogic.nn.module import GATv2Conv, GCNConv, GINConv, SAGEConv
 from neuralogic.optim import Adam
+
 from samples import export_problems, load_json, parse_domain
 from sklearn.metrics import confusion_matrix
+
+import seaborn as sns
+from matplotlib import pyplot as plt
+from matplotlib.pyplot import figure
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(levelname)s [%(filename)s:%(lineno)s] %(message)s",
 )
+
 
 def satellite_regression_template(predicates, dim=10):
     template = Template()
@@ -24,7 +27,7 @@ def satellite_regression_template(predicates, dim=10):
     max_arity = max(predicates.values())
 
     # anonymizing/embedding all domain predicates
-    for predicate, arity in predicates.items():  
+    for predicate, arity in predicates.items():
         variables = [f"X{ar}" for ar in range(arity)]
         template += (R.get(f"{arity}-ary_{0}")(variables)[dim, dim] <= R.get(f"{predicate}")(variables)[dim,])
 
@@ -34,7 +37,7 @@ def satellite_regression_template(predicates, dim=10):
         template += atom_info_aggregation(max_arity, dim, layer)
 
     for layer in range(1, num_layers + 1):  # e.g. just aggregate object embeddings from the layers...
-        template +=(R.get("distance")[1, dim] <= R.get(f"h_{layer}")(V.X)[dim, dim])
+        template += (R.get("distance")[1, dim] <= R.get(f"h_{layer}")(V.X)[dim, dim])
 
     return template
 
@@ -207,7 +210,7 @@ def plot_predictions(target_labels, predicted_labels):
     logging.log(logging.INFO, "plotting predictions")
     data = confusion_matrix(target_labels, predicted_labels)
     figure(figsize=(20, 20))
-    ax = seaborn.heatmap(data, annot=True, square=True, cmap='Blues', annot_kws={"size": 7}, cbar_kws={"shrink": 0.5})
+    ax = sns.heatmap(data, annot=True, square=True, cmap='Blues', annot_kws={"size": 7}, cbar_kws={"shrink": 0.5})
     ax.set_ylabel('Actual')
     ax.set_xlabel('Predicted')
     plt.savefig('confusion.png', bbox_inches='tight')

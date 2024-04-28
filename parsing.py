@@ -1,8 +1,8 @@
 import os
 import warnings
 
-from learning2plan.logic import DomainLanguage, Atom
-from learning2plan.planning import PlanningState, PlanningDataset, Action
+from logic import DomainLanguage, Atom
+from planning import PlanningState, PlanningDataset, Action
 
 
 def get_dataset(file_path: str):

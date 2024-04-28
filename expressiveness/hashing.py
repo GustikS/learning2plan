@@ -3,9 +3,9 @@ from math import comb
 
 import torch
 
-from learning2plan.learning.modelsLRNN import get_predictions_LRNN, get_relational_dataset
-from learning2plan.learning.modelsTorch import get_tensor_dataset, get_predictions_torch, MyException
-from learning2plan.planning import PlanningState
+from learning.modelsLRNN import get_predictions_LRNN, get_relational_dataset
+from learning.modelsTorch import get_tensor_dataset, get_predictions_torch, MyException
+from planning import PlanningState
 
 
 class DistanceHashing:

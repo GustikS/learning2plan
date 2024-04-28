@@ -12,13 +12,13 @@ from neuralogic.nn.module import GATv2Conv as GATrel
 from neuralogic.nn.module import GINConv as GINrel
 from torch_geometric.nn import GCNConv
 
-from learning2plan.expressiveness.encoding import Object2ObjectGraph, Sample
-from learning2plan.learning.modelsLRNN import LRNN, get_trained_model_lrnn
-from learning2plan.learning.modelsTorch import get_trained_model_torch
-from learning2plan.parsing import get_datasets
-from learning2plan.planning import PlanningDataset, PlanningInstance, PlanningState, GroundAction
-from learning2plan.solving.backend import Backend
-from learning2plan.solving.scoring import Scorer, TorchScorer, LRNNScorer
+from expressiveness.encoding import Object2ObjectGraph, Sample
+from learning.modelsLRNN import LRNN, get_trained_model_lrnn
+from learning.modelsTorch import get_trained_model_torch
+from parsing import get_datasets
+from planning import PlanningDataset, PlanningInstance, PlanningState, GroundAction
+from solving.backend import Backend
+from solving.scoring import Scorer, TorchScorer, LRNNScorer
 
 
 class Search(ABC):
