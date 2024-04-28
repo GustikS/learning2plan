@@ -220,7 +220,7 @@ if __name__ == '__main__':
 
     # domain = "blocksworld"
     domain = "satellite"
-    numeric = True
+    numeric = False
 
     json_data = load_json(domain, numeric=numeric)
     problems, predicates, actions = parse_domain(json_data)
