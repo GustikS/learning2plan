@@ -1,12 +1,17 @@
-from neuralogic.core import Settings, Template, R
+from neuralogic.core import Settings, R
 from neuralogic.dataset import FileDataset
 from neuralogic.nn import get_evaluator
 
 from templates import basic_regression_template
 
 
-# import neuralogic
-# neuralogic.initialize(debug_mode=True)
+def generic_relational_feature():
+    return R.distance <= R.edge('X', 'Y') & R.edge('Y', 'Z') & R.edge('X', 'Z')
+
+
+def adhoc_relational_feature():
+    return R.distance <= R.on_board('Ins', 'Sat') & R.pointing('Sat', 'Star') & R.calibration_target('Ins', 'Star')
+
 
 # %%
 def dillons_rules():
@@ -32,16 +37,13 @@ def dillons_rules():
     ]
 
 
-def adhoc_rule():
-    return R.distance <= R.on_board('Ins', 'Sat') & R.pointing('Sat', 'Star') & R.calibration_target('Ins', 'Star')
-
-
 def eval_examples(dataset, template, experiment=""):
     settings = Settings(iso_value_compression=False)
     built_samples = template.build(settings).build_dataset(dataset)
 
     evaluator = get_evaluator(template, settings)
     outputs = evaluator.test(built_samples, generator=False)
+    print("experiment: " + experiment)
     print(outputs)
 
     for i, sample in enumerate(built_samples):
@@ -61,8 +63,15 @@ template = basic_regression_template(predicates, dim=1, num_layers=1)
 template.draw("template_basic.png")
 eval_examples(dataset, template, "basic")
 
+# %% let's increase the (GNN-like) template's expressiveness a bit by adding certain graphlet(s)
+
+template += generic_relational_feature()
+template.draw("template_graphlet.png")
+eval_examples(dataset, template, "graphlets")
+
 # %% add the relational feature - of course this is cheating, just showing (but such relational features can come e.g. from Treeliker)
 
-template += adhoc_rule()
+template = basic_regression_template(predicates, dim=1, num_layers=1)
+template += adhoc_relational_feature()
 template.draw("template_custom.png")
 eval_examples(dataset, template, "custom")
