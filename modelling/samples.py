@@ -1,8 +1,10 @@
 import json
+import logging
 import os
 
 
 def load_json(domain_name, numeric=False, path="../"):
+    logging.log(logging.INFO, "loading json")
     if numeric:
         json_file_path = f"{path}/datasets/jsons/{domain_name}/numeric/data.json"
     else:
@@ -16,6 +18,7 @@ def load_json(domain_name, numeric=False, path="../"):
 # TODO transform all the flags here into a class hierarchy of possible state encodings (reusing the existing classes...)
 def parse_domain(json_data, problem_limit=-1, state_limit=-1, merge_static=True,
                  encoding="ILG", logic_numbers=False, add_objects=False):
+    logging.log(logging.INFO, "parsing domain")
     actions = json_data['schemata']  # to work with these I'd also need their preconditions...
 
     functions = encode_functions(json_data['functions'], logic_numbers)
@@ -127,6 +130,7 @@ def encode_predicates(orig_predicates, encoding="ILG"):
 
 
 def export_problems(problems, domain, path="../datasets/lrnn", examples_file="examples", queries_file="queries"):
+    logging.log(logging.INFO, "exporting problems")
     domain_path = f'{path}/{domain}'
     os.makedirs(domain_path, exist_ok=True)
 

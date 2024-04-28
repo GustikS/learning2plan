@@ -1,18 +1,42 @@
-from neuralogic.core import Template, R, V, Transformation, Settings
-from neuralogic.dataset import FileDataset
-from neuralogic.nn import get_evaluator
-from neuralogic.nn.loss import MSE, CrossEntropy
-from neuralogic.optim import Adam
-
-from neuralogic.nn.module import GCNConv, SAGEConv, GINConv, GATv2Conv
-
-from sklearn.metrics import confusion_matrix
+import logging
 
 import seaborn
 from matplotlib import pyplot as plt
 from matplotlib.pyplot import figure
+from neuralogic.core import R, Settings, Template, Transformation, V
+from neuralogic.dataset import FileDataset
+from neuralogic.nn import get_evaluator
+from neuralogic.nn.loss import MSE, CrossEntropy
+from neuralogic.nn.module import GATv2Conv, GCNConv, GINConv, SAGEConv
+from neuralogic.optim import Adam
+from samples import export_problems, load_json, parse_domain
+from sklearn.metrics import confusion_matrix
 
-from learning2plan.modelling.samples import load_json, parse_domain, export_problems
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s [%(filename)s:%(lineno)s] %(message)s",
+)
+
+def satellite_regression_template(predicates, dim=10):
+    template = Template()
+
+    num_layers = 3
+    max_arity = max(predicates.values())
+
+    # anonymizing/embedding all domain predicates
+    for predicate, arity in predicates.items():  
+        variables = [f"X{ar}" for ar in range(arity)]
+        template += (R.get(f"{arity}-ary_{0}")(variables)[dim, dim] <= R.get(f"{predicate}")(variables)[dim,])
+
+    for layer in range(num_layers):
+        template += object_info_aggregation(max_arity, dim, layer)
+    for layer in range(num_layers - 1):
+        template += atom_info_aggregation(max_arity, dim, layer)
+
+    for layer in range(1, num_layers + 1):  # e.g. just aggregate object embeddings from the layers...
+        template +=(R.get("distance")[1, dim] <= R.get(f"h_{layer}")(V.X)[dim, dim])
+
+    return template
 
 
 def basic_regression_template(predicates, dim=10):
@@ -149,6 +173,7 @@ def gnn_message_passing(binary_relation, dim, num_layers=3, model_class=SAGEConv
 
 
 def build_model(data_path, template, drawing=True, regression=True):
+    logging.log(logging.INFO, "building model")
     settings = Settings(iso_value_compression=not drawing,
                         rule_transformation=Transformation.LEAKY_RELU if regression else Transformation.TANH,
                         relation_transformation=Transformation.LEAKY_RELU if regression else Transformation.SIGMOID)
@@ -158,6 +183,7 @@ def build_model(data_path, template, drawing=True, regression=True):
 
 
 def train_model(built_samples, template, regression=True):
+    logging.log(logging.INFO, "training model")
     settings = Settings(optimizer=Adam(lr=0.001),
                         epochs=100,
                         error_function=MSE() if regression else CrossEntropy())
@@ -175,6 +201,7 @@ def train_model(built_samples, template, regression=True):
 
 
 def plot_predictions(target_labels, predicted_labels):
+    logging.log(logging.INFO, "plotting predictions")
     data = confusion_matrix(target_labels, predicted_labels)
     figure(figsize=(20, 20))
     ax = seaborn.heatmap(data, annot=True, square=True, cmap='Blues', annot_kws={"size": 7}, cbar_kws={"shrink": 0.5})
@@ -191,7 +218,9 @@ if __name__ == '__main__':
     problems, predicates, actions = parse_domain(json_data)
     data_path = export_problems(problems, domain)
 
+    logging.log(logging.INFO, "building template")
     template = basic_regression_template(predicates, dim=1)
+    # template = satellite_regression_template(predicates, dim=1)
     # template.draw("template.png")
 
     built_samples = build_model(data_path, template)
