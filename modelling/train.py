@@ -139,5 +139,5 @@ if __name__ == "__main__":
     print(f"{numeric=}")
     print(f"{save_file=}")
 
-    # train(domain, numeric, save_file=save_file)
-    load(domain, numeric, save_file=save_file)
+    train(domain, numeric, save_file=save_file)
+    # load(domain, numeric, save_file=save_file)
