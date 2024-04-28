@@ -14,7 +14,8 @@ def load_json(domain_name, numeric=False, path="../"):
 
 
 # TODO transform all the flags here into a class hierarchy of possible state encodings (reusing the existing classes...)
-def parse_domain(json_data, problem_limit=-1, state_limit=-1, merge_static=True, encoding="ILG", logic_numbers=False):
+def parse_domain(json_data, problem_limit=-1, state_limit=-1, merge_static=True,
+                 encoding="ILG", logic_numbers=False, add_objects=False):
     actions = json_data['schemata']  # to work with these I'd also need their preconditions...
 
     functions = encode_functions(json_data['functions'], logic_numbers)
@@ -42,7 +43,7 @@ def parse_domain(json_data, problem_limit=-1, state_limit=-1, merge_static=True,
                 facts = facts | static_facts | static_fluents
 
             updated_facts = add_goal_info(facts, boolean_goals, encoding)
-            if encoding == "ILG":
+            if add_objects:
                 updated_facts += object_names
 
             states[tuple(updated_facts)] = encode_query(h, state["optimal_action"], actions)
@@ -79,7 +80,8 @@ def add_goal_info(facts, boolean_goals, encoding="ILG"):
         updated_facts.extend([f'[1 1] {ag}' for ag in ag_facts])
         updated_facts.extend([f'[1 0] {ap}' for ap in ap_facts])
         updated_facts.extend([f'[0 1] {ug}' for ug in ug_facts])
-    else:  # we can also deal with that later in the template in multiple ways...
+    else:  # we can also leave it as is to handle it more flexibly later in the template...
+        updated_facts = facts
         updated_facts.extend([f"goal_{fact}" for fact in boolean_goals])
     return updated_facts
 
@@ -125,15 +127,16 @@ def encode_predicates(orig_predicates, encoding="ILG"):
 
 
 def export_problems(problems, domain, path="../datasets/lrnn", examples_file="examples", queries_file="queries"):
-    os.makedirs(f'{path}/{domain}', exist_ok=True)
+    domain_path = f'{path}/{domain}'
+    os.makedirs(domain_path, exist_ok=True)
 
-    with open(f'{path}/{domain}/{examples_file}.txt', 'w') as e, open(f'{path}/{domain}/{queries_file}.txt', 'w') as q:
+    with open(f'{domain_path}/{examples_file}.txt', 'w') as e, open(f'{domain_path}/{queries_file}.txt', 'w') as q:
         for states in problems.values():
             for state, queries in states.items():
                 e.write(f'{", ".join(state)}.\n')
                 q.write(f'{", ".join(queries)}.\n')
 
-    return f'{path}/{domain}'
+    return domain_path
 
 
 if __name__ == "__main__":

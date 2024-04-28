@@ -1,15 +1,16 @@
-import seaborn
-from matplotlib import pyplot as plt
-from matplotlib.pyplot import figure
-
 from neuralogic.core import Template, R, V, Transformation, Settings
 from neuralogic.dataset import FileDataset
 from neuralogic.nn import get_evaluator
 from neuralogic.nn.loss import MSE, CrossEntropy
+from neuralogic.optim import Adam
 
 from neuralogic.nn.module import GCNConv, SAGEConv, GINConv, GATv2Conv
-from neuralogic.optim import Adam
-from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
+
+from sklearn.metrics import confusion_matrix
+
+import seaborn
+from matplotlib import pyplot as plt
+from matplotlib.pyplot import figure
 
 from learning2plan.modelling.samples import load_json, parse_domain, export_problems
 
@@ -18,11 +19,20 @@ def basic_regression_template(predicates, dim=10):
     template = Template()
 
     template += anonymous_predicates(predicates, dim)
-    template += object_info_aggregation(max(predicates.values()), dim)
-    template += gaifman_edges(max(predicates.values()), dim, "edge")
+
+    # template += object_info_aggregation(max(predicates.values()), dim)
+    # template += atom_info_aggregation(max(predicates.values()), dim)
+
+    # template += object2object_edges(max(predicates.values()), dim, "edge")
+
     # template += custom_message_passing("edge", "h0", dim)
-    template += gnn_message_passing(f"edge", dim)
-    template += final_pooling(dim, layers=[0, 1, 2])
+    # template += gnn_message_passing("edge", dim, num_layers=3)
+    # template += gnn_message_passing(f"{2}-ary", dim)
+
+    # template += objects2atoms_exhaustive_messages(predicates, dim)
+    template += objects2atoms_anonymized_messages(max(predicates.values()), dim)
+
+    template += final_pooling(dim, layers=[1, 2, 3])
 
     return template
 
@@ -32,55 +42,108 @@ def basic_classification_template(predicates, dim=10):
     # TODO the action prediction...
 
 
-def final_pooling(hidden, query_name="distance", layers=[0, 1, 2]):
-    rules = []
-    for layer in layers:
-        rules.append(R.get(query_name)[1, hidden] <= R.get(f"h{layer}")(V.X)[hidden, hidden])
-    return rules
-
-
-def object_info_aggregation(max_arity, dim, unary_only=False):
-    rules = []
-    max_arity = 1 if unary_only else max_arity
-    for arity in range(0, max_arity + 1):
-        variables = [f"X{ar}" for ar in range(arity)]
-        # all objects calculate their embeddings by aggregating info from connected atoms
-        positions = range(arity) if arity else [0]  # add also nullary relations here...
-        rules += [R.get(f"h{0}")(f'X{i}')[dim, dim] <= R.get(f"{arity}-ary")(variables)[dim, dim] for i in positions]
-    return rules
-
-
 def anonymous_predicates(predicates, dim):
+    """map all the domain predicates to newly derived ones (anonymous) while respecting the same arity"""
     rules = []
     for predicate, arity in predicates.items():  # anonymizing/embedding all domain predicates
         variables = [f"X{ar}" for ar in range(arity)]
-        rules.append(R.get(f"{arity}-ary")(variables)[dim, dim] <= R.get(f"{predicate}")(variables)[dim,])
+        rules.append(R.get(f"{arity}-ary_{0}")(variables)[dim, dim] <= R.get(f"{predicate}")(variables)[dim,])
     return rules
 
 
-def gaifman_edges(max_arity, dim, edge_name="edge"):
+def final_pooling(hidden, layers, query_name="distance"):
+    """aggregate all relevant info from the computation graph for a final output"""
+    rules = []
+    for layer in layers:  # e.g. just aggregate object embeddings from the layers...
+        rules.append(R.get(query_name)[1, hidden] <= R.get(f"h_{layer}")(V.X)[hidden, hidden])
+    return rules
+
+
+def object_info_aggregation(max_arity, dim, layer=0, unary_only=False, add_nullary=True):
+    """objects aggregate info from all the atoms they are associated with"""
+    rules = []
+    max_arity = 1 if unary_only else max_arity  # only absorb unary predicates (typical "features")
+    for arity in range(0, max_arity + 1):
+        variables = [f"X{ar}" for ar in range(arity)]
+        # all objects calculate their embeddings by aggregating info from all associated atoms
+        positions = range(arity) if arity else [0] if add_nullary else []  # optionally add also nullary atoms here
+        rules += [R.get(f"h_{layer + 1}")(f'X{i}')[dim, dim] <=
+                  R.get(f"{arity}-ary_{layer}")(variables)[dim, dim] for i in positions]
+    return rules
+
+
+def atom_info_aggregation(max_arity, dim, layer=0):
+    """vice-versa, atoms aggregate info from all the objects they contain"""
+    rules = []
+    for arity in range(0, max_arity + 1):
+        variables = [f"X{ar}" for ar in range(arity)]
+        rules.append(R.get(f"{arity}-ary_{layer + 1}")(variables)[dim, dim] <=
+                     [R.get(f'h_{layer + 1}')(f'X{i}')[dim, dim] for i in range(arity)] + [
+                         R.get(f"{arity}-ary_{layer}")(variables)[dim, dim]])
+    return rules
+
+
+def object2object_edges(max_arity, dim, edge_name="edge"):
+    """i.e. constructing the GAIFMAN graph's binary relation (derived/anonymous)"""
     rules = []
     for arity in range(0, max_arity + 1):
         variables = [f"X{ar}" for ar in range(arity)]
         pairs = ((i, j) for i in variables for j in variables if i != j)  # all pairwise interactions
-        rules += [R.get(edge_name)(pair)[dim, dim] <= R.get(f"{arity}-ary")(variables)[dim, dim] for pair in pairs]
+        rules += [R.get(edge_name)(pair)[dim, dim] <= R.get(f"{arity}-ary_{0}")(variables)[dim, dim] for pair in pairs]
     return rules
 
 
-def custom_message_passing(binary_relation, unary_relation, dim, bidirectional=True):
+def objects2atoms_anonymized_messages(max_arity, dim, num_layers=3):
+    """i.e. something like message-passing on the bipartite object-atom (ILG,munin,...) graph representation,
+    while using the derived (anonymous) relations"""
     rules = []
-    rules.append(R.get("h1")(V.X)[dim, dim] <=
+    for layer in range(num_layers):
+        rules += object_info_aggregation(max_arity, dim, layer)
+    for layer in range(num_layers - 1):
+        rules += atom_info_aggregation(max_arity, dim, layer)
+    return rules
+
+
+def objects2atoms_exhaustive_messages(predicates, dim, num_layers=3, object_name="h"):
+    """i.e. even closer to something like GNNs on the bipartite (ILG,munin,...) graph representation,
+    passing messages on the ORIGINAL relations (as opposed to the anonymized ones, which is more compact)"""
+    rules = []
+    for predicate, arity in predicates.items():  # anonymizing/embedding all domain predicates
+        if not arity:
+            continue  # here we just skip the nullary atoms
+        variables = [f"X{i}" for i in range(arity)]
+        for layer in range(1, num_layers):
+            # objects -> atom
+            rules.append(R.get(f"h_{predicate}_{layer}")(variables)[dim, dim] <=
+                         [R.get(f'{object_name}_{layer}')(f'X{i}')[dim, dim] for i in range(arity)] + [
+                             R.get(f"_{predicate}")(variables)])
+            # atom => objects
+            rules += [R.get(f'{object_name}_{layer}')(f'X{i}')[dim, dim] <=
+                      R.get(f"h_{predicate}_{layer}")(variables)[dim, dim] for i in range(arity)]
+    return rules
+
+
+def atom2atom_messages(max_arity, dim, num_layers=3):
+    # TODO the last remaining (classic) message-passing mode...
+    pass
+
+
+def custom_message_passing(binary_relation, unary_relation, dim, layer=1, bidirectional=True):
+    """just a custom rule for passing a message/features (unary_relation) along a given binary relation (binary_relation)"""
+    rules = []
+    rules.append(R.get(f"h{layer}")(V.X)[dim, dim] <=
                  R.get(binary_relation)(V.X, V.Y)[dim, dim] & R.get(unary_relation)(V.Y)[dim, dim])
     if bidirectional:
-        rules.append(R.get("h1")(V.X)[dim, dim] <=
+        rules.append(R.get(f"h{layer}")(V.X)[dim, dim] <=
                      R.get(binary_relation)(V.Y, V.X)[dim, dim] & R.get(unary_relation)(V.Y)[dim, dim])
     return rules
 
 
 def gnn_message_passing(binary_relation, dim, num_layers=3, model_class=SAGEConv):
+    """classic message passing reusing some existing GNN models as implemented in LRNN rules..."""
     rules = []
     for layer in range(1, num_layers):
-        rules += model_class(dim, dim, output_name=f"h{layer}", feature_name=f"h{layer - 1}",
+        rules += model_class(dim, dim, output_name=f"h_{layer + 1}", feature_name=f"h_{layer}",
                              edge_name=binary_relation)()
     return rules
 
