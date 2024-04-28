@@ -24,6 +24,7 @@ def parse_domain(json_data, problem_limit=-1, state_limit=-1, merge_static=True,
     functions = encode_functions(json_data['functions'], logic_numbers)
     predicates = encode_predicates(json_data['predicates'], encoding)
     predicates.update(functions)  # I think these are just the same thing?
+    is_numeric = len(functions) > 0
 
     problems = {}
     for problem in json_data['problems'][:problem_limit]:
@@ -45,7 +46,7 @@ def parse_domain(json_data, problem_limit=-1, state_limit=-1, merge_static=True,
             if merge_static:  # add also static facts and fluents
                 facts = facts | static_facts | static_fluents
 
-            updated_facts = add_goal_info(facts, boolean_goals, encoding)
+            updated_facts = add_goal_info(facts, boolean_goals, is_numeric, encoding)
             if add_objects:
                 updated_facts += object_names
 
@@ -70,7 +71,7 @@ def encode_query(h, optimal_action, all_actions, regression=True):
         return queries
 
 
-def add_goal_info(facts, boolean_goals, encoding="ILG"):
+def add_goal_info(facts, boolean_goals, is_numeric_problem, encoding="ILG"):
     ag_facts = facts.intersection(boolean_goals)
     ap_facts = facts.difference(boolean_goals)
     ug_facts = boolean_goals.difference(facts)
@@ -78,15 +79,39 @@ def add_goal_info(facts, boolean_goals, encoding="ILG"):
     if encoding == "ILG":  # new predicate copies
         for desc, fact_group in [("ag", ag_facts), ("ap", ap_facts), ("ug", ug_facts)]:
             for fact in fact_group:
-                updated_facts.append(f"{desc}_{fact}")
+                if is_numeric_problem:
+                    value, fact = split_value(fact)
+                    updated_facts.append(f"<{value}> {desc}_{fact}")
+                else:
+                    updated_facts.append(f"{desc}_{fact}")
     elif encoding == "numeric":  # just a numeric flag of the same info (no copies)
-        updated_facts.extend([f'[1 1] {ag}' for ag in ag_facts])
-        updated_facts.extend([f'[1 0] {ap}' for ap in ap_facts])
-        updated_facts.extend([f'[0 1] {ug}' for ug in ug_facts])
+        if is_numeric_problem:
+            for ag in ag_facts:
+                value, fact = split_value(ag)
+                updated_facts.append(f'<[1, 1, {value}]> {fact}')
+            for ag in ap_facts:
+                value, fact = split_value(ag)
+                updated_facts.append(f'<[1, 0, {value}]> {fact}')
+            for ag in ug_facts:
+                value, fact = split_value(ag)
+                updated_facts.append(f'<[0, 1, {value}]> {fact}')
+        else:
+            updated_facts.extend([f'<[1, 1]> {ag}' for ag in ag_facts])
+            updated_facts.extend([f'<[1, 0]> {ap}' for ap in ap_facts])
+            updated_facts.extend([f'<[0, 1]> {ug}' for ug in ug_facts])
     else:  # we can also leave it as is to handle it more flexibly later in the template...
         updated_facts = facts
         updated_facts.extend([f"goal_{fact}" for fact in boolean_goals])
     return updated_facts
+
+
+def split_value(atom):
+    try:
+        split = atom.split(" ")
+        value = float(split[0])  # check for numeric/valued facts
+        return value, ' '.join(split[1:])
+    except:
+        return 1, atom
 
 
 def encode_fluents(fluents, logical=False):

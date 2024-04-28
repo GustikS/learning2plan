@@ -54,7 +54,7 @@ def basic_regression_template(predicates, dim=10):
     # template += gnn_message_passing(f"{2}-ary", dim)
 
     # template += objects2atoms_exhaustive_messages(predicates, dim)
-    template += objects2atoms_anonymized_messages(max(predicates.values()), dim)
+    template += objects2atoms_anonymized_messages(max(predicates.values()), dim, num_layers=3)
 
     template += final_pooling(dim, layers=[1, 2, 3])
 
@@ -66,12 +66,15 @@ def basic_classification_template(predicates, dim=10):
     # TODO the action prediction...
 
 
-def anonymous_predicates(predicates, dim):
-    """map all the domain predicates to newly derived ones (anonymous) while respecting the same arity"""
+def anonymous_predicates(predicates, dim, input_dim=1):
+    """
+    map all the domain predicates to newly derived ones (anonymous) while respecting the same arity
+    *input_dim* = 3 for our numeric encoding of the goal info into the predicates, or just 1 otherwise
+    """
     rules = []
     for predicate, arity in predicates.items():  # anonymizing/embedding all domain predicates
         variables = [f"X{ar}" for ar in range(arity)]
-        rules.append(R.get(f"{arity}-ary_{0}")(variables)[dim, dim] <= R.get(f"{predicate}")(variables)[dim,])
+        rules.append(R.get(f"{arity}-ary_{0}")(variables)[dim, dim] <= R.get(f"{predicate}")(variables)[dim, input_dim])
     return rules
 
 
@@ -212,19 +215,24 @@ def plot_predictions(target_labels, predicted_labels):
 
 
 if __name__ == '__main__':
-    domain = "blocksworld"
-    # domain = "satellite"
-    json_data = load_json(domain, numeric=False)
+    # import neuralogic
+    # neuralogic.initialize(debug_mode=True)
+
+    # domain = "blocksworld"
+    domain = "satellite"
+    numeric = True
+
+    json_data = load_json(domain, numeric=numeric)
     problems, predicates, actions = parse_domain(json_data)
     data_path = export_problems(problems, domain)
 
     logging.log(logging.INFO, "building template")
-    template = basic_regression_template(predicates, dim=1)
-    # template = satellite_regression_template(predicates, dim=1)
-    # template.draw("template.png")
+    # template = satellite_regression_template(predicates, dim=3)
+    template = basic_regression_template(predicates, dim=3)
+    # template.draw("./imgs/template.png")
 
     built_samples = build_model(data_path, template)
-    # built_samples[0].draw("sample.png")
+    # built_samples[0].draw("./imgs/sample.png")
 
     target_labels, predicted_labels = train_model(built_samples, template)
     plot_predictions(target_labels, predicted_labels)
