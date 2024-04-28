@@ -39,7 +39,8 @@ def dillons_rules():
 
 def eval_examples(dataset, template, experiment=""):
     settings = Settings(iso_value_compression=False)
-    built_samples = template.build(settings).build_dataset(dataset)
+    model = template.build(settings)
+    built_samples = model.build_dataset(dataset)
 
     evaluator = get_evaluator(template, settings)
     outputs = evaluator.test(built_samples, generator=False)
@@ -75,3 +76,6 @@ template = basic_regression_template(predicates, dim=1, num_layers=1)
 template += adhoc_relational_feature()
 template.draw("template_custom.png")
 eval_examples(dataset, template, "custom")
+
+
+# %%

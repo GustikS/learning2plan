@@ -2,27 +2,24 @@ from neuralogic.core import R, Settings, Template, Transformation, V
 from neuralogic.nn.module import GATv2Conv, GCNConv, GINConv, SAGEConv
 
 
-def basic_regression_template(predicates, dim=10):
+def basic_regression_template(predicates, dim=10, num_layers=3):
     template = Template()
 
     template += anonymous_predicates(predicates, dim)
 
-    # template += object_info_aggregation(max(predicates.values()), dim)
+    template += object_info_aggregation(max(predicates.values()), dim)
     # template += atom_info_aggregation(max(predicates.values()), dim)
 
-    # template += object2object_edges(max(predicates.values()), dim, "edge")
+    template += object2object_edges(max(predicates.values()), dim, "edge")
 
     # template += custom_message_passing("edge", "h0", dim)
-    # template += gnn_message_passing("edge", dim, num_layers=3)
-    # template += gnn_message_passing(f"{2}-ary", dim)
+    template += gnn_message_passing("edge", dim, num_layers=num_layers)
+    # template += gnn_message_passing(f"{2}-ary", dim, num_layers=num_layers)
 
-    # template += objects2atoms_exhaustive_messages(predicates, dim)
-    template += objects2atoms_anonymized_messages(
-        max(predicates.values()), dim, num_layers=3
-    )
+    # template += objects2atoms_exhaustive_messages(predicates, dim, num_layers=num_layers)
+    # template += objects2atoms_anonymized_messages(max(predicates.values()), dim, num_layers=num_layers)
 
-    template += final_pooling(dim, layers=[1, 2, 3])
-
+    template += final_pooling(dim, layers=range(1, num_layers + 2))
     return template
 
 
@@ -37,10 +34,8 @@ def anonymous_predicates(predicates, dim, input_dim=1):
     *input_dim* = 3 for our numeric encoding of the goal info into the predicates, or just 1 otherwise
     """
     rules = []
-    for (
-        predicate,
-        arity,
-    ) in predicates.items():  # anonymizing/embedding all domain predicates
+    # anonymizing/embedding all domain predicates
+    for (predicate, arity) in predicates.items():
         variables = [f"X{ar}" for ar in range(arity)]
         rules.append(
             R.get(f"{arity}-ary_{0}")(variables)[dim, dim]
@@ -59,14 +54,11 @@ def final_pooling(hidden, layers, query_name="distance"):
     return rules
 
 
-def object_info_aggregation(
-    max_arity, dim, layer=0, unary_only=False, add_nullary=True
-):
+def object_info_aggregation(max_arity, dim, layer=0, unary_only=False, add_nullary=True):
     """objects aggregate info from all the atoms they are associated with"""
     rules = []
-    max_arity = (
-        1 if unary_only else max_arity
-    )  # only absorb unary predicates (typical "features")
+    # only absorb unary predicates (typical "features")
+    max_arity = (1 if unary_only else max_arity)
     for arity in range(0, max_arity + 1):
         variables = [f"X{ar}" for ar in range(arity)]
         # all objects calculate their embeddings by aggregating info from all associated atoms
@@ -126,10 +118,8 @@ def objects2atoms_exhaustive_messages(predicates, dim, num_layers=3, object_name
     passing messages on the ORIGINAL relations (as opposed to the anonymized ones, which is more compact)
     """
     rules = []
-    for (
-        predicate,
-        arity,
-    ) in predicates.items():  # anonymizing/embedding all domain predicates
+    # anonymizing/embedding all domain predicates
+    for (predicate, arity) in predicates.items():
         if not arity:
             continue  # here we just skip the nullary atoms
         variables = [f"X{i}" for i in range(arity)]
@@ -157,9 +147,7 @@ def atom2atom_messages(max_arity, dim, num_layers=3):
     pass
 
 
-def custom_message_passing(
-    binary_relation, unary_relation, dim, layer=1, bidirectional=True
-):
+def custom_message_passing(binary_relation, unary_relation, dim, layer=1, bidirectional=True):
     """just a custom rule for passing a message/features (unary_relation) along a given binary relation (binary_relation)"""
     rules = []
     rules.append(
@@ -179,7 +167,7 @@ def custom_message_passing(
 def gnn_message_passing(binary_relation, dim, num_layers=3, model_class=SAGEConv):
     """classic message passing reusing some existing GNN models as implemented in LRNN rules..."""
     rules = []
-    for layer in range(1, num_layers):
+    for layer in range(1, num_layers + 1):
         rules += model_class(
             dim,
             dim,

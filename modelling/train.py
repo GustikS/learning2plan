@@ -38,7 +38,7 @@ def predict(built_samples, template, train: bool, regression=True):
 
     if train:
         for i, (current_total_loss, number_of_samples) in enumerate(
-            evaluator.train(built_samples.samples)
+                evaluator.train(built_samples.samples)
         ):
             print(
                 f"epoch: {i} total loss: {current_total_loss} samples updated: {number_of_samples}"
