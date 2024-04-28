@@ -42,24 +42,24 @@ def satellite_regression_template(predicates, dim=10):
     return template
 
 
-def basic_regression_template(predicates, dim=10):
+def basic_regression_template(predicates, dim=10, num_layers=3):
     template = Template()
 
     template += anonymous_predicates(predicates, dim)
 
-    # template += object_info_aggregation(max(predicates.values()), dim)
+    template += object_info_aggregation(max(predicates.values()), dim)
     # template += atom_info_aggregation(max(predicates.values()), dim)
 
-    # template += object2object_edges(max(predicates.values()), dim, "edge")
+    template += object2object_edges(max(predicates.values()), dim, "edge")
 
     # template += custom_message_passing("edge", "h0", dim)
-    # template += gnn_message_passing("edge", dim, num_layers=3)
-    # template += gnn_message_passing(f"{2}-ary", dim)
+    template += gnn_message_passing("edge", dim, num_layers=num_layers)
+    # template += gnn_message_passing(f"{2}-ary", dim, num_layers=num_layers)
 
-    # template += objects2atoms_exhaustive_messages(predicates, dim)
-    template += objects2atoms_anonymized_messages(max(predicates.values()), dim, num_layers=3)
+    # template += objects2atoms_exhaustive_messages(predicates, dim, num_layers=num_layers)
+    # template += objects2atoms_anonymized_messages(max(predicates.values()), dim, num_layers=num_layers)
 
-    template += final_pooling(dim, layers=[1, 2, 3])
+    template += final_pooling(dim, layers=range(1, num_layers + 2))
 
     return template
 
@@ -172,7 +172,7 @@ def custom_message_passing(binary_relation, unary_relation, dim, layer=1, bidire
 def gnn_message_passing(binary_relation, dim, num_layers=3, model_class=SAGEConv):
     """classic message passing reusing some existing GNN models as implemented in LRNN rules..."""
     rules = []
-    for layer in range(1, num_layers):
+    for layer in range(1, num_layers + 1):
         rules += model_class(dim, dim, output_name=f"h_{layer + 1}", feature_name=f"h_{layer}",
                              edge_name=binary_relation)()
     return rules
@@ -213,7 +213,7 @@ def plot_predictions(target_labels, predicted_labels):
     ax = sns.heatmap(data, annot=True, square=True, cmap='Blues', annot_kws={"size": 7}, cbar_kws={"shrink": 0.5})
     ax.set_ylabel('Actual')
     ax.set_xlabel('Predicted')
-    plt.savefig('confusion.png', bbox_inches='tight')
+    plt.savefig('./imgs/confusion.png', bbox_inches='tight')
     plt.show()
 
 

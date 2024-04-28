@@ -83,7 +83,7 @@ if __name__ == "__main__":
 
     instance = b.instance("instance0", jlist(static_facts), jlist(init), jlist(goal), jlist(actions))
 
-    planner = b.planner()
+    planner = b.planner
     solution = planner.solveGreedy(instance)
 
     for state in solution:
