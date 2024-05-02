@@ -40,9 +40,12 @@ def main():
             predicate = toks[0]
             objects = toks[1].replace(")", "").split(",")
             prec_vars = [V.get(parameter_remap[a]) for a in objects]
-            literal = R.get(predicate)(prec_vars)
             if p.negated:
-                literal = ~literal
+                template += R.get(f'n_{predicate}')(prec_vars) <= R.get(predicate)(prec_vars)   # won't be necessary in the next release...
+                literal = ~R.get(f'n_{predicate}')(prec_vars)
+            else:
+                literal = R.get(predicate)(prec_vars)
+
             body.append(literal)
 
         body = tuple(body)
@@ -68,8 +71,8 @@ def main():
     engine = InferenceEngine(template)
     turn_to_actions = engine.query(R.turn_to(V.X0, V.X1, V.X2))
     switch_on_actions = engine.query(R.switch_on(V.X0, V.X1))
-    print(f"{turn_to_actions=} <==== this should NOT be empty...")
-    print(f"{switch_on_actions=}")
+    print(f"{turn_to_actions} <==== this should NOT be empty...")
+    print(f"{switch_on_actions}")
 
     ## successor generator usage
     applicable_actions = successor_generator.get_applicable_actions(initial_state)

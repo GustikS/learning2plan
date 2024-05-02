@@ -13,6 +13,13 @@ def adhoc_relational_feature():
     return R.distance <= R.on_board('Ins', 'Sat') & R.pointing('Sat', 'Star') & R.calibration_target('Ins', 'Star')
 
 
+def dillons_relational_feature():
+    return (R.distance <=
+            R.on_board('Ins', 'Sat') & R.pointing('Sat', 'Star') &
+            R.calibration_target('Ins', 'Star') & R.supports('I', 'M')
+            )
+
+
 # %%
 def dillons_rules():
     return [
@@ -48,7 +55,7 @@ def eval_examples(dataset, template, experiment=""):
     print(outputs)
 
     for i, sample in enumerate(built_samples):
-        sample.draw(f"counter_sample{i}_{experiment}.png")
+        sample.draw(f"./imgs/counter_sample{i}_{experiment}.png")
 
 
 # %%
@@ -61,21 +68,18 @@ predicates = {"on_board": 2, "supports": 2, "calibration_target": 2, "power_avai
 # %% these counterexamples are indeed indistinguishable with classic template(s)
 
 template = basic_regression_template(predicates, dim=1, num_layers=1)
-template.draw("template_basic.png")
+template.draw("./imgs/template_basic.png")
 eval_examples(dataset, template, "basic")
 
 # %% let's increase the (GNN-like) template's expressiveness a bit by adding certain graphlet(s)
 
 template += generic_relational_feature()
-template.draw("template_graphlet.png")
+template.draw("./imgs/template_graphlet.png")
 eval_examples(dataset, template, "graphlets")
 
 # %% add the relational feature - of course this is cheating, just showing (but such relational features can come e.g. from Treeliker)
 
 template = basic_regression_template(predicates, dim=1, num_layers=1)
 template += adhoc_relational_feature()
-template.draw("template_custom.png")
+template.draw("./imgs/template_custom.png")
 eval_examples(dataset, template, "custom")
-
-
-# %%
