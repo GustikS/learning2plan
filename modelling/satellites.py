@@ -1,7 +1,6 @@
-from neuralogic.core import Settings, R
+from neuralogic.core import R, Settings
 from neuralogic.dataset import FileDataset
 from neuralogic.nn import get_evaluator
-
 from templates import basic_regression_template
 
 

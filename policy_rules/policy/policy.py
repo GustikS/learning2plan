@@ -1,5 +1,7 @@
+""" Make use of neuralogic and pymimir to encode policies as Horn clause rules"""
 import time
 from abc import abstractmethod
+from itertools import product
 from typing import Union
 
 from neuralogic.core import C, R, Template, V
@@ -9,6 +11,8 @@ from pymimir import ActionSchema, Atom, Domain, Literal
 
 Schema = Union[str, ActionSchema]
 
+## TODO: add typing from pddl files
+
 class Policy:
     def __init__(self, domain: Domain):
         self._domain = domain
@@ -16,17 +20,29 @@ class Policy:
         self._predicates = self._domain.predicates
         self._name_to_schema = {schema.name: schema for schema in self._schemata}
 
-    def solve(self, state: list[Atom], goal: list[Literal]):
-        """ goal may have negative literals """
+    def solve(self, state: list[Atom], goal: list[Literal]) -> list[str]:
+        """ given a state and goal pair, return possible actions from policy rules """
         self._template = Template()
         self._add_state(state, goal)
+        self._add_predicate_copies()
         self.add_policy_rules()
+
+        print(self._template)
+        print("="*80)
+
         engine = InferenceEngine(self._template)
-        ret = {}
 
+        ret = []
         for schema in self._schemata:
-            ret[schema.name] = engine.query(self.relation_from_schema(schema.name))
-
+            assignments = engine.query(self.relation_from_schema(schema.name))
+            param_to_index = {p.name: i for i, p in enumerate(schema.parameters)}
+            for assignment in assignments:
+                ret_action = schema.name
+                objects = [""] * len(schema.parameters)
+                for var, val in assignment.items():
+                    objects[param_to_index[f"?{var.lower()}"]] = val
+                ret_action = f"{ret_action}({', '.join(objects)})"
+                ret.append(ret_action)
         return ret
 
     @abstractmethod
@@ -35,22 +51,24 @@ class Policy:
     
     def _add_predicate_copies(self) -> None:
         """ add ug, ag, ap copies of predicates and rules """
-        for predicate in self._predicates:
-            self._template += R.get(f"ag_{predicate.name}") >= R.get(predicate.name)
-            self._template += R.get(f"ap_{predicate.name}") >= R.get(predicate.name)
-            ## do not add ug as it is unachieved
+        ## do not add ug as it is unachieved
+        for prefix, predicate in product(["ag", "ap"], self._predicates):
+            variables = [V.get(f"X{i}") for i in range(predicate.arity)]
+            self._template += R.get(f"{prefix}_{predicate.name}")(variables) >= R.get(predicate.name)(variables)
     
     def relation_from_schema(self, schema: Schema) -> BaseRelation:
         if isinstance(schema, str):
             schema = self._name_to_schema[schema]
-        head = R.get(schema.name)([f"X{i}" for i in range(len(schema.parameters))])
+        parameters = [p.name.replace("?", "").upper() for p in schema.parameters]
+        parameters = [V.get(p) for p in parameters]
+        head = R.get(schema.name)(parameters)
         return head
 
     def get_schema_preconditions(self, schema: Schema) -> list[BaseRelation]:
         if isinstance(schema, str):
             schema = self._name_to_schema[schema]
         parameters = [p.name for p in schema.parameters]
-        parameter_remap = {p: f"X{i}" for i, p in enumerate(parameters)}
+        parameter_remap = {p: p.replace("?", "").upper() for p in parameters}
         body = []
         for p in schema.precondition:
             toks = p.atom.get_name().replace(" ", "").split("(")
@@ -64,19 +82,18 @@ class Policy:
                 literal = ~R.get(f"n_{predicate}")(prec_vars)
             else:
                 literal = R.get(predicate)(prec_vars)
-
             body.append(literal)
         return body
     
     def _add_state(self, state: list[Atom], goal: list[Literal]) -> None:
-        state = set(state)
+        state = set([atom.get_name() for atom in state])
         pos_goals = set()
         neg_goals = set()
         for g in goal:
             if g.negated:
-                neg_goals.add(g.atom)
+                neg_goals.add(g.atom.get_name())
             else:
-                pos_goals.add(g.atom)
+                pos_goals.add(g.atom.get_name())
         if len(neg_goals):
             raise NotImplementedError("Negative goals are not supported yet")
         
@@ -88,7 +105,7 @@ class Policy:
 
         for prefix, atoms in atoms_by_type.items():
             for atom in atoms:
-                toks = atom.get_name().split("(")
+                toks = atom.split("(")
                 assert len(toks) <= 2
                 predicate = toks[0]
                 predicate = f"{prefix}_{predicate}"
