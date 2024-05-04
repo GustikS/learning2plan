@@ -8,7 +8,7 @@ from util.timer import TimerContextManager
 
 _DEFAULT_DOMAIN = "ferry"
 # _DEFAULT_DOMAIN = "satellite"
-_DEBUG_LEVEL = 1
+_DEBUG_LEVEL = 2
 
 
 def satellite_rules():
@@ -84,6 +84,8 @@ def main():
             applicable_actions = successor_generator.get_applicable_actions(state)
             applicable_actions = {a.get_name(): a for a in applicable_actions}
 
+            if _DEBUG_LEVEL > 1:
+                pprint(policy_actions)
             action = applicable_actions[policy_actions[0]]
 
             print(action.get_name())

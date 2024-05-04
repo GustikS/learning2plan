@@ -9,8 +9,10 @@ from neuralogic.core import C, R, Template, V
 from neuralogic.core.constructs.relation import BaseRelation
 from neuralogic.inference.inference_engine import InferenceEngine
 from pymimir import ActionSchema, Atom, Domain, Literal, Problem
+from util.str_atom import StrAtom
 
 Schema = Union[str, ActionSchema]
+
 
 ## TODO: add typing from pddl files
 
@@ -30,12 +32,18 @@ class Policy:
     def solve(self, state: list[Atom]) -> list[str]:
         """given a state and goal pair, return possible actions from policy rules"""
         self._init_template()
-        self._add_state(state)
+
+        ilg_atoms = self._get_ilg_facts(state)
+
+        ## add atoms to template
+        for atom in ilg_atoms:
+            lrnn_fact = R.get(atom.predicate)([C.get(obj) for obj in atom.objects])
+            self._template.add_rule(lrnn_fact)
 
         if self._debug > 2:
-            print("="*80)
+            print("=" * 80)
             print(self._template)
-            print("="*80)
+            print("=" * 80)
 
         engine = InferenceEngine(self._template)
 
@@ -62,7 +70,7 @@ class Policy:
     @abstractmethod
     def _add_policy_rules(self):
         raise NotImplementedError
-    
+
     @abstractmethod
     def _add_derived_predicates(self):
         raise NotImplementedError
@@ -85,16 +93,16 @@ class Policy:
             # self._template += R.get(obj.type.base.name)(C.get(obj.name))
 
     def relation_from_schema(self, schema: Schema) -> BaseRelation:
-        """ construct a relation object from a schema"""
+        """construct a relation object from a schema"""
         if isinstance(schema, str):
             schema = self._name_to_schema[schema]
         parameters = [p.name.replace("?", "").upper() for p in schema.parameters]
         parameters = [V.get(p) for p in parameters]
         head = R.get(schema.name)(parameters)
         return head
-    
+
     def _get_negative_literal(self, predicate: str, variables: list[str]) -> None:
-        """ add a negative literal to the template, hack on top of LRNN bug """
+        """add a negative literal to the template, hack on top of LRNN bug"""
         ## won't be necessary in the next release...
         ## TODO fix when next release comes out
         neg = R.get(f"n_{predicate}")(variables)
@@ -102,9 +110,8 @@ class Policy:
         self._template += neg <= pos
         return ~neg
 
-
     def get_schema_preconditions(self, schema: Schema) -> list[BaseRelation]:
-        """ construct base body of a schema from its preconditions with typing """
+        """construct base body of a schema from its preconditions with typing"""
         if isinstance(schema, str):
             schema = self._name_to_schema[schema]
         schema: ActionSchema = schema
@@ -138,8 +145,9 @@ class Policy:
 
         return body
 
-    def _add_state(self, state: list[Atom]) -> None:
-        """ add state information to the template """
+    def _get_ilg_facts(self, state: list[Atom]) -> list[StrAtom]:
+        ret = []
+
         name_to_atom = {atom.get_name(): atom for atom in state}
         pos_goals = set()
         neg_goals = set()
@@ -151,7 +159,7 @@ class Policy:
             name_to_atom[g.atom.get_name()] = g.atom
         if len(neg_goals):
             raise NotImplementedError("Negative goals are not supported yet")
-        
+
         state = set([atom.get_name() for atom in state])
 
         atoms_by_type = {
@@ -166,17 +174,7 @@ class Policy:
                 predicate = atom.predicate.name
                 predicate = f"{prefix}_{predicate}"
                 objects = atom.terms
-                objects = [C.get(obj.name) for obj in objects]
-                if len(objects) == 0:
-                    fact = R.get(predicate)()
-                else:
-                    fact = R.get(predicate)(objects)
-                self._template += [fact]
+                fact = StrAtom(predicate, [obj.name for obj in objects])
+                ret.append(fact)
 
-    def add_facts(self, facts: list[BaseRelation]) -> None:
-        for fact in facts:
-            self._template.add_rule(fact)
-
-    def add_rules(self, rules: list[BaseRelation]) -> None:
-        for rule in rules:
-            self._template.add_rule(rule)
+        return ret

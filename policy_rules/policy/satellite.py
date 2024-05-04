@@ -7,7 +7,7 @@ from .policy import Policy
 class SatellitePolicy(Policy):
     @override
     def _add_derived_predicates(self):
-        raise NotImplementedError
+        pass
 
     @override
     def _add_policy_rules(self):
