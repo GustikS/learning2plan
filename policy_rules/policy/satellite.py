@@ -62,9 +62,11 @@ class SatellitePolicy(Policy):
         ## turn_to
         turn_to_head = self.relation_from_schema("turn_to")
         turn_to_rule = self.get_schema_preconditions("turn_to")
+        # self._template += R.n_ug_have_image("D_other", "M") <= R.ug_have_image("D_other", "M")
         turn_to_rule += [
             R.ug_pointing("S", "D"),
-            ~R.ug_have_image("D_other", "M"),  ## TODO wait for negative literal fix
+            R.ag_have_image("D_other", "M"),
+            # ~R.ug_have_image("D_other", "M"),  ## TODO wait for negative literal fix
             R.instrument_config("I", "M", "S", "D"),
         ]
         self._template += turn_to_head <= turn_to_rule

@@ -1,4 +1,5 @@
 """ Make use of neuralogic and pymimir to encode policies as Horn clause rules"""
+
 import time
 from abc import abstractmethod
 from itertools import product
@@ -7,28 +8,34 @@ from typing import Union
 from neuralogic.core import C, R, Template, V
 from neuralogic.core.constructs.relation import BaseRelation
 from neuralogic.inference.inference_engine import InferenceEngine
-from pymimir import ActionSchema, Atom, Domain, Literal
+from pymimir import ActionSchema, Atom, Domain, Literal, Problem
 
 Schema = Union[str, ActionSchema]
 
 ## TODO: add typing from pddl files
 
+
 class Policy:
-    def __init__(self, domain: Domain):
+    def __init__(self, domain: Domain, problem: Problem, debug=0):
         self._domain = domain
         self._schemata = self._domain.action_schemas
         self._predicates = self._domain.predicates
-        self._name_to_schema = {schema.name: schema for schema in self._schemata}
+        self._name_to_schema: dict[str, ActionSchema] = {
+            schema.name: schema for schema in self._schemata
+        }
 
-    def solve(self, state: list[Atom], goal: list[Literal]) -> list[str]:
-        """ given a state and goal pair, return possible actions from policy rules """
-        self._template = Template()
-        self._add_state(state, goal)
-        self._add_predicate_copies()
-        self.add_policy_rules()
+        self._problem = problem
+        self._debug = debug
 
-        print(self._template)
-        print("="*80)
+    def solve(self, state: list[Atom]) -> list[str]:
+        """given a state and goal pair, return possible actions from policy rules"""
+        self._init_template()
+        self._add_state(state)
+
+        if self._debug > 2:
+            print("="*80)
+            print(self._template)
+            print("="*80)
 
         engine = InferenceEngine(self._template)
 
@@ -45,18 +52,35 @@ class Policy:
                 ret.append(ret_action)
         return ret
 
+    def _init_template(self):
+        self._template = Template()
+        self._add_predicate_copies()
+        self._add_object_information()
+        self.add_policy_rules()
+
     @abstractmethod
     def add_policy_rules(self):
         raise NotImplementedError
-    
+
     def _add_predicate_copies(self) -> None:
-        """ add ug, ag, ap copies of predicates and rules """
+        """add ug, ag, ap copies of predicates and rules"""
         ## do not add ug as it is unachieved
         for prefix, predicate in product(["ag", "ap"], self._predicates):
             variables = [V.get(f"X{i}") for i in range(predicate.arity)]
-            self._template += R.get(f"{prefix}_{predicate.name}")(variables) >= R.get(predicate.name)(variables)
-    
+            new_predicate = R.get(f"{prefix}_{predicate.name}")(variables)
+            og_predicate = R.get(predicate.name)(variables)
+            self._template += og_predicate <= new_predicate
+
+    def _add_object_information(self) -> None:
+        """add object types to the template"""
+        for obj in self._problem.objects:
+            assert obj.is_constant()
+            # TODO intermediate types?
+            self._template += R.get(obj.type.name)(C.get(obj.name))
+            # self._template += R.get(obj.type.base.name)(C.get(obj.name))
+
     def relation_from_schema(self, schema: Schema) -> BaseRelation:
+        """ construct a relation object from a schema"""
         if isinstance(schema, str):
             schema = self._name_to_schema[schema]
         parameters = [p.name.replace("?", "").upper() for p in schema.parameters]
@@ -65,53 +89,78 @@ class Policy:
         return head
 
     def get_schema_preconditions(self, schema: Schema) -> list[BaseRelation]:
+        """ construct base body of a schema from its preconditions with typing """
         if isinstance(schema, str):
             schema = self._name_to_schema[schema]
-        parameters = [p.name for p in schema.parameters]
-        parameter_remap = {p: p.replace("?", "").upper() for p in parameters}
+        schema: ActionSchema = schema
+
         body = []
+        param_remap = {
+            p.name: p.name.replace("?", "").upper() for p in schema.parameters
+        }
+
+        ## add variables and their types
+        for param in schema.parameters:
+            assert param.is_variable()
+            remap = param_remap[param.name]
+            object_type = param.type.name
+            atom = R.get(object_type)(V.get(remap))
+            body.append(atom)
+
+        ## add preconditions
         for p in schema.precondition:
+            p: Literal = p
             toks = p.atom.get_name().replace(" ", "").split("(")
             assert len(toks) <= 2
-            predicate = toks[0]
-            objects = toks[1].replace(")", "").split(",")
-            prec_vars = [V.get(parameter_remap[a]) for a in objects]
+            predicate = p.atom.predicate.name
+            objects = p.atom.terms
+            prec_vars = [V.get(param_remap[obj.name]) for obj in objects]
             if p.negated:
-                # won't be necessary in the next release...
-                self._template += R.get(f"n_{predicate}")(prec_vars) <= R.get(predicate)(prec_vars)
+                ## won't be necessary in the next release...
+                neg = R.get(f"n_{predicate}")(prec_vars)
+                pos = R.get(predicate)(prec_vars)
+                self._template += neg <= pos
                 literal = ~R.get(f"n_{predicate}")(prec_vars)
+                ## TODO fix when next release comes out
             else:
                 literal = R.get(predicate)(prec_vars)
             body.append(literal)
+
         return body
-    
-    def _add_state(self, state: list[Atom], goal: list[Literal]) -> None:
-        state = set([atom.get_name() for atom in state])
+
+    def _add_state(self, state: list[Atom]) -> None:
+        """ add state information to the template """
+        name_to_atom = {atom.get_name(): atom for atom in state}
         pos_goals = set()
         neg_goals = set()
-        for g in goal:
+        for g in self._problem.goal:
             if g.negated:
                 neg_goals.add(g.atom.get_name())
             else:
                 pos_goals.add(g.atom.get_name())
+            name_to_atom[g.atom.get_name()] = g.atom
         if len(neg_goals):
             raise NotImplementedError("Negative goals are not supported yet")
         
+        state = set([atom.get_name() for atom in state])
+
         atoms_by_type = {
             "ap": state - pos_goals,
             "ag": pos_goals.intersection(state),
-            "ug": pos_goals - state
+            "ug": pos_goals - state,
         }
 
         for prefix, atoms in atoms_by_type.items():
             for atom in atoms:
-                toks = atom.split("(")
-                assert len(toks) <= 2
-                predicate = toks[0]
+                atom: Atom = name_to_atom[atom]
+                predicate = atom.predicate.name
                 predicate = f"{prefix}_{predicate}"
-                objects = toks[1].replace(")", "").replace(" ", "").split(",")
-                objects = [C.get(obj) for obj in objects]
-                fact = R.get(predicate)(objects)
+                objects = atom.terms
+                objects = [C.get(obj.name) for obj in objects]
+                if len(objects) == 0:
+                    fact = R.get(predicate)()
+                else:
+                    fact = R.get(predicate)(objects)
                 self._template += [fact]
 
     def add_facts(self, facts: list[BaseRelation]) -> None:
