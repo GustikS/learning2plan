@@ -8,7 +8,7 @@ from util.timer import TimerContextManager
 
 _DEFAULT_DOMAIN = "ferry"
 # _DEFAULT_DOMAIN = "satellite"
-_DEBUG_LEVEL = 0
+_DEBUG_LEVEL = 1
 
 
 def satellite_rules():
@@ -90,7 +90,7 @@ def main():
             plan.append(action.get_name())
 
             state = action.apply(state)
-            if _DEBUG_LEVEL > 0:
+            if _DEBUG_LEVEL > 2:
                 print_state(state)
         total_time += timer.get_time()
     plan_length = len(plan)

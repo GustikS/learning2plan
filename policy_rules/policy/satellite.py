@@ -6,7 +6,11 @@ from .policy import Policy
 
 class SatellitePolicy(Policy):
     @override
-    def add_policy_rules(self):
+    def _add_derived_predicates(self):
+        raise NotImplementedError
+
+    @override
+    def _add_policy_rules(self):
         ## useful macro
         head = R.instrument_config("I", "M", "S", "D")
         body = [
@@ -32,7 +36,8 @@ class SatellitePolicy(Policy):
             R.ug_have_image("D", "M"),
             R.pointing("S", "D"),
             R.instrument_config("I", "M", "S", "D"),
-            ~R.power_on("I"),
+            # ~R.power_on("I"),  ## TODO wait for negative literal fix
+            self._get_negative_literal("power_on", ["I"]),
         ]
         self._template += switch_on_head <= switch_on_rule
 
@@ -66,6 +71,7 @@ class SatellitePolicy(Policy):
         turn_to_rule += [
             R.ug_pointing("S", "D"),
             R.ag_have_image("D_other", "M"),
+            ## we need a not exists feature for this.
             # ~R.ug_have_image("D_other", "M"),  ## TODO wait for negative literal fix
             R.instrument_config("I", "M", "S", "D"),
         ]

@@ -56,10 +56,15 @@ class Policy:
         self._template = Template()
         self._add_predicate_copies()
         self._add_object_information()
-        self.add_policy_rules()
+        self._add_derived_predicates()
+        self._add_policy_rules()
 
     @abstractmethod
-    def add_policy_rules(self):
+    def _add_policy_rules(self):
+        raise NotImplementedError
+    
+    @abstractmethod
+    def _add_derived_predicates(self):
         raise NotImplementedError
 
     def _add_predicate_copies(self) -> None:
@@ -87,6 +92,16 @@ class Policy:
         parameters = [V.get(p) for p in parameters]
         head = R.get(schema.name)(parameters)
         return head
+    
+    def _get_negative_literal(self, predicate: str, variables: list[str]) -> None:
+        """ add a negative literal to the template, hack on top of LRNN bug """
+        ## won't be necessary in the next release...
+        ## TODO fix when next release comes out
+        neg = R.get(f"n_{predicate}")(variables)
+        pos = R.get(predicate)(variables)
+        self._template += neg <= pos
+        return ~neg
+
 
     def get_schema_preconditions(self, schema: Schema) -> list[BaseRelation]:
         """ construct base body of a schema from its preconditions with typing """
@@ -116,12 +131,7 @@ class Policy:
             objects = p.atom.terms
             prec_vars = [V.get(param_remap[obj.name]) for obj in objects]
             if p.negated:
-                ## won't be necessary in the next release...
-                neg = R.get(f"n_{predicate}")(prec_vars)
-                pos = R.get(predicate)(prec_vars)
-                self._template += neg <= pos
-                literal = ~R.get(f"n_{predicate}")(prec_vars)
-                ## TODO fix when next release comes out
+                literal = self._get_negative_literal(predicate, prec_vars)
             else:
                 literal = R.get(predicate)(prec_vars)
             body.append(literal)
