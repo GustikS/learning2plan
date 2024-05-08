@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from learning2plan.learning.modelsLRNN import LRNN, get_relational_dataset, get_predictions_LRNN
-from learning2plan.learning.modelsTorch import get_compatible_model, get_tensor_dataset, get_predictions_torch
-from learning2plan.planning import PlanningState, Action
+from learning.modelsLRNN import LRNN, get_relational_dataset, get_predictions_LRNN
+from learning.modelsTorch import get_compatible_model, get_tensor_dataset, get_predictions_torch
+from planning import PlanningState, Action
 
 from neuralogic.core import R, V
 

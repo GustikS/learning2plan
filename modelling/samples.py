@@ -2,22 +2,54 @@ import json
 import logging
 import os
 
+from pddl import parse_domain as pddl_parse
 
-def load_json(domain_name, numeric=False, path="../"):
-    logging.log(logging.INFO, "loading json")
-    if numeric:
-        json_file_path = f"{path}/datasets/jsons/{domain_name}/numeric/data.json"
-    else:
-        json_file_path = f"{path}/datasets/jsons/{domain_name}/classic/data.json"
+from modelling.planning import extract_actions
+import neuralogic
+
+if not neuralogic.is_initialized():
+    neuralogic.initialize()
+
+
+def get_filename(domain_name, numeric, format, path, filename):
+    version = "numeric" if numeric else "classic"
+    assert format in ["jsons", "lrnn"]
+    file_path = f"{path}/datasets/{format}/{domain_name}/{version}/{filename}"
+    return file_path
+
+
+def parse_domain(domain, numeric, encoding="ILG"):
+    json_data, pddl_domain = load_file(domain, numeric=numeric)
+    problems, predicates, actions = parse_json(json_data, encoding=encoding)
+    if pddl_domain is not None:
+        actions = extract_actions(pddl_domain)  # replace the action names with their full specifications
+    return problems, predicates, actions
+
+
+def load_file(domain_name, numeric=False, path="../"):
+    logging.log(logging.INFO, "loading domain")
+
+    json_file_path = get_filename(domain_name, numeric, "jsons", path, "data.json")
 
     with open(json_file_path, 'r') as f:
         json_data = json.loads(f.read())
-    return json_data
+
+    try:
+        domain = parse_pddl(domain_name, numeric, path)
+    except:
+        domain = None
+
+    return json_data, domain
+
+
+def parse_pddl(domain_name, numeric=False, path="../"):
+    filename = get_filename(domain_name, numeric, "jsons", path, "domain.pddl")
+    return pddl_parse(filename)
 
 
 # TODO transform all the flags here into a class hierarchy of possible state encodings (reusing the existing classes...)
-def parse_domain(json_data, problem_limit=-1, state_limit=-1, merge_static=True,
-                 encoding="ILG", logic_numbers=False, add_objects=False):
+def parse_json(json_data, problem_limit=-1, state_limit=-1, merge_static=True,
+               encoding="ILG", logic_numbers=False, add_objects=False):
     logging.log(logging.INFO, "parsing domain")
     actions = json_data['schemata']  # to work with these I'd also need their preconditions...
 
@@ -100,7 +132,7 @@ def add_goal_info(facts, boolean_goals, is_numeric_problem, encoding="ILG"):
             updated_facts.extend([f'<[1, 0]> {ap}' for ap in ap_facts])
             updated_facts.extend([f'<[0, 1]> {ug}' for ug in ug_facts])
     else:  # we can also leave it as is to handle it more flexibly later in the template...
-        updated_facts = facts
+        updated_facts = list(facts)
         updated_facts.extend([f"goal_{fact}" for fact in boolean_goals])
     return updated_facts
 
@@ -154,9 +186,17 @@ def encode_predicates(orig_predicates, encoding="ILG"):
     return predicates
 
 
-def export_problems(problems, domain, path="../datasets/lrnn", examples_file="examples", queries_file="queries"):
+def flatten_states(problems):
+    flat_states = []
+    for states in problems.values():
+        for state, queries in states.items():
+            flat_states.append((state, queries))
+    return flat_states
+
+
+def export_problems(problems, domain, numeric, examples_file="examples", queries_file="queries"):
     logging.log(logging.INFO, "exporting problems")
-    domain_path = f'{path}/{domain}'
+    domain_path = get_filename(domain, numeric, "lrnn", "../", "")
     os.makedirs(domain_path, exist_ok=True)
 
     with open(f'{domain_path}/{examples_file}.txt', 'w') as e, open(f'{domain_path}/{queries_file}.txt', 'w') as q:
@@ -169,8 +209,9 @@ def export_problems(problems, domain, path="../datasets/lrnn", examples_file="ex
 
 
 if __name__ == "__main__":
-    # domain = "blocksworld"
-    domain = "satellite"
-    json_data = load_json(domain, numeric=True)
-    problems, predicates, actions = parse_domain(json_data)
-    export_problems(problems, domain)
+    domain = "blocksworld"
+    # domain = "satellite"
+    numeric = False
+
+    problems, predicates, actions = parse_domain(domain, numeric=numeric, encoding="")
+    export_problems(problems, domain, numeric=numeric)

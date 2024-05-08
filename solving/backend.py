@@ -11,7 +11,7 @@ class Backend:
 
     def __init__(self):
         try:
-            neuralogic.initialize(debug_mode=False)
+            neuralogic.initialize(debug_mode=True)
         except:
             pass  # already initialized
 
