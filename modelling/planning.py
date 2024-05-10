@@ -15,17 +15,17 @@ import java.util.ArrayList as jList
 jLiteral = jpype.JClass("cz.cvut.fel.ida.logic.Literal")
 jState = jpype.JClass("cz.cvut.fel.ida.logic.grounding.planning.State")
 jAction = jpype.JClass("cz.cvut.fel.ida.logic.grounding.planning.Action")
-jPlanner = jpype.JClass("cz.cvut.fel.ida.logic.grounding.planning.Planner")
 
 import pddl
 from pddl.logic import Variable
 
 
-def parse_literal(precondition):
-    negated = precondition.startswith("!")
-    split = precondition.split("(")
+def parse_literal(string_literal):
+    negated = string_literal.startswith("!")
+    split = string_literal.split("(")
     predicate = split[0]
     terms = split[1][:-1].split(",")
+    terms = terms if terms[0] else []
     return negated, predicate, terms
 
 
@@ -54,11 +54,11 @@ class Action:
                        jList(self.add_effects),
                        jList(self.del_effects))
 
-    def to_rule(self):
+    def to_rule(self, predicate_prefix):
         body = []
         for precondition in self.preconditions:
             negated, predicate, terms = parse_literal(precondition)
-            body.append(get_literal(predicate, terms, negated, string=False))
+            body.append(get_literal(f'{predicate_prefix}_{predicate}', terms, negated, string=False))
         head = R.get(self.name)(self.parameters)
         return head <= body
 
@@ -115,9 +115,9 @@ def get_literal(predicate, terms, negated, string=True):
         return f'{negation}{predicate.name}({",".join(terms)})'
     else:
         if negated:
-            return ~R.get(predicate.name)(terms)
+            return ~R.get(predicate)(terms)
         else:
-            return R.get(predicate.name)(terms)
+            return R.get(predicate)(terms)
 
 
 def parse_term(pddl_term):
@@ -136,23 +136,27 @@ def parse_term(pddl_term):
 def all_successors(states, actions):
     """Exhaustively generates all possible successors of all the states through all the actions"""
     logging.log(logging.INFO, f'number of loaded states: {len(states)}')
-    time_start = time.time()
-    jstates = [State(state[0]).backend() for state in states]
-    logging.log(logging.INFO, f"Java parsing of the states: [{time.time() - time_start:.1f} seconds]")
+    if isinstance(states[0], tuple):
+        time_start = time.time()
+        jstates = [State(state[0]).backend() for state in states]
+        logging.log(logging.INFO, f"Java parsing of the states: [{time.time() - time_start:.1f} seconds]")
+    else:  # states already parsed
+        jstates = states
+
     time_start = time.time()
     jactions = [action.backend() for action in actions]
     logging.log(logging.INFO, f"Java parsing of the actions: [{time.time() - time_start:.1f} seconds]")
 
     time_start = time.time()
-    all_successors = set()
+    all_successors = []
     for state in jstates:
         for action in jactions:
             successors = state_successors(state, action)
-            all_successors.update(successors)
+            all_successors.extend(successors)
 
     logging.log(logging.INFO,
                 f"Generating all possible {len(all_successors)} successors from the"
-                f" previous {len(states)} states: {time.time() - time_start:.1f} seconds")
+                f" previous {len(states)} states times {len(actions)} actions: {time.time() - time_start:.1f} seconds")
     return all_successors
 
 
@@ -183,4 +187,8 @@ if __name__ == '__main__':
     numeric = False
     problems, predicates, actions = parse_domain(domain, numeric=numeric, encoding="")
     states = flatten_states(problems)
-    all_successors = all_successors(states, actions)
+    # all successors from the json states
+    successors = all_successors(states, actions)
+    # next generations of successor states...
+    for i in range(3):
+        successors = all_successors(successors[:1000], actions)

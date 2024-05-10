@@ -44,7 +44,7 @@ def dillons_rules():
     ]
 
 
-def eval_examples(dataset, template, experiment=""):
+def eval_examples(dataset, template, experiment="", draw=False):
     settings = Settings(iso_value_compression=False)
     model = template.build(settings)
     built_samples = model.build_dataset(dataset)
@@ -54,8 +54,9 @@ def eval_examples(dataset, template, experiment=""):
     print("experiment: " + experiment)
     print(outputs)
 
-    for i, sample in enumerate(built_samples):
-        sample.draw(f"./imgs/counter_sample{i}_{experiment}.png")
+    if draw:
+        for i, sample in enumerate(built_samples):
+            sample.draw(f"./imgs/counter_sample{i}_{experiment}.png")
 
 
 # %%
@@ -68,18 +69,18 @@ predicates = {"on_board": 2, "supports": 2, "calibration_target": 2, "power_avai
 # %% these counterexamples are indeed indistinguishable with classic template(s)
 
 template = basic_regression_template(predicates, dim=1, num_layers=1)
-template.draw("./imgs/template_basic.png")
+# template.draw("./imgs/template_basic.png")
 eval_examples(dataset, template, "basic")
 
 # %% let's increase the (GNN-like) template's expressiveness a bit by adding certain graphlet(s)
 
 template += generic_relational_feature()
-template.draw("./imgs/template_graphlet.png")
+# template.draw("./imgs/template_graphlet.png")
 eval_examples(dataset, template, "graphlets")
 
 # %% add the relational feature - of course this is cheating, just showing (but such relational features can come e.g. from Treeliker)
 
 template = basic_regression_template(predicates, dim=1, num_layers=1)
 template += adhoc_relational_feature()
-template.draw("./imgs/template_custom.png")
+# template.draw("./imgs/template_custom.png")
 eval_examples(dataset, template, "custom")

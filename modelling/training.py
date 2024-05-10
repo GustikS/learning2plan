@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 from matplotlib.pyplot import figure
 
 import neuralogic
+
 if not neuralogic.is_initialized():
     neuralogic.initialize()
 
@@ -101,24 +102,26 @@ def load(domain, numeric, save_file, plotting=False):
         plot_predictions(target_labels, predicted_labels)
 
 
-def prepare_experiment(domain, numeric, export_lrnn_files=True):
+def prepare_experiment(domain, numeric, export_lrnn_files=True, draw=True):
     problems, predicates, actions = parse_domain(domain, numeric)
-    model, template = prepare_model(predicates)
+    model, template = prepare_model(predicates, actions)
     if export_lrnn_files:
         data_path = export_problems(problems, domain, numeric)
     else:
         data_path = get_filename(domain, numeric, "lrnn", "../", "")
     built_samples = build_samples(model, data_path)
-    # built_samples[0].draw("./imgs/sample.png")
+    if draw:
+        built_samples[1].draw("./imgs/sample.png")
     return built_samples, model, template
 
 
-def prepare_model(predicates):
+def prepare_model(predicates, actions=None, draw=True):
     """This is where a model gets assembled for the current workflow"""
     # template = satellite_regression_template(predicates, dim=3)
-    template = basic_regression_template(predicates, dim=3)
-    # template.draw("./imgs/template.png")
+    template = basic_regression_template(predicates, dim=3, actions=actions)
     model = get_model(template)
+    if draw:
+        template.draw("./imgs/template.png")
     return model, template
 
 
@@ -135,5 +138,5 @@ if __name__ == "__main__":
     print(f"{numeric=}")
     print(f"{save_file=}")
 
-    train(domain_name, numeric, save_file=save_file)
+    train(domain_name, numeric, save_file=save_file, plotting=True)
     # load(domain_name, numeric, save_file=save_file)

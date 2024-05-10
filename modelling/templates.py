@@ -2,8 +2,11 @@ from neuralogic.core import R, Settings, Template, Transformation, V
 from neuralogic.nn.module import GATv2Conv, GCNConv, GINConv, SAGEConv
 
 
-def basic_regression_template(predicates, dim=10, num_layers=3):
+def basic_regression_template(predicates, dim=10, num_layers=3, actions=None):
     template = Template()
+
+    if actions:
+        template += action_rules(actions, predicates)
 
     template += anonymous_predicates(predicates, dim)
 
@@ -21,6 +24,18 @@ def basic_regression_template(predicates, dim=10, num_layers=3):
 
     template += final_pooling(dim, layers=range(1, num_layers + 2))
     return template
+
+
+def action_rules(actions, predicates, ILG=True):
+    """Of course this is not the only way to incorporate actions in the learning templates..."""
+    if ILG:
+        rules = [action.to_rule(pref) for action in actions for pref in ['ag', 'ap']]
+    else:
+        rules = [action.to_rule('') for action in actions]
+
+    for action in actions:
+        predicates[action.name] = len(action.parameters)    # just extend the predicates with the action heads...
+    return rules
 
 
 def basic_classification_template(predicates, dim=10):
