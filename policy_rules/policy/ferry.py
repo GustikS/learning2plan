@@ -17,11 +17,17 @@ class FerryPolicy(Policy):
         sail_rule = self.get_schema_preconditions("sail")
         sail_rule += [
             R.get("ug_at")("Car", "To"),
-            R.get("ap_at")("Car", "From"),
-            R.get("ap_on")("Car", "Ferry"),
-            self._get_negative_literal("empty-ferry", []),
+            R.get("ap_on")("Car"),
         ]
         self._template += sail_head <= sail_rule
+
+        ## helper
+        head = R.exists_goal_car_at("Loc")
+        body = [
+            R.get("ug_at")("Car2", "Goal_loc"),
+            R.get("ap_at")("Car2", "Loc"),
+        ]
+        self._template += head <= body
 
         ## sail(?from - location ?to - location)
         ## ferry is empty
@@ -31,7 +37,7 @@ class FerryPolicy(Policy):
             R.get("ug_at")("Car", "Goal_loc"),
             R.get("ap_at")("Car", "To"),
             R.get("empty-ferry")(),
-            ## not exists Car2 R.get("ug_at")("Car2", "Goal_loc"), R.get("ap_at")("Car2", "From")
+            self._get_negative_literal("exists_goal_car_at", ["From"]),
         ]
         self._template += sail_head <= sail_rule
 

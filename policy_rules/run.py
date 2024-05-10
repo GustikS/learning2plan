@@ -3,12 +3,13 @@ from pathlib import Path
 from pprint import pprint
 
 import pymimir
+from neuralogic.core import C, R, Template, V
 from policy.handcraft_factory import get_handcraft_policy
+from util.printing import print_mat
 from util.timer import TimerContextManager
 
 _DEFAULT_DOMAIN = "ferry"
 # _DEFAULT_DOMAIN = "satellite"
-_DEBUG_LEVEL = 2
 
 
 def satellite_rules():
@@ -26,9 +27,18 @@ def is_goal_state(state: pymimir.State, goal: list[pymimir.Literal]):
     return True
 
 
-def print_state(state: pymimir.State):
+def state_repr(state: pymimir.State):
     atom_names = sorted([a.get_name() for a in state.get_atoms()])
-    pprint(atom_names)
+    return ", ".join(atom_names)
+
+def goal_repr(goal: list[pymimir.Literal]):
+    goals = []
+    for g in goal:
+        if g.negated:
+            goals.append(f"~{g.atom.get_name()}")
+        else:
+            goals.append(g.atom.get_name())
+    return ", ".join(goals)
 
 
 def main():
@@ -45,9 +55,13 @@ def main():
         type=str,
         default=f"l4np/{_DEFAULT_DOMAIN}/classic/testing/p0_01.pddl",
     )
+    parser.add_argument(
+        "-v", "--verbose", type=int, default=0, help="increase output verbosity"
+    )
     args = parser.parse_args()
     domain_path = args.domain_path
     problem_path = args.problem_path
+    _DEBUG_LEVEL = args.verbose
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
     assert Path(problem_path).exists(), f"Problem file not found: {problem_path}"
 
@@ -70,10 +84,10 @@ def main():
     if _DEBUG_LEVEL > 0:
         print("=" * 80)
         print("Initial state:")
-        print_state(state)
+        print(state_repr(state))
         print("=" * 80)
         print("Goal:")
-        pprint(goal)
+        print(goal_repr(goal))
         print("=" * 80)
 
     ## execute policy
@@ -81,24 +95,43 @@ def main():
         while not is_goal_state(state, goal):
             policy_actions = policy.solve(state.get_atoms())
 
+            if len(policy_actions) == 0:
+                print("Error: No actions computed and not at goal state!")
+                print("Terminating...")
+                exit(0)
+
             applicable_actions = successor_generator.get_applicable_actions(state)
             applicable_actions = {a.get_name(): a for a in applicable_actions}
 
+            matrix_log = []
+
             if _DEBUG_LEVEL > 1:
-                pprint(policy_actions)
+                print(f"[Step {len(plan)}]")
+                matrix_log.append(["Policy actions", ", ".join(policy_actions)])
             action = applicable_actions[policy_actions[0]]
 
-            print(action.get_name())
+            if _DEBUG_LEVEL > 0:
+                matrix_log.append(["Applying", action.get_name()])
             plan.append(action.get_name())
 
             state = action.apply(state)
-            if _DEBUG_LEVEL > 2:
-                print_state(state)
+            if _DEBUG_LEVEL > 1:
+                ilg_state = policy.get_ilg_facts(state.get_atoms())
+                ilg_state = ", ".join([str(f) for f in ilg_state])
+                matrix_log.append(["Current state", ilg_state])
+
+            print_mat(matrix_log, rjust=False)
+
+            if _DEBUG_LEVEL > 3:
+                breakpoint()
+
         total_time += timer.get_time()
     plan_length = len(plan)
 
     print("=" * 80)
     print("Plan generated!")
+    for action in plan:
+        print(action)
     print(f"{plan_length=}")
     print(f"{total_time=}")
     print("=" * 80)

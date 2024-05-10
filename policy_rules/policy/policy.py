@@ -14,9 +14,6 @@ from util.str_atom import StrAtom
 Schema = Union[str, ActionSchema]
 
 
-## TODO: add typing from pddl files
-
-
 class Policy:
     def __init__(self, domain: Domain, problem: Problem, debug=0):
         self._domain = domain
@@ -33,7 +30,7 @@ class Policy:
         """given a state and goal pair, return possible actions from policy rules"""
         self._init_template()
 
-        ilg_atoms = self._get_ilg_facts(state)
+        ilg_atoms = self.get_ilg_facts(state)
 
         ## add atoms to template
         for atom in ilg_atoms:
@@ -45,11 +42,11 @@ class Policy:
             print(self._template)
             print("=" * 80)
 
-        engine = InferenceEngine(self._template)
+        self._engine = InferenceEngine(self._template)
 
         ret = []
         for schema in self._schemata:
-            assignments = engine.query(self.relation_from_schema(schema.name))
+            assignments = self._engine.query(self.relation_from_schema(schema.name))
             param_to_index = {p.name: i for i, p in enumerate(schema.parameters)}
             for assignment in assignments:
                 ret_action = schema.name
@@ -59,6 +56,9 @@ class Policy:
                 ret_action = f"{ret_action}({', '.join(objects)})"
                 ret.append(ret_action)
         return ret
+    
+    def query(self, query: BaseRelation):
+        return self._engine.query(query)
 
     def _init_template(self):
         self._template = Template()
@@ -145,7 +145,7 @@ class Policy:
 
         return body
 
-    def _get_ilg_facts(self, state: list[Atom]) -> list[StrAtom]:
+    def get_ilg_facts(self, state: list[Atom]) -> list[StrAtom]:
         ret = []
 
         name_to_atom = {atom.get_name(): atom for atom in state}
