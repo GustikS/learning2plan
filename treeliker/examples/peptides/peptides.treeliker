@@ -1,0 +1,7 @@
+set(algorithm, relf_grounding_counting)
+set(output_type, single)
+set(examples, 'peptides.txt')
+set(min_frequency, 0.1)
+set(template, [residue[1](+a0,!aaType), residue(-a0,#aa), next[1](+a0,-a1), dist(+a0, !aa, -a1, !aa, #dist), residue[1](+a1,#aa)])
+set(output, 'peptides/peptides.arff')
+work(yes)

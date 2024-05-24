@@ -1,0 +1,91 @@
+print('Experiments with RelF and PTC!')
+
+
+set(output_type, single)
+% if you want to create folds for cross validation, uncomment this line and change names of the output files (they should not have file extensions) 
+% set(output_type, cv) 
+
+
+print('Predictive Toxicology Challenge (Female Mice):')
+set(examples, 'ptc_fm.txt')
+
+print('Experiment with depth 1')
+print('-----------------------')
+set(template, [atom(!mol,-a1), atom(!mol,+a2), atom(!mol,+a3), atom(!mol,+a4), bond(+a1, -a2, #atomType, #atomType, #bondType)])
+set(output, ptc_fm/ptc_fm1.arff)
+work(yes)
+
+print('Experiment with depth 2')
+print('-----------------------')
+set(template, [atom(!mol,-a1), atom(!mol,+a2), atom(!mol,+a3), atom(!mol,+a4), bond(+a1, -a2, #atomType, #atomType, #bondType), bond(+a2, -a3, #atomType, #atomType, #bondType)])
+set(output, ptc_fm/ptc_fm2.arff)
+work(yes)
+
+print('Experiment with depth 3')
+print('-----------------------')
+set(template, [atom(!mol,-a1), atom(!mol,+a2), atom(!mol,+a3), atom(!mol,+a4), bond(+a1, -a2, #atomType, #atomType, #bondType), bond(+a2, -a3, #atomType, #atomType, #bondType), bond(+a3, -a4, #atomType, #atomType, #bondType)])
+set(output, ptc_fm/ptc_fm3.arff)
+work(yes)
+
+print('Predictive Toxicology Challenge (Male Mice):')
+set(examples, 'ptc_mm.txt')
+
+print('Experiment with depth 1')
+print('-----------------------')
+set(template, [atom(!mol,-a1), atom(!mol,+a2), atom(!mol,+a3), atom(!mol,+a4), bond(+a1, -a2, #atomType, #atomType, #bondType)])
+set(output, ptc_mm/ptc_mm1.arff)
+work(yes)
+
+print('Experiment with depth 2')
+print('-----------------------')
+set(template, [atom(!mol,-a1), atom(!mol,+a2), atom(!mol,+a3), atom(!mol,+a4), bond(+a1, -a2, #atomType, #atomType, #bondType), bond(+a2, -a3, #atomType, #atomType, #bondType)])
+set(output, ptc_mm/ptc_mm2.arff)
+work(yes)
+
+print('Experiment with depth 3')
+print('-----------------------')
+set(template, [atom(!mol,-a1), atom(!mol,+a2), atom(!mol,+a3), atom(!mol,+a4), bond(+a1, -a2, #atomType, #atomType, #bondType), bond(+a2, -a3, #atomType, #atomType, #bondType), bond(+a3, -a4, #atomType, #atomType, #bondType)])
+set(output, ptc_mm/ptc_mm3.arff)
+work(yes)
+
+print('Predictive Toxicology Challenge (Female Rats):')
+set(examples, 'ptc_fr.txt')
+
+print('Experiment with depth 1')
+print('-----------------------')
+set(template, [atom(!mol,-a1), atom(!mol,+a2), atom(!mol,+a3), atom(!mol,+a4), bond(+a1, -a2, #atomType, #atomType, #bondType)])
+set(output, ptc_fr/ptc_fr1.arff)
+work(yes)
+
+print('Experiment with depth 2')
+print('-----------------------')
+set(template, [atom(!mol,-a1), atom(!mol,+a2), atom(!mol,+a3), atom(!mol,+a4), bond(+a1, -a2, #atomType, #atomType, #bondType), bond(+a2, -a3, #atomType, #atomType, #bondType)])
+set(output, ptc_fr/ptc_fr2.arff)
+work(yes)
+
+print('Experiment with depth 3')
+print('-----------------------')
+set(template, [atom(!mol,-a1), atom(!mol,+a2), atom(!mol,+a3), atom(!mol,+a4), bond(+a1, -a2, #atomType, #atomType, #bondType), bond(+a2, -a3, #atomType, #atomType, #bondType), bond(+a3, -a4, #atomType, #atomType, #bondType)])
+set(output, ptc_fr/ptc_fr3.arff)
+work(yes)
+
+print('Predictive Toxicology Challenge (Female Rats):')
+set(examples, 'ptc_mr.txt')
+
+print('Experiment with depth 1')
+print('-----------------------')
+set(template, [atom(!mol,-a1), atom(!mol,+a2), atom(!mol,+a3), atom(!mol,+a4), bond(+a1, -a2, #atomType, #atomType, #bondType)])
+set(output, ptc_mr/ptc_mr1.arff)
+work(yes)
+
+print('Experiment with depth 2')
+print('-----------------------')
+set(template, [atom(!mol,-a1), atom(!mol,+a2), atom(!mol,+a3), atom(!mol,+a4), bond(+a1, -a2, #atomType, #atomType, #bondType), bond(+a2, -a3, #atomType, #atomType, #bondType)])
+set(output, ptc_mr/ptc_mr2.arff)
+work(yes)
+
+print('Experiment with depth 3')
+print('-----------------------')
+set(template, [atom(!mol,-a1), atom(!mol,+a2), atom(!mol,+a3), atom(!mol,+a4), bond(+a1, -a2, #atomType, #atomType, #bondType), bond(+a2, -a3, #atomType, #atomType, #bondType), bond(+a3, -a4, #atomType, #atomType, #bondType)])
+set(output, ptc_mr/ptc_mr3.arff)
+work(yes)

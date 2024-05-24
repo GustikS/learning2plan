@@ -1,0 +1,14 @@
+set(algorithm, poly)
+set(output_type, single)
+set(examples, 'peptides.txt')
+set(min_frequency, 0.1)
+
+set(max_degree, 1)
+set(template, [residue[1](+a0,!aaType), residue(-a0,#aa), next[1](+a0,-a1), dist(+a0, !aa, -a1, !aa, *dist), residue[1](+a1,#aa)])
+set(output, 'peptides_poly/peptides_1.arff')
+work(yes)
+
+set(max_degree, 2)
+set(template, [residue[1](+a0,!aaType), residue(-a0,#aa), next[1](+a0,-a1), dist(+a0, !aa, -a1, !aa, *dist), residue[1](+a1,#aa)])
+set(output, 'peptides_poly/peptides_2.arff')
+work(yes)

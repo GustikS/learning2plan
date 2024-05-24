@@ -1,0 +1,20 @@
+print('Mutagenesis:')
+
+set(algorithm, poly)
+set(output_type, single)
+set(examples, 'mutagenesis.txt')
+
+print('Experiment with patterns of depth 1 and maximum degree 1')
+print('-----------------------')
+set(max_degree, 1)
+set(template, [atom(-a1), atom(+a2), propatom(+propatom, !atomType, !detailedAtomType, *charge), propatom(+propatom, #atomType, !detailedAtomType, !charge), bond(+a1, -a2, -propatom, -propatom, #bondType)])
+set(output, muta_poly/muta_1.arff)
+work(yes)
+
+print('Experiment with patterns of depth 1 and maximum degree 2')
+print('-----------------------')
+set(max_degree, 2)
+set(template, [atom(-a1), atom(+a2), propatom(+propatom, !atomType, !detailedAtomType, *charge), propatom(+propatom, #atomType, !detailedAtomType, !charge), bond(+a1, -a2, -propatom, -propatom, #bondType)])
+set(output, muta_poly/muta_2.arff)
+work(yes)
+
