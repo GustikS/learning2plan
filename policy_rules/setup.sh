@@ -1,5 +1,3 @@
 git submodule update --init --recursive
 
-cd mimir
-pip install .
-cd ..
+pip install -r requirements.txt
