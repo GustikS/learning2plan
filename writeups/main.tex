@@ -1,0 +1,93 @@
+\documentclass{article}
+\usepackage[margin=3cm]{geometry}
+
+\usepackage{lmodern}
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+\input{preamble.tex}
+
+\begin{document}
+\begin{center}
+    \Large
+    LRNN for planning notes
+\end{center}
+
+\tableofcontents
+\section{Related Work}
+\begin{itemize}
+    \item \url{https://doi.org/10.1016/S0004-3702(99)00060-0} [Khardon, AIJ 1999]
+    \begin{itemize}
+        \item early ILP work for learning rule based policies in Blocksworld and Logistics as domain control knowledge in the (old) GraphPlan planner
+    \end{itemize}
+    \item \url{https://arxiv.org/abs/2306.01439} [Delfosse et al., NIPS 2023]
+    \begin{itemize}
+        \item neural symbolic ILP for RL, the evaluation domains are simple game domains
+    \end{itemize}
+    \item \url{https://arxiv.org/abs/2106.11417} [Xu and Fekri, arxiv]
+    \begin{itemize}
+        \item learning action models for RL with ILP
+    \end{itemize}
+    \item \url{https://arxiv.org/abs/2304.08349} [Hazra and De Raedt, ECML PKDD 2023]
+    \begin{itemize}
+        \item neuro symbolic ILP for RL, tests for rewards in RL setting rather than satisfiability of plans
+    \end{itemize}
+\end{itemize}
+
+\section{Problem Statements}
+LRNNs and ILP can learn several useful things for planning.
+\subsection{Learn Policies as Domain Knowledge}
+\subsubsection*{Input} PDDL domain $D$.
+
+\subsubsection*{Training Data} A list of the form $(P_1, T_1), \ldots, (P_n, T_n)$ where $P_i$ is a problem from domain $D$, and $T_i$ consists of tuples $(s, a, t)$ where $s$ is a state and $a$ is an applicable action in $s$ in $P_i$, and $t \in \set{0, 1}$ determines if $a$ is an optimal action for $s$.
+
+\subsubsection*{Output} A policy $\pi$ that maps states to actions that hopefully generalises for $D$.
+
+\subsection{Learn Transition Models}
+\subsubsection*{Input} Predicate symbols and their arities.
+
+\subsubsection*{Training Data} A set of tuples $(s, a, s')$ where $s$ is a state, $a$ is an action applicable in $s$, and $s'$ is the state that results from applying $a$ in $s$ from a set of planning problems. Furthermore, the set could be a complete or partial subset of all possible transitions in the set of planning problems.
+
+\subsubsection*{Output}
+A transition model $T$ that maps states to sets of states. A state is a set of ground atoms (instantiations of predicates by replacing predicate arguments with objects).
+
+\section{Motivation}
+\begin{enumerate}
+    \item computational complexity argument: semi-positive datalog is P-complete
+    \item if done correctly, policies are faster than heuristics as it bypasses evaluation on all successor states
+    \item RL/robotics settings benefit from learning transition models
+\end{enumerate}
+
+\section{Domains}
+\subsection{Blocksworld}
+\begin{itemize}
+    \item Blocks Clear: Blocksworld but only one clear goal
+    \item Blocks On: Blocksworld but only one on goal
+    \item General Blocksworld
+\end{itemize}
+\subsection{Transportation Domains}
+\begin{itemize}
+    \item Gripper: there are two rooms and a robot has to move all the \emph{balls} in one room to the other, and the robot can carry up to two balls at a time
+    \item Ferry: there are $c$ \emph{cars} scattered across $l$ \emph{locations} and a ferry has to transport all the cars to their target location, and the ferry can only carry one car at a time
+    \item Satellite: there is a set of \emph{satellites} that have \emph{instruments} that have certain \emph{modes} that can take pictures from a set of \emph{directions}; the goal is for the satellites to take a set of pictures of certain (mode, direction) configurations 
+\end{itemize}
+\subsection{Planning with Resources}
+\begin{itemize}
+    \item Spanner: a man is in a one-way corridor and has to fix some \emph{nuts} at the end of the corridor; he can pick up \emph{spanners} along the corridor but each spanner can only be used to fix one nut
+    \item Childsnack: there are $c$ \emph{children}, some of which are allergic to gluten and the others not, which must be fed sandwiches that are gluten-free (GF) or not; the children allergic to gluten must be fed GF sandwiches while the others can eat any sandwich; there are a finite number of GF and non-GF \emph{ingredients} that can be used to make sandwiches
+    \item Woodworking: see \url{https://github.com/potassco/pddl-instances/blob/master/ipc-2008/domains/woodworking-sequential-optimal-strips/domain.pddl} the idea is to treat some \emph{wood} to satisfy some target wood criteria
+\end{itemize}
+\subsection{Pathfinding}
+\begin{itemize}
+    \item Path finding on graph
+\end{itemize}
+
+
+\end{document}

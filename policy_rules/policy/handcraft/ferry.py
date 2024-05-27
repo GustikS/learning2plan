@@ -1,7 +1,7 @@
 from neuralogic.core import R
 from typing_extensions import override
 
-from .policy import Policy
+from ..policy import Policy
 
 
 class FerryPolicy(Policy):
@@ -37,7 +37,7 @@ class FerryPolicy(Policy):
             R.get("ug_at")("Car", "Goal_loc"),
             R.get("ap_at")("Car", "To"),
             R.get("empty-ferry")(),
-            self._get_negative_literal("exists_goal_car_at", ["From"]),
+            ~R.get("exists_goal_car_at")("From"),
         ]
         self._template += sail_head <= sail_rule
 

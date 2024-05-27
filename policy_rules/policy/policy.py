@@ -8,7 +8,8 @@ from typing import Union
 from neuralogic.core import C, R, Template, V
 from neuralogic.core.constructs.relation import BaseRelation
 from neuralogic.inference.inference_engine import InferenceEngine
-from pymimir import ActionSchema, Atom, Domain, Literal, Problem
+from pymimir import Action, ActionSchema, Atom, Domain, Literal, Object, Problem
+
 from util.str_atom import StrAtom
 
 Schema = Union[str, ActionSchema]
@@ -17,16 +18,21 @@ Schema = Union[str, ActionSchema]
 class Policy:
     def __init__(self, domain: Domain, problem: Problem, debug=0):
         self._domain = domain
+        self._problem = problem
+        self._debug = debug
+
         self._schemata = self._domain.action_schemas
         self._predicates = self._domain.predicates
         self._name_to_schema: dict[str, ActionSchema] = {
             schema.name: schema for schema in self._schemata
         }
+        self._objects = self._problem.objects
+        self._name_to_object: dict[str, Object] = {
+            obj.name: obj for obj in self._objects
+        }
 
-        self._problem = problem
-        self._debug = debug
 
-    def solve(self, state: list[Atom]) -> list[str]:
+    def solve(self, state: list[Atom]) -> list[Action]:
         """given a state and goal pair, return possible actions from policy rules"""
         self._init_template()
 
@@ -37,10 +43,10 @@ class Policy:
             lrnn_fact = R.get(atom.predicate)([C.get(obj) for obj in atom.objects])
             self._template.add_rule(lrnn_fact)
 
-        if self._debug > 2:
-            print("=" * 80)
-            print(self._template)
-            print("=" * 80)
+        # if self._debug > 2:
+        #     print("=" * 80)
+        #     print(self._template)
+        #     print("=" * 80)
 
         self._engine = InferenceEngine(self._template)
 
@@ -49,14 +55,15 @@ class Policy:
             assignments = self._engine.query(self.relation_from_schema(schema.name))
             param_to_index = {p.name: i for i, p in enumerate(schema.parameters)}
             for assignment in assignments:
-                ret_action = schema.name
-                objects = [""] * len(schema.parameters)
+                objects = [None] * len(schema.parameters)
                 for var, val in assignment.items():
-                    objects[param_to_index[f"?{var.lower()}"]] = val
-                ret_action = f"{ret_action}({', '.join(objects)})"
+                    idx = param_to_index[f"?{var.lower()}"]
+                    obj = self._name_to_object[val]
+                    objects[idx] = obj
+                ret_action = Action.new(self._problem, schema, objects)
                 ret.append(ret_action)
         return ret
-    
+
     def query(self, query: BaseRelation):
         return self._engine.query(query)
 
@@ -101,15 +108,6 @@ class Policy:
         head = R.get(schema.name)(parameters)
         return head
 
-    def _get_negative_literal(self, predicate: str, variables: list[str]) -> None:
-        """add a negative literal to the template, hack on top of LRNN bug"""
-        ## won't be necessary in the next release...
-        ## TODO fix when next release comes out
-        neg = R.get(f"n_{predicate}")(variables)
-        pos = R.get(predicate)(variables)
-        self._template += neg <= pos
-        return ~neg
-
     def get_schema_preconditions(self, schema: Schema) -> list[BaseRelation]:
         """construct base body of a schema from its preconditions with typing"""
         if isinstance(schema, str):
@@ -137,10 +135,9 @@ class Policy:
             predicate = p.atom.predicate.name
             objects = p.atom.terms
             prec_vars = [V.get(param_remap[obj.name]) for obj in objects]
+            literal = R.get(predicate)(prec_vars)
             if p.negated:
-                literal = self._get_negative_literal(predicate, prec_vars)
-            else:
-                literal = R.get(predicate)(prec_vars)
+                literal = ~literal
             body.append(literal)
 
         return body
