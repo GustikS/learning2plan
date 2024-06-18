@@ -2,7 +2,7 @@ from neuralogic.core import Settings, R
 from neuralogic.dataset import FileDataset
 from neuralogic.nn import get_evaluator
 
-from templates import basic_regression_template
+from modelling.templates import basic_regression_template
 
 
 def generic_relational_feature():
@@ -61,8 +61,8 @@ def eval_examples(dataset, template, experiment="", draw=False):
 
 # %%
 
-dataset = FileDataset(examples_file="../datasets/lrnn/satellite/counter_examples.txt",
-                      queries_file="../datasets/lrnn/satellite/counter_queries.txt")
+dataset = FileDataset(examples_file="../../datasets/lrnn/satellite/counter_examples.txt",
+                      queries_file="../../datasets/lrnn/satellite/counter_queries.txt")
 
 predicates = {"on_board": 2, "supports": 2, "calibration_target": 2, "power_avail": 1, "pointing": 2}
 

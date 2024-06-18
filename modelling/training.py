@@ -127,7 +127,7 @@ def prepare_model(predicates, actions=None, draw=True):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--domain", type=str, default="blocksworld")
+    parser.add_argument("-d", "--domain", type=str, default="satellite", choices=["satellite", "blocksworld"])
     parser.add_argument("--numeric", type=bool, default=False)
     parser.add_argument("--save_file", type=str, default=None)
     args = parser.parse_args()

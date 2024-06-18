@@ -2,9 +2,12 @@ import logging
 import time
 
 import neuralogic
+from pddl.logic.functions import NumericFunction, NumericValue
+from pddl.logic.predicates import EqualTo
 
 if not neuralogic.is_initialized():
     neuralogic.initialize(jar_path="../jar/NeuraLogic.jar")  # custom backend upgrade (to be included in a new version)
+    # neuralogic.initialize()
 
 from neuralogic.core import R
 
@@ -17,7 +20,7 @@ jState = jpype.JClass("cz.cvut.fel.ida.logic.grounding.planning.State")
 jAction = jpype.JClass("cz.cvut.fel.ida.logic.grounding.planning.Action")
 
 import pddl
-from pddl.logic import Variable
+from pddl.logic import Variable, Predicate
 
 
 def parse_literal(string_literal):
@@ -84,8 +87,24 @@ def extract_actions(pddl_domain, just_strings=True):
         name = action.name
         parameters = [parse_term(t) for t in action.parameters]
         precs, conj = _check_symbol(action.precondition)
-        preconditions = [extract_literal(lit, just_strings) for lit in (precs if conj else [precs])]
-        effects = [extract_literal(lit, just_strings) for lit in action.effect.operands]
+        preconditions = []
+        for lit in (precs if conj else [precs]):
+            prec = extract_literal(lit, just_strings)
+            if isinstance(prec, list):
+                preconditions.extend(prec)
+            else:
+                preconditions.append(prec)
+        effects = []
+        if hasattr(action.effect, 'operands'):
+            operands = action.effect.operands
+        else:
+            operands = [action.effect]
+        for lit in operands:
+            l = extract_literal(lit, just_strings)
+            if isinstance(l, list):
+                effects.extend(l)
+            else:
+                effects.append(l)
         actions.append(Action(name, parameters, preconditions, effects))
     return actions
 
@@ -97,33 +116,73 @@ def _check_symbol(element):
             return element.operands, "and"
         elif element.SYMBOL == 'not':
             return element.argument, "not"
+        elif element.SYMBOL.name == 'GREATER_EQUAL':
+            return element.operands, "@geq"
+        elif element.SYMBOL.name == 'LESSER_EQUAL':
+            return element.operands, "@leq"
+        elif element.SYMBOL.name == 'DECREASE':
+            return element.operands, "@dec"  # TODO
+        elif element.SYMBOL.name == 'INCREASE':
+            return element.operands, "@inc"  # TODO
         else:
-            raise Exception("Unknown PDDL symbol")
-    else:
+            raise Exception("Unknown PDDL symbol:" + str(element.SYMBOL))
+    elif isinstance(element, Predicate) or isinstance(element, NumericFunction) or isinstance(element, NumericValue):
         return element, ""
+    else:
+        raise Exception("Unknown PDDL symbol")
 
 
-def extract_literal(pddl_literal, just_strings=True):
+def get_terms(element):
+    if hasattr(element, "terms"):
+        return element.terms
+    if hasattr(element, "left"):
+        return [element.left, element.right]
+    if isinstance(element, tuple):
+        return list(element)
+    else:
+        raise Exception("Unknown PDDL terms")
+
+
+def extract_literal(pddl_literal, just_strings=True, incr=1):
     element, negated = _check_symbol(pddl_literal)
-    terms = [parse_term(t) for t in element.terms]
-    return get_literal(element, terms, negated, just_strings)
+    if not negated or negated == "not":
+        if isinstance(element, NumericValue):
+            terms = [str(element)]
+        else:
+            terms = [parse_term(t) for t in get_terms(element)]
+        if isinstance(element, EqualTo) or isinstance(element, NumericValue):
+            name = "@eq"
+        else:
+            name = element.name
+        if isinstance(element, NumericFunction) or isinstance(element, NumericValue):
+            # introducing an auxiliary variable to get rid of the function symbols with predicates
+            terms.append(f"XX{incr}")
+            if isinstance(element, NumericFunction):
+                name = f'has_{element.name}'
+
+    else:
+        literals = [extract_literal(t, just_strings, incr=i) for i, t in enumerate(get_terms(element))]
+        literals.append(get_literal(negated, [f'XX{i}' for i in range(len(literals))], False, just_strings))
+        return literals
+
+    return get_literal(name, terms, negated, just_strings)
 
 
-def get_literal(predicate, terms, negated, string=True):
+def get_literal(predicate_name, terms, negated, string=True):
     if string:
         negation = "!" if negated else ""
-        return f'{negation}{predicate.name}({",".join(terms)})'
+        return f'{negation}{predicate_name}({",".join(terms)})'
     else:
         if negated:
-            return ~R.get(predicate)(terms)
+            return ~R.get(predicate_name)(terms)
         else:
-            return R.get(predicate)(terms)
+            return R.get(predicate_name)(terms)
 
 
 def parse_term(pddl_term):
     """Returns just string representations of PDDL terms"""
     if pddl_term.type_tags:
-        type = f'{pddl_term.type_tags[0]}:'
+        type = f'{list(pddl_term.type_tags)[0]}:'
     else:
         type = ""
     if isinstance(pddl_term, pddl.logic.Variable):

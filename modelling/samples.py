@@ -209,9 +209,9 @@ def export_problems(problems, domain, numeric, examples_file="examples", queries
 
 
 if __name__ == "__main__":
-    domain = "blocksworld"
-    # domain = "satellite"
-    numeric = False
+    # domain = "blocksworld"
+    domain = "satellite"
+    numeric = True
 
     problems, predicates, actions = parse_domain(domain, numeric=numeric, encoding="")
     export_problems(problems, domain, numeric=numeric)
