@@ -11,7 +11,7 @@ from neuralogic.nn import get_evaluator
 from neuralogic.nn.loss import MSE, CrossEntropy
 from neuralogic.optim import Adam
 from samples import export_problems, load_json, parse_domain
-from sklearn.metrics import confusion_matrix
+# from sklearn.metrics import confusion_matrix
 from templates import basic_regression_template, get_model
 
 logging.basicConfig(
@@ -94,9 +94,9 @@ def train(domain, numeric, save_file=None):
 
     if save_file is not None:
         state_dict = model.state_dict()
-        state_dict["weight_names"] = {
-            k: str(v) for k, v in state_dict["weight_names"].items()
-        }
+        # state_dict["weight_names"] = {
+            # k: str(v) for k, v in state_dict["weight_names"].items()
+        # }
         torch.save(state_dict, save_file)
         logging.log(logging.INFO, f"Model saved to {save_file}")
 
@@ -139,5 +139,5 @@ if __name__ == "__main__":
     print(f"{numeric=}")
     print(f"{save_file=}")
 
-    train(domain, numeric, save_file=save_file)
-    # load(domain, numeric, save_file=save_file)
+    # train(domain, numeric, save_file=save_file)
+    load(domain, numeric, save_file=save_file)

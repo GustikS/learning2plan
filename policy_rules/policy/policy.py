@@ -104,7 +104,7 @@ class Policy:
     def _get_negative_literal(self, predicate: str, variables: list[str]) -> None:
         """add a negative literal to the template, hack on top of LRNN bug"""
         ## won't be necessary in the next release...
-        ## TODO fix when next release comes out
+        ## TODO: do not use this anymore as latest update fixed this
         neg = R.get(f"n_{predicate}")(variables)
         pos = R.get(predicate)(variables)
         self._template += neg <= pos
@@ -138,7 +138,8 @@ class Policy:
             objects = p.atom.terms
             prec_vars = [V.get(param_remap[obj.name]) for obj in objects]
             if p.negated:
-                literal = self._get_negative_literal(predicate, prec_vars)
+                # literal = self._get_negative_literal(predicate, prec_vars)
+                literal = ~R.get(predicate)(prec_vars)
             else:
                 literal = R.get(predicate)(prec_vars)
             body.append(literal)

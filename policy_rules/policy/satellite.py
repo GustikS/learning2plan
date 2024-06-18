@@ -36,8 +36,7 @@ class SatellitePolicy(Policy):
             R.ug_have_image("D", "M"),
             R.pointing("S", "D"),
             R.instrument_config("I", "M", "S", "D"),
-            # ~R.power_on("I"),  ## TODO wait for negative literal fix
-            self._get_negative_literal("power_on", ["I"]),
+            ~R.power_on("I"),
         ]
         self._template += switch_on_head <= switch_on_rule
 
@@ -64,15 +63,19 @@ class SatellitePolicy(Policy):
         ]
         self._template += take_image_head <= take_image_rule
 
+        ## helper
+        head = R.exists_unachieved_goal_at("Dir")
+        body = [
+            R.ug_have_image("Dir", "M"),
+        ]
+        self._template += head <= body
+
         ## turn_to
+        # (?s - satellite ?d_new - direction ?d_prev - direction)
         turn_to_head = self.relation_from_schema("turn_to")
         turn_to_rule = self.get_schema_preconditions("turn_to")
-        # self._template += R.n_ug_have_image("D_other", "M") <= R.ug_have_image("D_other", "M")
         turn_to_rule += [
-            R.ug_pointing("S", "D"),
-            R.ag_have_image("D_other", "M"),
-            ## we need a not exists feature for this.
-            # ~R.ug_have_image("D_other", "M"),  ## TODO wait for negative literal fix
-            R.instrument_config("I", "M", "S", "D"),
+            R.ug_pointing("S", "D_new"),
+            ~R.exists_unachieved_goal_at("D_other"),
         ]
         self._template += turn_to_head <= turn_to_rule
