@@ -6,7 +6,7 @@ def basic_regression_template(predicates, dim=10, num_layers=3, actions=None):
     template = Template()
 
     if actions:
-        template += action_rules(actions, predicates)
+        template += action_rules(actions, predicates, dim)
 
     template += anonymous_predicates(predicates, dim)
 
@@ -26,15 +26,24 @@ def basic_regression_template(predicates, dim=10, num_layers=3, actions=None):
     return template
 
 
-def action_rules(actions, predicates, ILG=True):
+def action_rules(actions, predicates, dim, ILG=True, merge_ilg=True):
     """Of course this is not the only way to incorporate actions in the learning templates..."""
     if ILG:
-        rules = [action.to_rule(pref) for action in actions for pref in ['ag', 'ap']]
+        if merge_ilg:
+            rules = []
+            for predicate in predicates:
+                if predicate.startswith("ag_") or predicate.startswith("ap_"):
+                    raw_pred = predicate[3:]
+                    variables = [f"X{ar}" for ar in range(predicates[predicate])]
+                    rules.append(R.get(raw_pred)(variables) <= R.get(predicate)(variables)[predicate[0:2]:1,])
+            rules.extend([action.to_rule('') for action in actions])
+        else:
+            rules = [action.to_rule(pref) for action in actions for pref in ['ag_', 'ap_']]
     else:
         rules = [action.to_rule('') for action in actions]
 
     for action in actions:
-        predicates[action.name] = len(action.parameters)    # just extend the predicates with the action heads...
+        predicates[action.name] = len(action.parameters)  # just extend the predicates with the action heads...
     return rules
 
 

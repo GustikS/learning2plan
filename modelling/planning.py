@@ -61,7 +61,7 @@ class Action:
         body = []
         for precondition in self.preconditions:
             negated, predicate, terms = parse_literal(precondition)
-            body.append(get_literal(f'{predicate_prefix}_{predicate}', terms, negated, string=False))
+            body.append(get_literal(f'{predicate_prefix}{predicate}', terms, negated, string=False))
         head = R.get(self.name)(self.parameters)
         return head <= body
 
