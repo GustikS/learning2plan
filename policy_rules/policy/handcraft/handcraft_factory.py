@@ -1,5 +1,5 @@
+from ..policy import Policy
 from .ferry import FerryPolicy
-from .policy import Policy
 from .satellite import SatellitePolicy
 
 

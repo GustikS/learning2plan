@@ -4,7 +4,7 @@ from pprint import pprint
 
 import pymimir
 from neuralogic.core import C, R, Template, V
-from policy.handcraft_factory import get_handcraft_policy
+from policy.handcraft.handcraft_factory import get_handcraft_policy
 from util.printing import print_mat
 from util.timer import TimerContextManager
 
@@ -16,20 +16,22 @@ def satellite_rules():
     pass
 
 
-def is_goal_state(state: pymimir.State, goal: list[pymimir.Literal]):
+def goal_count(state: pymimir.State, goal: list[pymimir.Literal]) -> int:
     state_atoms = set([a.get_name() for a in state.get_atoms()])
+    ret = 0
     for g in goal:
         g_name = g.atom.get_name()
         if g_name not in state_atoms and not g.negated:
-            return False
+            ret += 1
         elif g_name in state_atoms and g.negated:
-            return False
-    return True
+            ret += 1
+    return ret
 
 
 def state_repr(state: pymimir.State):
     atom_names = sorted([a.get_name() for a in state.get_atoms()])
     return ", ".join(atom_names)
+
 
 def goal_repr(goal: list[pymimir.Literal]):
     goals = []
@@ -43,24 +45,14 @@ def goal_repr(goal: list[pymimir.Literal]):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-d",
-        "--domain_path",
-        type=str,
-        default=f"l4np/{_DEFAULT_DOMAIN}/classic/domain.pddl",
-    )
-    parser.add_argument(
-        "-p",
-        "--problem_path",
-        type=str,
-        default=f"l4np/{_DEFAULT_DOMAIN}/classic/testing/p0_01.pddl",
-    )
-    parser.add_argument(
-        "-v", "--verbose", type=int, default=0, help="increase output verbosity"
-    )
+    parser.add_argument("-d", "--domain", type=str, default="ferry")
+    parser.add_argument("-p", "--problem", type=str, default="0_01", help="Of the form 'x_yy'")
+    parser.add_argument("-v", "--verbose", type=int, default=0)
     args = parser.parse_args()
-    domain_path = args.domain_path
-    problem_path = args.problem_path
+    domain_name = args.domain
+    problem_name = args.problem
+    domain_path = f"l4np/{domain_name}/classic/domain.pddl"
+    problem_path = f"l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
     _DEBUG_LEVEL = args.verbose
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
     assert Path(problem_path).exists(), f"Problem file not found: {problem_path}"
@@ -92,7 +84,11 @@ def main():
 
     ## execute policy
     with TimerContextManager("executing policy") as timer:
-        while not is_goal_state(state, goal):
+        while True:
+            goals_left = goal_count(state, goal)
+            if goals_left == 0:
+                break
+
             policy_actions = policy.solve(state.get_atoms())
 
             if len(policy_actions) == 0:
@@ -100,15 +96,14 @@ def main():
                 print("Terminating...")
                 exit(0)
 
-            applicable_actions = successor_generator.get_applicable_actions(state)
-            applicable_actions = {a.get_name(): a for a in applicable_actions}
-
             matrix_log = []
 
+            Step = len(plan)
+            print(f"[{Step=}, {goals_left=}, {timer.get_time()}s]")
             if _DEBUG_LEVEL > 1:
-                print(f"[Step {len(plan)}]")
-                matrix_log.append(["Policy actions", ", ".join(policy_actions)])
-            action = applicable_actions[policy_actions[0]]
+                action_names = [a.get_name() for a in policy_actions]
+                matrix_log.append(["Policy actions", ", ".join(action_names)])
+            action = policy_actions[0]  # TODO randomise this?
 
             if _DEBUG_LEVEL > 0:
                 matrix_log.append(["Applying", action.get_name()])
@@ -119,10 +114,10 @@ def main():
                 ilg_state = policy.get_ilg_facts(state.get_atoms())
                 ilg_state = ", ".join([str(f) for f in ilg_state])
                 matrix_log.append(["Current state", ilg_state])
+            if len(matrix_log) > 0:
+                print_mat(matrix_log, rjust=False)
 
-            print_mat(matrix_log, rjust=False)
-
-            if _DEBUG_LEVEL > 3:
+            if _DEBUG_LEVEL > 2:
                 breakpoint()
 
         total_time += timer.get_time()

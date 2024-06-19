@@ -1,7 +1,7 @@
 from neuralogic.core import R
 from typing_extensions import override
 
-from .policy import Policy
+from ..policy import Policy
 
 
 class SatellitePolicy(Policy):
@@ -77,5 +77,6 @@ class SatellitePolicy(Policy):
         turn_to_rule += [
             R.ug_pointing("S", "D_new"),
             ~R.exists_unachieved_goal_at("D_other"),
+            R.instrument_config("I", "M", "S", "D_other"),
         ]
         self._template += turn_to_head <= turn_to_rule

@@ -10,6 +10,9 @@ def print_mat(mat: Iterable[Iterable], rjust: bool = True):
 
     for row in mat:
         for i, cell in enumerate(row):
+            if i == len(row) - 1:
+                print(str(cell), end="")
+                break
             if rjust:
                 print(str(cell).rjust(max_lengths[i]), end="  ")
             else:
