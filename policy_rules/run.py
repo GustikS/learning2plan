@@ -48,6 +48,7 @@ def main():
     parser.add_argument("-d", "--domain", type=str, default="ferry")
     parser.add_argument("-p", "--problem", type=str, default="0_01", help="Of the form 'x_yy'")
     parser.add_argument("-v", "--verbose", type=int, default=0)
+    parser.add_argument("-b", "--bound", type=int, default=100, help="Bound before terminating with failure.")
     args = parser.parse_args()
     domain_name = args.domain
     problem_name = args.problem
@@ -119,6 +120,10 @@ def main():
 
             if _DEBUG_LEVEL > 2:
                 breakpoint()
+            
+            if len(plan) == args.bound:
+                print(f"Terminating with failure after {args.bound} steps.", flush=True)
+                exit(-1)
 
         total_time += timer.get_time()
     plan_length = len(plan)

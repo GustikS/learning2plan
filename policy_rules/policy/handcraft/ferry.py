@@ -11,17 +11,15 @@ class FerryPolicy(Policy):
 
     @override
     def _add_policy_rules(self):
-        ## sail(?from - location ?to - location)
-        ## ferry not empty
-        sail_head = self.relation_from_schema("sail")
-        sail_rule = self.get_schema_preconditions("sail")
-        sail_rule += [
+        # sail(?from - location ?to - location)
+        # ferry not empty
+        body = [
             R.get("ug_at")("Car", "To"),
             R.get("ap_on")("Car"),
         ]
-        self._template += sail_head <= sail_rule
+        self.add_hardcode_rule("sail", body)
 
-        ## helper
+        # helper
         head = R.exists_goal_car_at("Loc")
         body = [
             R.get("ug_at")("Car2", "Goal_loc"),
@@ -29,30 +27,24 @@ class FerryPolicy(Policy):
         ]
         self._template += head <= body
 
-        ## sail(?from - location ?to - location)
-        ## ferry is empty
-        sail_head = self.relation_from_schema("sail")
-        sail_rule = self.get_schema_preconditions("sail")
-        sail_rule += [
+        # sail(?from - location ?to - location)
+        # ferry is empty
+        body = [
             R.get("ug_at")("Car", "Goal_loc"),
             R.get("ap_at")("Car", "To"),
             R.get("empty-ferry")(),
             ~R.get("exists_goal_car_at")("From"),
         ]
-        self._template += sail_head <= sail_rule
+        self.add_hardcode_rule("sail", body)
 
-        ## board(?car - car ?loc - location)
-        board_head = self.relation_from_schema("board")
-        board_rule = self.get_schema_preconditions("board")
-        board_rule += [
+        # board(?car - car ?loc - location)
+        body = [
             R.get("ug_at")("Car", "Goal_loc"),
         ]
-        self._template += board_head <= board_rule
+        self.add_hardcode_rule("board", body)
 
-        ## debark(?car - car  ?loc - location)
-        debark_head = self.relation_from_schema("debark")
-        debark_rule = self.get_schema_preconditions("debark")
-        debark_rule += [
+        # debark(?car - car  ?loc - location)
+        body = [
             R.get("ug_at")("Car", "Loc"),
         ]
-        self._template += debark_head <= debark_rule
+        self.add_hardcode_rule("debark", body)

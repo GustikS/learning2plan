@@ -1,0 +1,33 @@
+name: Run Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        domain: ["blocksworld", "childsnack", "ferry", "floortile", "miconic", "rovers", "satellite", "sokoban", "spanner", "transport"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.10
+          
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+
+      - name: Install test dependencies and test
+        run: |
+          cd policy_rules
+          python -m pip install -r requirements.txt
+          pytest -s tests/test_policies.py --domain ${{ matrix.domain }}

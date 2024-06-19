@@ -1,10 +1,15 @@
 from ..policy import Policy
+from .childsnack import ChildsnackPolicy
 from .ferry import FerryPolicy
 from .satellite import SatellitePolicy
 
 
 def get_handcraft_policy(domain: str) -> Policy:
-    return {
+    domains = {
+        "childsnack": ChildsnackPolicy,
         "ferry": FerryPolicy,
         "satellite": SatellitePolicy,
-    }[domain]
+    }
+    if domain not in domains:
+        raise NotImplementedError
+    return domains[domain]

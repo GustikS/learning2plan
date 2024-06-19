@@ -11,7 +11,7 @@ class SatellitePolicy(Policy):
 
     @override
     def _add_policy_rules(self):
-        ## useful macro
+        # useful macro
         head = R.instrument_config("I", "M", "S", "D")
         body = [
             R.supports("I", "M"),
@@ -20,7 +20,7 @@ class SatellitePolicy(Policy):
         ]
         self._template += head <= body
 
-        ## turn_to
+        # turn_to
         turn_to_head = self.relation_from_schema("turn_to")
         turn_to_rule = self.get_schema_preconditions("turn_to")
         turn_to_rule += [
@@ -29,7 +29,7 @@ class SatellitePolicy(Policy):
         ]
         self._template += turn_to_head <= turn_to_rule
 
-        ## switch_on
+        # switch_on
         switch_on_head = self.relation_from_schema("switch_on")
         switch_on_rule = self.get_schema_preconditions("switch_on")
         switch_on_rule += [
@@ -40,10 +40,10 @@ class SatellitePolicy(Policy):
         ]
         self._template += switch_on_head <= switch_on_rule
 
-        ## switch_off
+        # switch_off
         # TODO
 
-        ## calibrate
+        # calibrate
         calibrate_head = self.relation_from_schema("calibrate")
         calibrate_rule = self.get_schema_preconditions("calibrate")
         calibrate_rule += [
@@ -54,7 +54,7 @@ class SatellitePolicy(Policy):
         ]
         self._template += calibrate_head <= calibrate_rule
 
-        ## take_image
+        # take_image
         take_image_head = self.relation_from_schema("take_image")
         take_image_rule = self.get_schema_preconditions("take_image")
         take_image_rule += [
@@ -63,14 +63,14 @@ class SatellitePolicy(Policy):
         ]
         self._template += take_image_head <= take_image_rule
 
-        ## helper
+        # helper
         head = R.exists_unachieved_goal_at("Dir")
         body = [
             R.ug_have_image("Dir", "M"),
         ]
         self._template += head <= body
 
-        ## turn_to
+        # turn_to
         # (?s - satellite ?d_new - direction ?d_prev - direction)
         turn_to_head = self.relation_from_schema("turn_to")
         turn_to_rule = self.get_schema_preconditions("turn_to")

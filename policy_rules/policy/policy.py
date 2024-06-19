@@ -98,6 +98,12 @@ class Policy:
             self._template += R.get(obj.type.name)(C.get(obj.name))
             # self._template += R.get(obj.type.base.name)(C.get(obj.name))
 
+    def add_hardcode_rule(self, schema_name: str, extended_body: list[BaseRelation]):
+        head = self.relation_from_schema(schema_name)
+        body = self.get_schema_preconditions(schema_name)
+        body += extended_body
+        self._template += head <= body
+
     def relation_from_schema(self, schema: Schema) -> BaseRelation:
         """construct a relation object from a schema"""
         if isinstance(schema, str):

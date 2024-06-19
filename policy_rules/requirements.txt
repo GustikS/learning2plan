@@ -1,3 +1,4 @@
-pymimir @ git+https://github.com/DillonZChen/mimir.git
 neuralogic==0.7.16
+pytest==8.2.2
+pymdzcf==0.1.0
 typing_extensions==4.12.0

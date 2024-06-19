@@ -1,5 +1,9 @@
-# logic-programming-plan
+Handcrafted Policies
+====================
 
+Contains handcrafted datalog programs for encoding generalised policies. See the [README](/policy_rules/policy/handcraft/README.md) for more details
+
+# Environment
 Package management with conda:
 ```
 conda create --name lpp python=3.10.4
