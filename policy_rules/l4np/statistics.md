@@ -1,0 +1,10 @@
+| Domain      | Predicates | Functions | Schemata |
+| ----------- | ---------- | --------- | -------- |
+| blocksworld | 6          | 1         | 4        |
+| childsnack  | 2          | 5         | 6        |
+| ferry       | 3          | 1         | 3        |
+| miconic     | 7          | 2         | 8        |
+| rovers      | 24         | 2         | 10       |
+| satellite   | 8          | 4         | 5        |
+| spanner     | 2          | 3         | 3        |
+| transport   | 3          | 1         | 3        |
