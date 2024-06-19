@@ -42,7 +42,7 @@ class Policy:
             lrnn_fact = R.get(atom.predicate)([C.get(obj) for obj in atom.objects])
             self._template.add_rule(lrnn_fact)
 
-        if self._debug > 9:
+        if self._debug > 2:
             print("=" * 80)
             print(self._template)
             print("=" * 80)
@@ -135,6 +135,8 @@ class Policy:
             objects = p.atom.terms
             prec_vars = [V.get(param_remap[obj.name]) for obj in objects]
             literal = R.get(predicate)(prec_vars)
+            if p.negated:
+                literal = ~literal
             body.append(literal)
 
         return body
