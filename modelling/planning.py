@@ -6,7 +6,7 @@ from pddl.logic.functions import NumericFunction, NumericValue
 from pddl.logic.predicates import EqualTo
 
 if not neuralogic.is_initialized():
-    neuralogic.initialize(jar_path="../jar/NeuraLogic.jar")  # custom backend upgrade (to be included in a new version)
+    neuralogic.initialize(jar_path="../jar/NeuraLogic.jar", debug_mode=False)  # custom backend upgrade (to be included in a new version)
     # neuralogic.initialize()
 
 from neuralogic.core import R
@@ -179,9 +179,9 @@ def get_literal(predicate_name, terms, negated, string=True):
             return R.get(predicate_name)(terms)
 
 
-def parse_term(pddl_term):
+def parse_term(pddl_term, include_types=False):
     """Returns just string representations of PDDL terms"""
-    if pddl_term.type_tags:
+    if pddl_term.type_tags and include_types:
         type = f'{list(pddl_term.type_tags)[0]}:'
     else:
         type = ""
@@ -243,6 +243,7 @@ if __name__ == '__main__':
     from modelling.samples import parse_domain, flatten_states
 
     domain = "blocksworld"
+    # domain = "satellite"
     numeric = False
     problems, predicates, actions = parse_domain(domain, numeric=numeric, encoding="")
     states = flatten_states(problems)
