@@ -93,8 +93,9 @@ class BlocksworldPolicy(Policy):
             ~R.get("ap_on-table")("Ob"),
             ~R.get("ag_on-table")("Ob"),
         ]
-        self.add_hardcode_rule(priority_1_pickup, body)
-        self.add_hardcode_rule("pickup", [priority_1_pickup])
+        body += self.get_schema_preconditions("pickup")
+        self.add_rule(priority_1_pickup, body)
+        self.add_rule("pickup", [priority_1_pickup])
 
         # pickup(?ob) - priority 2
         # [pick up from table if not well placed]
@@ -104,8 +105,9 @@ class BlocksworldPolicy(Policy):
             R.ug_on("Ob", "Underob"),
             R.well_placed_block("Underob"),
         ]
-        self.add_hardcode_rule(priority_2_pickup, body)
-        self.add_hardcode_rule("pickup", [priority_2_pickup])
+        body += self.get_schema_preconditions("pickup")
+        self.add_rule(priority_2_pickup, body)
+        self.add_rule("pickup", [priority_2_pickup])
 
         # putdown(?ob) - option 1 (options are just for debugging)
         # [put on table if goal block to put on is not well placed]
@@ -115,8 +117,9 @@ class BlocksworldPolicy(Policy):
             R.get("ug_on")("Ob", "Underob"),
             ~R.well_placed_block("Underob"),
         ]
-        self.add_hardcode_rule(putdown_1, body)
-        self.add_hardcode_rule("putdown", [putdown_1])
+        body += self.get_schema_preconditions("putdown")
+        self.add_rule(putdown_1, body)
+        self.add_rule("putdown", [putdown_1])
 
         # putdown(?ob) - option 2
         # [put on table if goal is to put on table]
@@ -124,8 +127,9 @@ class BlocksworldPolicy(Policy):
         body = [
             R.get("ug_on-table")("Ob"),
         ]
-        self.add_hardcode_rule(putdown_2, body)
-        self.add_hardcode_rule("putdown", [putdown_2])
+        body += self.get_schema_preconditions("putdown")
+        self.add_rule(putdown_2, body)
+        self.add_rule("putdown", [putdown_2])
 
         # stack(?ob, ?underob)
         # [stack on top of a well placed goal block]
@@ -133,10 +137,10 @@ class BlocksworldPolicy(Policy):
             R.get("ug_on")("Ob", "Underob"),
             R.get("well_placed_block")("Underob"),
         ]
-        self.add_hardcode_rule("stack", body)
+        self.add_rule("stack", body)
 
         # unstack(?ob, ?underob)
         body = [
             ~R.get("well_placed_block")("Ob"),
         ]
-        self.add_hardcode_rule("unstack", body)
+        self.add_rule("unstack", body)

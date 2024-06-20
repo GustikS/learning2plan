@@ -85,7 +85,7 @@ def main():
             policy_actions = policy.solve(state.get_atoms())
 
             if len(policy_actions) == 0:
-                print(f"Error: No actions computed and not at goal state! Executed {len(plan)}")
+                print("Error: No actions computed and not at goal state!")
                 print("Terminating...")
                 exit(0)
 

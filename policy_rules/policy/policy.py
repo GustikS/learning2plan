@@ -125,7 +125,7 @@ class Policy:
             self._template += R.get(obj.type.name)(C.get(obj.name))
             # self._template += R.get(obj.type.base.name)(C.get(obj.name))
 
-    def add_hardcode_rule(self, head_or_schema_name: Union[BaseRelation, str], extended_body: list[BaseRelation]):
+    def add_rule(self, head_or_schema_name: Union[BaseRelation, str], extended_body: list[BaseRelation]):
         assert isinstance(extended_body, list)
         if isinstance(head_or_schema_name, BaseRelation):
             head = head_or_schema_name

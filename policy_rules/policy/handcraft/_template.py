@@ -12,7 +12,7 @@ class _TemplatePolicy(Policy):
             R.get("ug_at")("Car", "To"),
             R.get("ap_on")("Car"),
         ]
-        self.add_hardcode_rule("sail", body)
+        self.add_rule("sail", body)
 
         # helper
         head = R.exists_goal_car_at("Loc")
