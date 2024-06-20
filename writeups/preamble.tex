@@ -1,0 +1,143 @@
+\usepackage{bm}         % bold and italics maths font
+\usepackage[utf8]{inputenc}
+\usepackage{lipsum}
+\usepackage{amssymb,amsthm,amsmath}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{centernot}
+\usepackage{complexity}
+\usepackage[ruled,noline,linesnumbered,noend]{algorithm2e} % noend or vlined to remove end
+\usepackage{mathrsfs}   % \mathscr fonts
+\usepackage{tabularx}   % adjustable table width
+\usepackage{multirow}   % multiple rows and columns
+\usepackage{array}      % allows m{'width'} and b{'width'}
+\usepackage{booktabs}   % \toprule \midrule \bottomrule
+\usepackage{colortbl}   % allows table cells to be coloured
+\usepackage{xargs}      % Use more than one optional parameter in a new commands
+\usepackage{tikz}
+\usepackage{tikz-cd}
+\usepackage{marginnote} % https://tex.stackexchange.com/questions/297684/todonotes-on-both-sides-of-the-page
+\usepackage{afterpage}
+\usepackage{pdflscape}
+
+\usetikzlibrary{positioning, calc}
+
+% planning operators
+\DeclareMathOperator*{\op}{op}
+\DeclareMathOperator*{\pre}{pre}
+\DeclareMathOperator*{\add}{add}
+\DeclareMathOperator*{\del}{del}
+\DeclareMathOperator*{\eff}{eff}
+
+% complexity macros
+\newclass{\N}{N}
+\newclass{\CountingLogic}{C}
+\newclass{\coNTIME}{coNTIME}
+\newclass{\coNSPACE}{coNSPACE}
+\newclass{\coNPSPACE}{coNPSPACE}
+\newclass{\EXPTIME}{EXPTIME}
+\newclass{\NEXPTIME}{NEXPTIME}
+\newclass{\coNEXPTIME}{coNEXPTIME}
+\newclass{\NEXPSPACE}{NEXPSPACE}
+\newclass{\coNEXPSPACE}{coNEXPSPACE}
+\newclass{\ASPACE}{ASPACE}
+\newclass{\ATIME}{ATIME}
+\newclass{\APSPACE}{APSPACE}
+\newclass{\AEXPTIME}{AEXPTIME}
+\newclass{\AEXPSPACE}{AEXPSPACE}
+
+% maths headings
+\newtheorem{assumption}{Assumption}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+% maths macros
+\def\N{\mathbb{N}}
+\def\R{\mathbb{R}}
+\def\Z{\mathbb{Z}}
+
+\def\a{\alpha}
+\def\b{\beta}
+\def\g{\gamma}
+\def\d{\delta}
+\def\e{\varepsilon}
+\newcommand{\Alpha}{\mathrm{A}}
+\newcommand{\Omicron}{\mathrm{O}}
+\newcommand{\Tau}{\mathrm{T}}
+\renewcommand{\phi}{\varphi}
+
+\def\ra{\rightarrow}
+\def\la{\leftarrow}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\newcommand{\abs}[1]{\left| #1 \right|}
+\newcommand{\norm}[1]{\left\| #1 \right\|}
+\newcommand{\gen}[1]{\left< #1 \right>}
+\newcommand{\gena}[1]{\langle #1 \rangle}
+\newcommand{\set}[1]{\left\{ #1 \right\}}
+\newcommand{\seta}[1]{\{ #1 \}}
+\newcommand{\setbig}[1]{\bigl\{ #1 \bigr\}}
+\newcommand{\setbigg}[1]{\biggl\{ #1 \biggr\}}
+\newcommand{\setBig}[1]{\Bigl\{ #1 \Bigr\}}
+\newcommand{\mset}[1]{\left\{ \!\! \left\{ #1 \right\} \!\! \right\}}
+\newcommand{\mseta}[1]{\{ \!\! \{ #1 \} \!\! \}}
+\newcommand{\msetaa}[1]{\{ \!\! \{ \! #1 \! \} \!\! \}}
+\newcommand{\msetbig}[1]{\bigl\{ \!\! \bigl\{ #1 \bigr\} \!\! \bigr\}}
+\newcommand{\brk}[1]{\left[ #1 \right]}
+\newcommand{\brka}[1]{\[ #1 \]}
+\newcommand{\lr}[1]{\left( #1 \right)}
+\newcommand{\lra}[1]{( #1 )}
+\newcommand{\biglr}[1]{\bigl( #1 \bigr)}
+\newcommand{\bigglr}[1]{\biggl( #1 \biggr)}
+\newcommand{\Biglr}[1]{\Bigl( #1 \Bigr)}
+
+\DeclareMathOperator*{\concat}{%
+  \mathchoice%
+    {\Big\Vert}%
+    {\big\Vert}%
+    {\Vert}%
+    {\Vert}%
+}
+
+\DeclareMathOperator*{\concatsmall}{%
+  {\Vert}%
+}
+
+% macros for tables
+\newcommand{\header}[1]{\rotatebox[origin=l]{90}{\hspace*{-0.22cm} #1}}
+\newcommand{\colorofcell}{gray}
+\newcommand{\comparisonentry}[1]{{\tiny{#1}}}
+\newcommand{\first}[2]{\cellcolor{\colorofcell!50}{{\textbf{#1}}\comparisonentry{#2}}}
+\newcommand{\second}[2]{\cellcolor{\colorofcell!30}{{#1}\comparisonentry{#2}}}
+\newcommand{\third}[2]{\cellcolor{\colorofcell!10}{{#1}\comparisonentry{#2}}}
+\newcommand{\normalcell}[2]{{{#1}\comparisonentry{#2}}}
+\newcommand{\zerocell}[1]{-}
+\newcommand{\half}{0.495}
+
+\newcolumntype{Y}{>{\raggedleft\arraybackslash}X}
+
+% colours
+\definecolor{caribbeangreen}{rgb}{0.0, 0.8, 0.6}
+\definecolor{brilliantlavender}{rgb}{0.96, 0.73, 1.0}
+\definecolor{amethyst}{rgb}{0.6, 0.4, 0.8}
+\definecolor{ao(english)}{rgb}{0.0, 0.5, 0.0}
+\definecolor{arylideyellow}{rgb}{0.91, 0.84, 0.42}
+\definecolor{asparagus}{rgb}{0.53, 0.66, 0.42}
+\definecolor{aquamarine}{rgb}{0.5, 1.0, 0.83}
+\definecolor{babyblue}{rgb}{0.54, 0.81, 0.94}
+\definecolor{fwtchanged}{rgb}{0.3, 0.3, 0.7}
+\definecolor{rosewood}{rgb}{0.4, 0.0, 0.04}
+\definecolor{oldmauve}{rgb}{0.4, 0.19, 0.28}
+\definecolor{myrtle}{rgb}{0.13, 0.26, 0.12}
+\definecolor{magenta(dye)}{rgb}{0.79, 0.08, 0.48}
+
+\definecolor{plta}{rgb}{0.12, 0.47, 0.71}
+\definecolor{pltb}{rgb}{   1, 0.5, 0.05}
+\definecolor{pltc}{rgb}{0.17, 0.63, 0.17}
+\definecolor{pltd}{rgb}{0.84, 0.15, 0.16}
