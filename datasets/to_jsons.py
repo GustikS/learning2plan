@@ -6,21 +6,21 @@ import pymimir
 from tqdm import tqdm
 
 DOMAINS = [
-    "blocksworld",
-    "childsnack",
-    "ferry",
-    "floortile",
-    "miconic",
-    "rovers",
-    "satellite",
-    "sokoban",
+    # "blocksworld",
+    # "childsnack",
+    # "ferry",
+    # # "floortile",
+    # "miconic",
+    # "rovers",
+    # "satellite",
+    # # "sokoban",
     "spanner",
     "transport",
 ]
 
 
 MAX_TOTAL_STATES_PER_PROBLEM = 10000
-MAX_TOTAL_STATES_PER_DOMAIN = 100000
+MAX_TOTAL_STATES_PER_DOMAIN = 25500
 
 
 def get_static_predicates(domain: pymimir.Domain):
