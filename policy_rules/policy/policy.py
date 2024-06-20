@@ -1,6 +1,5 @@
 """Make use of neuralogic and pymimir to encode policies as Horn clause rules"""
 
-import time
 from abc import abstractmethod
 from itertools import product
 from typing import Union
@@ -74,6 +73,9 @@ class Policy:
         self._add_derived_predicates()
         self._add_policy_rules()
 
+    def print_state(self, state: list[Atom]):
+        pass  # may be extended and replaced
+
     @abstractmethod
     def _add_policy_rules(self):
         raise NotImplementedError
@@ -87,8 +89,19 @@ class Policy:
 
     def _debug_inference_helper(self, relation: BaseRelation):
         print("-" * 80)
-        print(relation)
-        print(self._engine.query(relation))
+        rel_repr = str(relation).split("(")[0]
+        print(rel_repr)
+        # print("-" * len(rel_repr))
+        results = self._engine.query(relation)
+        relation_str = str(relation)
+        results_repr = []
+        for result in results:
+            result_repr = "" + relation_str[:-1]
+            for k, v in result.items():
+                result_repr = result_repr.replace(k, v)
+            results_repr.append(result_repr)
+        results_repr = sorted(results_repr)
+        print(" ".join(results_repr))
 
     def _debug_inference_actions(self):
         for schema in self._schemata:
@@ -112,10 +125,16 @@ class Policy:
             self._template += R.get(obj.type.name)(C.get(obj.name))
             # self._template += R.get(obj.type.base.name)(C.get(obj.name))
 
-    def add_hardcode_rule(self, schema_name: str, extended_body: list[BaseRelation]):
-        head = self.relation_from_schema(schema_name)
-        body = self.get_schema_preconditions(schema_name)
-        body += extended_body
+    def add_hardcode_rule(self, head_or_schema_name: Union[BaseRelation, str], extended_body: list[BaseRelation]):
+        assert isinstance(extended_body, list)
+        if isinstance(head_or_schema_name, BaseRelation):
+            head = head_or_schema_name
+            body = extended_body
+        else:
+            assert isinstance(head_or_schema_name, str)
+            head = self.relation_from_schema(head_or_schema_name)
+            body = self.get_schema_preconditions(head_or_schema_name)
+            body += extended_body
         self._template += head <= body
 
     def relation_from_schema(self, schema: Schema) -> BaseRelation:

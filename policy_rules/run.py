@@ -8,13 +8,6 @@ from policy.handcraft.handcraft_factory import get_handcraft_policy
 from util.printing import print_mat
 from util.timer import TimerContextManager
 
-_DEFAULT_DOMAIN = "ferry"
-# _DEFAULT_DOMAIN = "satellite"
-
-
-def satellite_rules():
-    pass
-
 
 def goal_count(state: pymimir.State, goal: list[pymimir.Literal]) -> int:
     state_atoms = set([a.get_name() for a in state.get_atoms()])
@@ -63,7 +56,6 @@ def main():
     with TimerContextManager("parsing PDDL files") as timer:
         domain = pymimir.DomainParser(str(domain_path)).parse()
         problem = pymimir.ProblemParser(str(problem_path)).parse(domain)
-        successor_generator = pymimir.LiftedSuccessorGenerator(problem)
         state = problem.create_state(problem.initial)
         goal = problem.goal
         total_time += timer.get_time()
@@ -93,7 +85,7 @@ def main():
             policy_actions = policy.solve(state.get_atoms())
 
             if len(policy_actions) == 0:
-                print("Error: No actions computed and not at goal state!")
+                print(f"Error: No actions computed and not at goal state! Executed {len(plan)}")
                 print("Terminating...")
                 exit(0)
 
@@ -117,6 +109,8 @@ def main():
                 matrix_log.append(["Current state", ilg_state])
             if len(matrix_log) > 0:
                 print_mat(matrix_log, rjust=False)
+            if _DEBUG_LEVEL > 1:
+                policy.print_state(state.get_atoms())  # may or may not be implemented depending on domain
 
             if _DEBUG_LEVEL > 3:
                 breakpoint()
