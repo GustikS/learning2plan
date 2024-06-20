@@ -1,4 +1,4 @@
-""" Make use of neuralogic and pymimir to encode policies as Horn clause rules"""
+"""Make use of neuralogic and pymimir to encode policies as Horn clause rules"""
 
 import time
 from abc import abstractmethod
@@ -26,10 +26,7 @@ class Policy:
             schema.name: schema for schema in self._schemata
         }
         self._objects = self._problem.objects
-        self._name_to_object: dict[str, Object] = {
-            obj.name: obj for obj in self._objects
-        }
-
+        self._name_to_object: dict[str, Object] = {obj.name: obj for obj in self._objects}
 
     def solve(self, state: list[Atom]) -> list[Action]:
         """given a state and goal pair, return possible actions from policy rules"""
@@ -44,10 +41,14 @@ class Policy:
 
         if self._debug > 2:
             print("=" * 80)
+            print("Template for current state:")
             print(self._template)
             print("=" * 80)
 
         self._engine = InferenceEngine(self._template)
+
+        if self._debug > 2:
+            self._debug_inference()
 
         ret = []
         for schema in self._schemata:
@@ -80,6 +81,19 @@ class Policy:
     @abstractmethod
     def _add_derived_predicates(self):
         raise NotImplementedError
+
+    def _debug_inference(self):
+        pass
+
+    def _debug_inference_helper(self, relation: BaseRelation):
+        print("-" * 80)
+        print(relation)
+        print(self._engine.query(relation))
+
+    def _debug_inference_actions(self):
+        for schema in self._schemata:
+            relation = self.relation_from_schema(schema)
+            self._debug_inference_helper(relation)
 
     def _add_predicate_copies(self) -> None:
         """add ug, ag, ap copies of predicates and rules"""
@@ -120,9 +134,7 @@ class Policy:
         schema: ActionSchema = schema
 
         body = []
-        param_remap = {
-            p.name: p.name.replace("?", "").upper() for p in schema.parameters
-        }
+        param_remap = {p.name: p.name.replace("?", "").upper() for p in schema.parameters}
 
         ## add variables and their types
         for param in schema.parameters:

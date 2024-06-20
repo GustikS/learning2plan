@@ -118,7 +118,7 @@ def main():
             if len(matrix_log) > 0:
                 print_mat(matrix_log, rjust=False)
 
-            if _DEBUG_LEVEL > 2:
+            if _DEBUG_LEVEL > 3:
                 breakpoint()
             
             if len(plan) == args.bound:
