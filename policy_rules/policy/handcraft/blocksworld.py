@@ -18,7 +18,7 @@ from ..policy import Policy
 
 
 class BlocksworldPolicy(Policy):
-    def print_state(self, state: list[Atom]):
+    def _print_bw_state(self, state: list[Atom]):
         on_table = []
         block_dict = {}
         holding = None
@@ -44,19 +44,43 @@ class BlocksworldPolicy(Policy):
             towers[i] = ([""] * (tower_max - len(towers[i]))) + towers[i]
         towers_transpose = list(zip(*towers))
 
-        print()
         if holding:
             print(f"--[ {holding}")
         print()
         print_mat(towers_transpose)
         print("----" * len(towers))
 
+    def print_state(self, state: list[Atom]):
+        goal = []
+        for g in self._goal:
+            assert not g.negated
+            goal.append(g.atom)
+
+        print()
+        print("Goal state:")
+        self._print_bw_state(goal)
+
+        if self._prev_state:
+            print()
+            print("Previous state:")
+            self._print_bw_state(self._prev_state)
+
+            print()
+            print("Current state:")
+            self._print_bw_state(state)
+        else:
+            print()
+            print("Initial state:")
+            self._print_bw_state(state)
+
+        self._prev_state = state
+
     def _debug_inference(self):
         print("Inference for current state:")
         self._debug_inference_helper(R.well_placed_block("Ob"))
-        # self._debug_inference_helper(R.not_well_placed("Ob"))
-        self._debug_inference_helper(R.priority_1_pickup("Ob"))
-        self._debug_inference_helper(R.priority_2_pickup("Ob"))
+        self._debug_inference_helper(R.can_unstack("Ob"))
+        self._debug_inference_helper(R.pickup_1("Ob"))
+        self._debug_inference_helper(R.pickup_2("Ob"))
         self._debug_inference_helper(R.putdown_1("Ob"))
         self._debug_inference_helper(R.putdown_2("Ob"))
         print("-" * 80)
@@ -65,14 +89,12 @@ class BlocksworldPolicy(Policy):
 
     @override
     def _add_derived_predicates(self):
-        # well_placed_block 
+        """well_placed_block"""
         # stacked on another block
         head = R.well_placed_block("A")
         body = [
-            ~R.get("ug_on")("A", "B"),
-            ~R.get("ug_on-table")("A"),
-            R.get("ag_on")("A", "C"),
-            R.get("well_placed_block")("C"),
+            R.get("ag_on")("A", "B"),
+            R.get("well_placed_block")("B"),
         ]
         self._template += head <= body
 
@@ -83,55 +105,23 @@ class BlocksworldPolicy(Policy):
         ]
         self._template += head <= body
 
+        """ cannot unstack """
+        head = R.can_unstack("Ob")
+        body = [
+            R.get("unstack")("A", "B"),
+        ]
+        self._template += head <= body
+
     @override
     def _add_policy_rules(self):
-        # pickup(?ob) - priority 1
-        # [pick up from a stacked block if not well placed]
-        priority_1_pickup = R.priority_1_pickup("Ob")
+        """ unstack(?ob, ?underob) """
+        # [unstack block that is not well placed]
         body = [
             ~R.get("well_placed_block")("Ob"),
-            ~R.get("ap_on-table")("Ob"),
-            ~R.get("ag_on-table")("Ob"),
         ]
-        body += self.get_schema_preconditions("pickup")
-        self.add_rule(priority_1_pickup, body)
-        self.add_rule("pickup", [priority_1_pickup])
+        self.add_rule("unstack", body)
 
-        # pickup(?ob) - priority 2
-        # [pick up from table if not well placed]
-        priority_2_pickup = R.priority_2_pickup("Ob")
-        body = [
-            ~R.priority_1_pickup("Ob"),
-            R.ug_on("Ob", "Underob"),
-            R.well_placed_block("Underob"),
-        ]
-        body += self.get_schema_preconditions("pickup")
-        self.add_rule(priority_2_pickup, body)
-        self.add_rule("pickup", [priority_2_pickup])
-
-        # putdown(?ob) - option 1 (options are just for debugging)
-        # [put on table if goal block to put on is not well placed]
-        # self._template += R.not_well_placed("Ob") <= ~R.well_placed_block("Ob")
-        putdown_1 = R.putdown_1("Ob")
-        body = [
-            R.get("ug_on")("Ob", "Underob"),
-            ~R.well_placed_block("Underob"),
-        ]
-        body += self.get_schema_preconditions("putdown")
-        self.add_rule(putdown_1, body)
-        self.add_rule("putdown", [putdown_1])
-
-        # putdown(?ob) - option 2
-        # [put on table if goal is to put on table]
-        putdown_2 = R.putdown_2("Ob")
-        body = [
-            R.get("ug_on-table")("Ob"),
-        ]
-        body += self.get_schema_preconditions("putdown")
-        self.add_rule(putdown_2, body)
-        self.add_rule("putdown", [putdown_2])
-
-        # stack(?ob, ?underob)
+        """stack(?ob, ?underob)"""
         # [stack on top of a well placed goal block]
         body = [
             R.get("ug_on")("Ob", "Underob"),
@@ -139,8 +129,28 @@ class BlocksworldPolicy(Policy):
         ]
         self.add_rule("stack", body)
 
-        # unstack(?ob, ?underob)
+        """pickup(?ob)"""
+        # pickup(?ob)
+        # [pick up from table if goal underneath block is well placed]
         body = [
-            ~R.get("well_placed_block")("Ob"),
+            ~R.get("can_unstack")("Ob"),
+            R.get("ug_on")("Ob", "Underob"),
+            R.get("well_placed_block")("Underob"),
         ]
-        self.add_rule("unstack", body)
+        self.add_rule("pickup", body)
+
+        """ putdown(?ob) """
+        # putdown(?ob) - option 1 (options are just for debugging)
+        # [put on table if goal block to put on is not well placed]
+        body = [
+            R.get("ug_on")("Ob", "Underob"),
+            ~R.get("well_placed_block")("Underob"),
+        ]
+        self.add_rule("putdown", body)
+
+        # putdown(?ob) - option 2
+        # [put on table if goal is to put on table]
+        body = [
+            R.get("ug_on-table")("Ob"),
+        ]
+        self.add_rule("putdown", body)

@@ -1,9 +1,10 @@
 import argparse
+import sys
 from pathlib import Path
 from pprint import pprint
 
 import pymimir
-from neuralogic.core import C, R, Template, V
+from neuralogic.logging import Formatter, Level, add_handler
 from policy.handcraft.handcraft_factory import get_handcraft_policy
 from util.printing import print_mat
 from util.timer import TimerContextManager
@@ -41,7 +42,7 @@ def main():
     parser.add_argument("-d", "--domain", type=str, default="ferry")
     parser.add_argument("-p", "--problem", type=str, default="0_01", help="Of the form 'x_yy'")
     parser.add_argument("-v", "--verbose", type=int, default=0)
-    parser.add_argument("-b", "--bound", type=int, default=100, help="Bound before terminating with failure.")
+    parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound.")
     args = parser.parse_args()
     domain_name = args.domain
     problem_name = args.problem
@@ -50,6 +51,9 @@ def main():
     _DEBUG_LEVEL = args.verbose
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
     assert Path(problem_path).exists(), f"Problem file not found: {problem_path}"
+
+    if _DEBUG_LEVEL > 4:
+        add_handler(sys.stdout, Level.ALL, Formatter.COLOR)
 
     total_time = 0
 
@@ -63,6 +67,11 @@ def main():
     with TimerContextManager("initialising policy") as timer:
         policy = get_handcraft_policy(domain.name)(domain, problem, debug=_DEBUG_LEVEL)
         total_time += timer.get_time()
+
+    # print initial state
+    if _DEBUG_LEVEL > 1:
+        # may or may not be implemented depending on domain
+        policy.print_state(state.get_atoms())
 
     plan = []
 
@@ -110,11 +119,12 @@ def main():
             if len(matrix_log) > 0:
                 print_mat(matrix_log, rjust=False)
             if _DEBUG_LEVEL > 1:
-                policy.print_state(state.get_atoms())  # may or may not be implemented depending on domain
+                # may or may not be implemented depending on domain
+                policy.print_state(state.get_atoms())
 
             if _DEBUG_LEVEL > 3:
                 breakpoint()
-            
+
             if len(plan) == args.bound:
                 print(f"Terminating with failure after {args.bound} steps.", flush=True)
                 exit(-1)

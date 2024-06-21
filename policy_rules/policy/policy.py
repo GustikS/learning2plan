@@ -18,6 +18,7 @@ class Policy:
         self._domain = domain
         self._problem = problem
         self._debug = debug
+        self._goal = self._problem.goal
 
         self._schemata = self._domain.action_schemas
         self._predicates = self._domain.predicates
@@ -26,6 +27,8 @@ class Policy:
         }
         self._objects = self._problem.objects
         self._name_to_object: dict[str, Object] = {obj.name: obj for obj in self._objects}
+
+        self._prev_state = None
 
     def solve(self, state: list[Atom]) -> list[Action]:
         """given a state and goal pair, return possible actions from policy rules"""
@@ -72,6 +75,12 @@ class Policy:
         self._add_object_information()
         self._add_derived_predicates()
         self._add_policy_rules()
+
+        for schema in self._schemata:
+            schema_name = schema.name
+            head = self.relation_from_schema(schema_name, name=f"applicable_{schema_name}")
+            body = self.get_schema_preconditions(schema_name)
+            self._template += head <= body
 
     def print_state(self, state: list[Atom]):
         pass  # may be extended and replaced
@@ -125,25 +134,28 @@ class Policy:
             self._template += R.get(obj.type.name)(C.get(obj.name))
             # self._template += R.get(obj.type.base.name)(C.get(obj.name))
 
-    def add_rule(self, head_or_schema_name: Union[BaseRelation, str], extended_body: list[BaseRelation]):
-        assert isinstance(extended_body, list)
+    def add_rule(self, head_or_schema_name: Union[BaseRelation, str], body: list[BaseRelation]):
+        assert isinstance(body, list)
         if isinstance(head_or_schema_name, BaseRelation):
             head = head_or_schema_name
-            body = extended_body
+            body = body
         else:
             assert isinstance(head_or_schema_name, str)
-            head = self.relation_from_schema(head_or_schema_name)
-            body = self.get_schema_preconditions(head_or_schema_name)
-            body += extended_body
+            schema_name = head_or_schema_name
+            head = self.relation_from_schema(schema_name)
+            body = body
+            body += [self.relation_from_schema(schema_name, name=f"applicable_{schema_name}")]
         self._template += head <= body
 
-    def relation_from_schema(self, schema: Schema) -> BaseRelation:
+    def relation_from_schema(self, schema: Schema, name=None) -> BaseRelation:
         """construct a relation object from a schema"""
         if isinstance(schema, str):
             schema = self._name_to_schema[schema]
         parameters = [p.name.replace("?", "").upper() for p in schema.parameters]
         parameters = [V.get(p) for p in parameters]
-        head = R.get(schema.name)(parameters)
+        if name is None:
+            name = schema.name
+        head = R.get(name)(parameters)
         return head
 
     def get_schema_preconditions(self, schema: Schema) -> list[BaseRelation]:
