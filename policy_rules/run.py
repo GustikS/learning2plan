@@ -1,19 +1,13 @@
 import argparse
+import sys
 from pathlib import Path
 from pprint import pprint
 
 import pymimir
-from neuralogic.core import C, R, Template, V
+from neuralogic.logging import Formatter, Level, add_handler
 from policy.handcraft.handcraft_factory import get_handcraft_policy
 from util.printing import print_mat
 from util.timer import TimerContextManager
-
-_DEFAULT_DOMAIN = "ferry"
-# _DEFAULT_DOMAIN = "satellite"
-
-
-def satellite_rules():
-    pass
 
 
 def goal_count(state: pymimir.State, goal: list[pymimir.Literal]) -> int:
@@ -48,7 +42,7 @@ def main():
     parser.add_argument("-d", "--domain", type=str, default="ferry")
     parser.add_argument("-p", "--problem", type=str, default="0_01", help="Of the form 'x_yy'")
     parser.add_argument("-v", "--verbose", type=int, default=0)
-    parser.add_argument("-b", "--bound", type=int, default=100, help="Bound before terminating with failure.")
+    parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound.")
     args = parser.parse_args()
     domain_name = args.domain
     problem_name = args.problem
@@ -58,12 +52,14 @@ def main():
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
     assert Path(problem_path).exists(), f"Problem file not found: {problem_path}"
 
+    if _DEBUG_LEVEL > 4:
+        add_handler(sys.stdout, Level.ALL, Formatter.COLOR)
+
     total_time = 0
 
     with TimerContextManager("parsing PDDL files") as timer:
         domain = pymimir.DomainParser(str(domain_path)).parse()
         problem = pymimir.ProblemParser(str(problem_path)).parse(domain)
-        successor_generator = pymimir.LiftedSuccessorGenerator(problem)
         state = problem.create_state(problem.initial)
         goal = problem.goal
         total_time += timer.get_time()
@@ -71,6 +67,11 @@ def main():
     with TimerContextManager("initialising policy") as timer:
         policy = get_handcraft_policy(domain.name)(domain, problem, debug=_DEBUG_LEVEL)
         total_time += timer.get_time()
+
+    # print initial state
+    if _DEBUG_LEVEL > 1:
+        # may or may not be implemented depending on domain
+        policy.print_state(state.get_atoms())
 
     plan = []
 
@@ -117,10 +118,13 @@ def main():
                 matrix_log.append(["Current state", ilg_state])
             if len(matrix_log) > 0:
                 print_mat(matrix_log, rjust=False)
+            if _DEBUG_LEVEL > 1:
+                # may or may not be implemented depending on domain
+                policy.print_state(state.get_atoms())
 
-            if _DEBUG_LEVEL > 2:
+            if _DEBUG_LEVEL > 3:
                 breakpoint()
-            
+
             if len(plan) == args.bound:
                 print(f"Terminating with failure after {args.bound} steps.", flush=True)
                 exit(-1)

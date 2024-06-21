@@ -1,5 +1,19 @@
+DOMAINS = [
+    "blocksworld",
+    "childsnack",
+    "ferry",
+    "floortile",
+    "miconic",
+    "rovers",
+    "satellite",
+    "sokoban",
+    "spanner",
+    "transport",
+]
+
+
 def pytest_addoption(parser):
-    parser.addoption("--domain", action="store", default="blocksworld")
+    parser.addoption("--domain", action="store", default=None)
 
 
 def pytest_generate_tests(metafunc):
@@ -8,3 +22,5 @@ def pytest_generate_tests(metafunc):
     option_value = metafunc.config.option.domain
     if "domain" in metafunc.fixturenames and option_value is not None:
         metafunc.parametrize("domain", [option_value])
+    elif "domain" in metafunc.fixturenames and option_value is None:
+        metafunc.parametrize("domain", DOMAINS)

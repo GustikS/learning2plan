@@ -1,6 +1,5 @@
-""" Make use of neuralogic and pymimir to encode policies as Horn clause rules"""
+"""Make use of neuralogic and pymimir to encode policies as Horn clause rules"""
 
-import time
 from abc import abstractmethod
 from itertools import product
 from typing import Union
@@ -24,6 +23,7 @@ class Policy:
         self._domain = domain
         self._problem = problem
         self._debug = debug
+        self._goal = self._problem.goal
 
         self._schemata = self._domain.action_schemas
         self._predicates = self._domain.predicates
@@ -31,10 +31,9 @@ class Policy:
             schema.name: schema for schema in self._schemata
         }
         self._objects = self._problem.objects
-        self._name_to_object: dict[str, Object] = {
-            obj.name: obj for obj in self._objects
-        }
+        self._name_to_object: dict[str, Object] = {obj.name: obj for obj in self._objects}
 
+        self._prev_state = None
 
     def solve(self, state: list[Atom]) -> list[Action]:
         """given a state and goal pair, return possible actions from policy rules"""
@@ -49,10 +48,14 @@ class Policy:
 
         if self._debug > 2:
             print("=" * 80)
+            print("Template for current state:")
             print(self._template)
             print("=" * 80)
 
         self._engine = InferenceEngine(self._template)
+
+        if self._debug > 2:
+            self._debug_inference()
 
         ret = []
         for schema in self._schemata:
@@ -78,6 +81,15 @@ class Policy:
         self._add_derived_predicates()
         self._add_policy_rules()
 
+        for schema in self._schemata:
+            schema_name = schema.name
+            head = self.relation_from_schema(schema_name, name=f"applicable_{schema_name}")
+            body = self.get_schema_preconditions(schema_name)
+            self._template += head <= body
+
+    def print_state(self, state: list[Atom]):
+        pass  # may be extended and replaced
+
     @abstractmethod
     def _add_policy_rules(self):
         raise NotImplementedError
@@ -85,6 +97,30 @@ class Policy:
     @abstractmethod
     def _add_derived_predicates(self):
         raise NotImplementedError
+
+    def _debug_inference(self):
+        pass
+
+    def _debug_inference_helper(self, relation: BaseRelation):
+        print("-" * 80)
+        rel_repr = str(relation).split("(")[0]
+        print(rel_repr)
+        # print("-" * len(rel_repr))
+        results = self._engine.query(relation)
+        relation_str = str(relation)
+        results_repr = []
+        for result in results:
+            result_repr = "" + relation_str[:-1]
+            for k, v in result.items():
+                result_repr = result_repr.replace(k, v)
+            results_repr.append(result_repr)
+        results_repr = sorted(results_repr)
+        print(" ".join(results_repr))
+
+    def _debug_inference_actions(self):
+        for schema in self._schemata:
+            relation = self.relation_from_schema(schema)
+            self._debug_inference_helper(relation)
 
     def _add_predicate_copies(self) -> None:
         """add ug, ag, ap copies of predicates and rules"""
@@ -103,19 +139,28 @@ class Policy:
             self._template += R.get(obj.type.name)(C.get(obj.name))
             # self._template += R.get(obj.type.base.name)(C.get(obj.name))
 
-    def add_hardcode_rule(self, schema_name: str, extended_body: list[BaseRelation]):
-        head = self.relation_from_schema(schema_name)
-        body = self.get_schema_preconditions(schema_name)
-        body += extended_body
+    def add_rule(self, head_or_schema_name: Union[BaseRelation, str], body: list[BaseRelation]):
+        assert isinstance(body, list)
+        if isinstance(head_or_schema_name, BaseRelation):
+            head = head_or_schema_name
+            body = body
+        else:
+            assert isinstance(head_or_schema_name, str)
+            schema_name = head_or_schema_name
+            head = self.relation_from_schema(schema_name)
+            body = body
+            body += [self.relation_from_schema(schema_name, name=f"applicable_{schema_name}")]
         self._template += head <= body
 
-    def relation_from_schema(self, schema: Schema) -> BaseRelation:
+    def relation_from_schema(self, schema: Schema, name=None) -> BaseRelation:
         """construct a relation object from a schema"""
         if isinstance(schema, str):
             schema = self._name_to_schema[schema]
         parameters = [p.name.replace("?", "").upper() for p in schema.parameters]
         parameters = [V.get(p) for p in parameters]
-        head = R.get(schema.name)(parameters)
+        if name is None:
+            name = schema.name
+        head = R.get(name)(parameters)
         return head
 
     def get_schema_preconditions(self, schema: Schema) -> list[BaseRelation]:
@@ -125,9 +170,7 @@ class Policy:
         schema: ActionSchema = schema
 
         body = []
-        param_remap = {
-            p.name: p.name.replace("?", "").upper() for p in schema.parameters
-        }
+        param_remap = {p.name: p.name.replace("?", "").upper() for p in schema.parameters}
 
         ## add variables and their types
         for param in schema.parameters:

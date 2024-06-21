@@ -1,0 +1,156 @@
+from neuralogic.core import R
+from pymimir import Atom
+from typing_extensions import override
+from util.printing import print_mat
+
+from ..policy import Policy
+
+# policy_rules/l4np/blocksworld/classic/testing/p0_01.pddl
+# initial state
+# 3
+# 5 2
+# 4 1
+# =====
+# goal state
+# 4   1
+# 3 2 5
+# =====
+
+
+class BlocksworldPolicy(Policy):
+    def _print_bw_state(self, state: list[Atom]):
+        on_table = []
+        block_dict = {}
+        holding = None
+        for atom in state:
+            if atom.predicate.name == "on-table":
+                on_table.append(atom.terms[0].name)
+            elif atom.predicate.name == "on":
+                above = atom.terms[0].name
+                below = atom.terms[1].name
+                block_dict[below] = above
+            elif atom.predicate.name == "holding":
+                holding = atom.terms[0].name
+        towers = []
+        for block in on_table:
+            tower = [block]
+            while block in block_dict:
+                block = block_dict[block]
+                tower.append(block)
+            tower = list(reversed(tower))
+            towers.append(tower)
+        tower_max = max(len(tower) for tower in towers)
+        for i in range(len(towers)):
+            towers[i] = ([""] * (tower_max - len(towers[i]))) + towers[i]
+        towers_transpose = list(zip(*towers))
+
+        if holding:
+            print(f"--[ {holding}")
+        print()
+        print_mat(towers_transpose)
+        print("----" * len(towers))
+
+    def print_state(self, state: list[Atom]):
+        goal = []
+        for g in self._goal:
+            assert not g.negated
+            goal.append(g.atom)
+
+        print()
+        print("Goal state:")
+        self._print_bw_state(goal)
+
+        if self._prev_state:
+            print()
+            print("Previous state:")
+            self._print_bw_state(self._prev_state)
+
+            print()
+            print("Current state:")
+            self._print_bw_state(state)
+        else:
+            print()
+            print("Initial state:")
+            self._print_bw_state(state)
+
+        self._prev_state = state
+
+    def _debug_inference(self):
+        print("Inference for current state:")
+        self._debug_inference_helper(R.well_placed_block("Ob"))
+        self._debug_inference_helper(R.can_unstack("Ob"))
+        self._debug_inference_helper(R.pickup_1("Ob"))
+        self._debug_inference_helper(R.pickup_2("Ob"))
+        self._debug_inference_helper(R.putdown_1("Ob"))
+        self._debug_inference_helper(R.putdown_2("Ob"))
+        print("-" * 80)
+        self._debug_inference_actions()
+        print("=" * 80)
+
+    @override
+    def _add_derived_predicates(self):
+        """well_placed_block"""
+        # stacked on another block
+        head = R.well_placed_block("A")
+        body = [
+            R.get("ag_on")("A", "B"),
+            R.get("well_placed_block")("B"),
+        ]
+        self._template += head <= body
+
+        # on the table
+        head = R.well_placed_block("A")
+        body = [
+            R.get("ag_on-table")("A"),
+        ]
+        self._template += head <= body
+
+        """ cannot unstack """
+        head = R.can_unstack("Ob")
+        body = [
+            R.get("unstack")("A", "B"),
+        ]
+        self._template += head <= body
+
+    @override
+    def _add_policy_rules(self):
+        """ unstack(?ob, ?underob) """
+        # [unstack block that is not well placed]
+        body = [
+            ~R.get("well_placed_block")("Ob"),
+        ]
+        self.add_rule("unstack", body)
+
+        """stack(?ob, ?underob)"""
+        # [stack on top of a well placed goal block]
+        body = [
+            R.get("ug_on")("Ob", "Underob"),
+            R.get("well_placed_block")("Underob"),
+        ]
+        self.add_rule("stack", body)
+
+        """pickup(?ob)"""
+        # pickup(?ob)
+        # [pick up from table if goal underneath block is well placed]
+        body = [
+            ~R.get("can_unstack")("Ob"),
+            R.get("ug_on")("Ob", "Underob"),
+            R.get("well_placed_block")("Underob"),
+        ]
+        self.add_rule("pickup", body)
+
+        """ putdown(?ob) """
+        # putdown(?ob) - option 1 (options are just for debugging)
+        # [put on table if goal block to put on is not well placed]
+        body = [
+            R.get("ug_on")("Ob", "Underob"),
+            ~R.get("well_placed_block")("Underob"),
+        ]
+        self.add_rule("putdown", body)
+
+        # putdown(?ob) - option 2
+        # [put on table if goal is to put on table]
+        body = [
+            R.get("ug_on-table")("Ob"),
+        ]
+        self.add_rule("putdown", body)
