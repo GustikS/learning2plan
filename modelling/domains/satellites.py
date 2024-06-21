@@ -2,7 +2,7 @@ from neuralogic.core import Settings, R
 from neuralogic.dataset import FileDataset
 from neuralogic.nn import get_evaluator
 
-from modelling.templates import basic_regression_template
+from modelling.templates import basic_template
 
 
 def generic_relational_feature():
@@ -68,7 +68,7 @@ predicates = {"on_board": 2, "supports": 2, "calibration_target": 2, "power_avai
 
 # %% these counterexamples are indeed indistinguishable with classic template(s)
 
-template = basic_regression_template(predicates, dim=1, num_layers=1)
+template = basic_template(predicates, dim=1, num_layers=1)
 # template.draw("./imgs/template_basic.png")
 eval_examples(dataset, template, "basic")
 
@@ -80,7 +80,7 @@ eval_examples(dataset, template, "graphlets")
 
 # %% add the relational feature - of course this is cheating, just showing (but such relational features can come e.g. from Treeliker)
 
-template = basic_regression_template(predicates, dim=1, num_layers=1)
+template = basic_template(predicates, dim=1, num_layers=1)
 template += adhoc_relational_feature()
 # template.draw("./imgs/template_custom.png")
 eval_examples(dataset, template, "custom")

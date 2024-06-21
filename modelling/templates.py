@@ -2,11 +2,14 @@ from neuralogic.core import R, Settings, Template, Transformation, V
 from neuralogic.nn.module import GATv2Conv, GCNConv, GINConv, SAGEConv
 
 
-def basic_regression_template(predicates, dim=10, num_layers=3, actions=None):
+def basic_template(predicates, dim=10, num_layers=3, actions=None, classification=True):
+    if classification:
+        assert actions is not None
+
     template = Template()
 
     if actions:
-        template += action_rules(actions, predicates, dim)
+        template += action_rules(actions, predicates, dim, classification)
 
     template += anonymous_predicates(predicates, dim)
 
@@ -22,11 +25,15 @@ def basic_regression_template(predicates, dim=10, num_layers=3, actions=None):
     # template += objects2atoms_exhaustive_messages(predicates, dim, num_layers=num_layers)
     # template += objects2atoms_anonymized_messages(max(predicates.values()), dim, num_layers=num_layers)
 
-    template += final_pooling(dim, layers=range(1, num_layers + 2))
+    if classification:
+        pass
+    else:
+        template += final_pooling(dim, layers=range(1, num_layers + 2))
+
     return template
 
 
-def action_rules(actions, predicates, dim, ILG=True, merge_ilg=True):
+def action_rules(actions, predicates, dim, classification, ILG=True, merge_ilg=True):
     """Of course this is not the only way to incorporate actions in the learning templates..."""
     if ILG:
         if merge_ilg:
@@ -35,15 +42,20 @@ def action_rules(actions, predicates, dim, ILG=True, merge_ilg=True):
                 if predicate.startswith("ag_") or predicate.startswith("ap_"):
                     raw_pred = predicate[3:]
                     variables = [f"X{ar}" for ar in range(predicates[predicate])]
-                    rules.append(R.get(raw_pred)(variables) <= R.get(predicate)(variables)[predicate[0:2]:1,])
-            rules.extend([action.to_rule('') for action in actions])
+                    rules.append(R.get(raw_pred)(variables) <= R.get(predicate)(variables)[predicate[0:2]:1, ])
+            rules.extend([action.to_rule() for action in actions])
         else:
             rules = [action.to_rule(pref) for action in actions for pref in ['ag_', 'ap_']]
     else:
-        rules = [action.to_rule('') for action in actions]
+        rules = [action.to_rule() for action in actions]
 
     for action in actions:
         predicates[action.name] = len(action.parameters)  # just extend the predicates with the action heads...
+
+    # if classification:
+    #     for action in actions:
+    #         rules.append(R.get(action.name)(["xxx" for _ in range(predicates[action.name])]))
+
     return rules
 
 
@@ -202,15 +214,16 @@ def gnn_message_passing(binary_relation, dim, num_layers=3, model_class=SAGEConv
     return rules
 
 
-def get_model(template, drawing=True, regression=True):
+def get_model(template, regression=True, compression = False, pruning=False):
     settings = Settings(
-        iso_value_compression=not drawing,
+        iso_value_compression=compression,
         rule_transformation=(
             Transformation.LEAKY_RELU if regression else Transformation.TANH
         ),
         relation_transformation=(
             Transformation.LEAKY_RELU if regression else Transformation.SIGMOID
         ),
+        chain_pruning=pruning
     )
     model = template.build(settings)
     return model

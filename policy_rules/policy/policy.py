@@ -5,6 +5,11 @@ from abc import abstractmethod
 from itertools import product
 from typing import Union
 
+import sys
+from neuralogic.logging import add_handler, Formatter, Level, clear_handlers
+add_handler(sys.stdout, Level.FINE, Formatter.COLOR)    # you can use this to get a more detailed information from the backend inference process
+# clear_handlers()
+
 from neuralogic.core import C, R, Template, V
 from neuralogic.core.constructs.relation import BaseRelation
 from neuralogic.inference.inference_engine import InferenceEngine

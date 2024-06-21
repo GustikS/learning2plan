@@ -10,7 +10,9 @@ from matplotlib.pyplot import figure
 import neuralogic
 
 if not neuralogic.is_initialized():
-    neuralogic.initialize()
+    # neuralogic.initialize()
+    # # neuralogic.initialize(jar_path="../jar/NeuraLogic-maven.jar", debug_mode=False)
+    neuralogic.initialize(jar_path="../jar/NeuraLogic.jar", debug_mode=False)  # custom momentary backend upgrades
 
 from neuralogic.core import Settings
 from neuralogic.dataset import FileDataset
@@ -20,7 +22,7 @@ from neuralogic.optim import Adam
 
 from samples import export_problems, parse_domain, get_filename
 from sklearn.metrics import confusion_matrix
-from templates import basic_regression_template, get_model
+from templates import basic_template, get_model
 
 logging.basicConfig(
     level=logging.INFO,
@@ -118,7 +120,7 @@ def prepare_experiment(domain, numeric, export_lrnn_files=True, draw=True):
 def prepare_model(predicates, actions=None, draw=True):
     """This is where a model gets assembled for the current workflow"""
     # template = satellite_regression_template(predicates, dim=3)
-    template = basic_regression_template(predicates, dim=3, actions=actions)
+    template = basic_template(predicates, dim=3, actions=actions)
     model = get_model(template)
     if draw:
         template.draw("./imgs/template.png")

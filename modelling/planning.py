@@ -6,8 +6,7 @@ from pddl.logic.functions import NumericFunction, NumericValue
 from pddl.logic.predicates import EqualTo
 
 if not neuralogic.is_initialized():
-    neuralogic.initialize(jar_path="../jar/NeuraLogic.jar", debug_mode=False)  # custom backend upgrade (to be included in a new version)
-    # neuralogic.initialize()
+    neuralogic.initialize()
 
 from neuralogic.core import R
 
@@ -57,7 +56,7 @@ class Action:
                        jList(self.add_effects),
                        jList(self.del_effects))
 
-    def to_rule(self, predicate_prefix):
+    def to_rule(self, predicate_prefix=""):
         body = []
         for precondition in self.preconditions:
             negated, predicate, terms = parse_literal(precondition)

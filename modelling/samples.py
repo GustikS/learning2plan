@@ -6,6 +6,10 @@ from pddl import parse_domain as pddl_parse
 
 from modelling.planning import extract_actions
 import neuralogic
+import sys
+from neuralogic.logging import add_handler, Formatter, Level
+
+add_handler(sys.stdout, Level.FINE, Formatter.COLOR)
 
 if not neuralogic.is_initialized():
     neuralogic.initialize()
@@ -89,7 +93,7 @@ def parse_json(json_data, problem_limit=-1, state_limit=-1, merge_static=True,
     return problems, predicates, actions
 
 
-def encode_query(h, optimal_action, all_actions, regression=True):
+def encode_query(h, optimal_action, all_actions, regression=False):
     if regression:
         return [f'{h} distance']
     else:  # the action classification (or custom loss) mode
@@ -97,8 +101,8 @@ def encode_query(h, optimal_action, all_actions, regression=True):
         items = optimal_action[1:-1].split(" ")
         queries.append(f'1 {items[0]}({",".join(items[1:])})')  # the target action with a positive label 1
         for action, arity in all_actions.items():
-            if items[0] == action:
-                continue
+            # if items[0] == action:    # TODO not needed as there is a max aggregation with the true atom, so the 0 will be ignored?
+            #     continue
             queries.append(f'0 {action}({",".join([f"X{ar}" for ar in range(arity)])})')  # other actions with label 0
         return queries
 
@@ -200,18 +204,20 @@ def export_problems(problems, domain, numeric, examples_file="examples", queries
     os.makedirs(domain_path, exist_ok=True)
 
     with open(f'{domain_path}/{examples_file}.txt', 'w') as e, open(f'{domain_path}/{queries_file}.txt', 'w') as q:
+        i = 0
         for states in problems.values():
             for state, queries in states.items():
-                e.write(f'{", ".join(state)}.\n')
-                q.write(f'{", ".join(queries)}.\n')
+                e.write(f's{i} :- {", ".join(state)}.\n')
+                q.write(f's{i} :- {", ".join(queries)}.\n')
+                i += 1
 
     return domain_path
 
 
 if __name__ == "__main__":
-    # domain = "blocksworld"
-    domain = "satellite"
-    numeric = True
+    domain = "blocksworld"
+    # domain = "satellite"
+    numeric = False
 
     problems, predicates, actions = parse_domain(domain, numeric=numeric, encoding="")
     export_problems(problems, domain, numeric=numeric)
