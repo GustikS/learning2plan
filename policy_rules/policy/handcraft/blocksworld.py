@@ -78,11 +78,11 @@ class BlocksworldPolicy(Policy):
     def _debug_inference(self):
         print("Inference for current state:")
         self._debug_inference_helper(R.well_placed_block("Ob"))
-        self._debug_inference_helper(R.can_unstack("Ob"))
-        self._debug_inference_helper(R.pickup_1("Ob"))
-        self._debug_inference_helper(R.pickup_2("Ob"))
-        self._debug_inference_helper(R.putdown_1("Ob"))
-        self._debug_inference_helper(R.putdown_2("Ob"))
+        # self._debug_inference_helper(R.can_unstack("Ob"))
+        # self._debug_inference_helper(R.pickup_1("Ob"))
+        # self._debug_inference_helper(R.pickup_2("Ob"))
+        # self._debug_inference_helper(R.putdown_1("Ob"))
+        # self._debug_inference_helper(R.putdown_2("Ob"))
         print("-" * 80)
         self._debug_inference_actions()
         print("=" * 80)
@@ -105,12 +105,12 @@ class BlocksworldPolicy(Policy):
         ]
         self._template += head <= body
 
-        """ cannot unstack """
-        head = R.can_unstack("Ob")
-        body = [
-            R.get("unstack")("A", "B"),
-        ]
-        self._template += head <= body
+        # """ can unstack """
+        # head = R.can_unstack("Ob")
+        # body = [
+        #     R.get("unstack")("A", "B"),
+        # ]
+        # self._template += head <= body
 
     @override
     def _add_policy_rules(self):
@@ -133,14 +133,14 @@ class BlocksworldPolicy(Policy):
         # pickup(?ob)
         # [pick up from table if goal underneath block is well placed]
         body = [
-            ~R.get("can_unstack")("Ob"),
             R.get("ug_on")("Ob", "Underob"),
             R.get("well_placed_block")("Underob"),
+            R.get("clear")("Underob"),
         ]
         self.add_rule("pickup", body)
 
         """ putdown(?ob) """
-        # putdown(?ob) - option 1 (options are just for debugging)
+        # putdown(?ob) - option 1
         # [put on table if goal block to put on is not well placed]
         body = [
             R.get("ug_on")("Ob", "Underob"),
@@ -149,6 +149,14 @@ class BlocksworldPolicy(Policy):
         self.add_rule("putdown", body)
 
         # putdown(?ob) - option 2
+        # [put on table if goal block to put on is blocked]
+        body = [
+            R.get("ug_on")("Ob", "Underob"),
+            R.get("ap_on")("Otherblock", "Underob")
+        ]
+        self.add_rule("putdown", body)
+
+        # putdown(?ob) - option 3
         # [put on table if goal is to put on table]
         body = [
             R.get("ug_on-table")("Ob"),
