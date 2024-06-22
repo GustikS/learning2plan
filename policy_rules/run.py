@@ -54,6 +54,8 @@ def main():
 
     if _DEBUG_LEVEL > 4:
         add_handler(sys.stdout, Level.ALL, Formatter.COLOR)
+    else:
+        add_handler(sys.stdout, Level.OFF, Formatter.COLOR)
 
     total_time = 0
 
@@ -96,7 +98,7 @@ def main():
             if len(policy_actions) == 0:
                 print("Error: No actions computed and not at goal state!")
                 print("Terminating...")
-                exit(0)
+                exit(-1)
 
             matrix_log = []
 
@@ -126,7 +128,7 @@ def main():
                 breakpoint()
 
             if len(plan) == args.bound:
-                print(f"Terminating with failure after {args.bound} steps.", flush=True)
+                print(f"Terminating with failure after {args.bound} steps. Increase bound with -b <bound>", flush=True)
                 exit(-1)
 
         total_time += timer.get_time()

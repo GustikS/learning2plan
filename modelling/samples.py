@@ -1,15 +1,15 @@
 import json
 import logging
 import os
+import sys
 
+import neuralogic
+from neuralogic.logging import Formatter, Level, add_handler
 from pddl import parse_domain as pddl_parse
 
 from modelling.planning import extract_actions
-import neuralogic
-import sys
-from neuralogic.logging import add_handler, Formatter, Level
 
-add_handler(sys.stdout, Level.FINE, Formatter.COLOR)
+# add_handler(sys.stdout, Level.FINE, Formatter.COLOR)
 
 if not neuralogic.is_initialized():
     neuralogic.initialize()

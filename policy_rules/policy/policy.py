@@ -4,11 +4,6 @@ from abc import abstractmethod
 from itertools import product
 from typing import Union
 
-import sys
-from neuralogic.logging import add_handler, Formatter, Level, clear_handlers
-add_handler(sys.stdout, Level.FINE, Formatter.COLOR)    # you can use this to get a more detailed information from the backend inference process
-# clear_handlers()
-
 from neuralogic.core import C, R, Template, V
 from neuralogic.core.constructs.relation import BaseRelation
 from neuralogic.inference.inference_engine import InferenceEngine
@@ -81,6 +76,7 @@ class Policy:
         self._add_derived_predicates()
         self._add_policy_rules()
 
+        # add a derived predicate containing just the preconditions
         for schema in self._schemata:
             schema_name = schema.name
             head = self.relation_from_schema(schema_name, name=f"applicable_{schema_name}")
@@ -88,7 +84,8 @@ class Policy:
             self._template += head <= body
 
     def print_state(self, state: list[Atom]):
-        pass  # may be extended and replaced
+        # may be extended and replaced
+        pass
 
     @abstractmethod
     def _add_policy_rules(self):

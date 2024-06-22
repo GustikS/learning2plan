@@ -1,15 +1,15 @@
 from ..policy import Policy
 from .blocksworld import BlocksworldPolicy
-from .childsnack import ChildsnackPolicy
 from .ferry import FerryPolicy
+from .miconic import MiconicPolicy
 from .satellite import SatellitePolicy
 
 
 def get_handcraft_policy(domain: str) -> Policy:
     domains = {
         "blocksworld": BlocksworldPolicy,
-        "childsnack": ChildsnackPolicy,
         "ferry": FerryPolicy,
+        "miconic": MiconicPolicy,
         "satellite": SatellitePolicy,
     }
     if domain not in domains:
