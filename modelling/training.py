@@ -22,7 +22,7 @@ from neuralogic.optim import Adam
 
 from samples import export_problems, parse_domain, get_filename
 from sklearn.metrics import confusion_matrix
-from templates import basic_template, get_model
+from templates import basic_template, build_template
 
 logging.basicConfig(
     level=logging.INFO,
@@ -106,7 +106,7 @@ def load(domain, numeric, save_file, plotting=False):
 
 def prepare_experiment(domain, numeric, export_lrnn_files=True, draw=True):
     problems, predicates, actions = parse_domain(domain, numeric)
-    model, template = prepare_model(predicates, actions)
+    model, template = prepare_model(predicates, actions, draw)
     if export_lrnn_files:
         data_path = export_problems(problems, domain, numeric)
     else:
@@ -121,7 +121,7 @@ def prepare_model(predicates, actions=None, draw=True):
     """This is where a model gets assembled for the current workflow"""
     # template = satellite_regression_template(predicates, dim=3)
     template = basic_template(predicates, dim=3, actions=actions)
-    model = get_model(template)
+    model = build_template(template, compression=not draw)
     if draw:
         template.draw("./imgs/template.png")
     return model, template

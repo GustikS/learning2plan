@@ -101,9 +101,8 @@ def encode_query(h, optimal_action, all_actions, regression=False):
         items = optimal_action[1:-1].split(" ")
         queries.append(f'1 {items[0]}({",".join(items[1:])})')  # the target action with a positive label 1
         for action, arity in all_actions.items():
-            # if items[0] == action:    # TODO not needed as there is a max aggregation with the true atom, so the 0 will be ignored?
-            #     continue
             queries.append(f'0 {action}({",".join([f"X{ar}" for ar in range(arity)])})')  # other actions with label 0
+            # Note that this will include the same action with label 0 as well, but these will get aggregated via MAX (by default) in the backend
         return queries
 
 

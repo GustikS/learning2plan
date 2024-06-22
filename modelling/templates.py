@@ -214,7 +214,7 @@ def gnn_message_passing(binary_relation, dim, num_layers=3, model_class=SAGEConv
     return rules
 
 
-def get_model(template, regression=True, compression = False, pruning=False):
+def build_template(template, regression=True, compression=True, pruning=True):
     settings = Settings(
         iso_value_compression=compression,
         rule_transformation=(
