@@ -7,7 +7,7 @@ import neuralogic
 from neuralogic.logging import Formatter, Level, add_handler
 from pddl import parse_domain as pddl_parse
 
-from modelling.planning import extract_actions
+from modelling.planning import extract_actions, Action
 
 # add_handler(sys.stdout, Level.FINE, Formatter.COLOR)
 
@@ -22,9 +22,9 @@ def get_filename(domain_name, numeric, format, path, filename):
     return file_path
 
 
-def parse_domain(domain, numeric, encoding="ILG"):
+def parse_domain(domain, numeric=False, encoding="ILG", problem_limit=-1):
     json_data, pddl_domain = load_file(domain, numeric=numeric)
-    problems, predicates, actions = parse_json(json_data, encoding=encoding)
+    problems, predicates, actions = parse_json(json_data, encoding=encoding, problem_limit=problem_limit)
     if pddl_domain is not None:
         actions = extract_actions(pddl_domain)  # replace the action names with their full specifications
     return problems, predicates, actions
@@ -57,6 +57,8 @@ def parse_json(json_data, problem_limit=-1, state_limit=-1, merge_static=True,
     logging.log(logging.INFO, "parsing domain")
     actions = json_data['schemata']  # to work with these I'd also need their preconditions...
 
+    actions = [Action(name, [f'X{i}' for i in range(arity)], None, []) for name, arity in actions.items()]
+
     functions = encode_functions(json_data['functions'], logic_numbers)
     predicates = encode_predicates(json_data['predicates'], encoding)
     predicates.update(functions)  # I think these are just the same thing?
@@ -88,7 +90,7 @@ def parse_json(json_data, problem_limit=-1, state_limit=-1, merge_static=True,
 
             states[tuple(updated_facts)] = encode_query(h, state["optimal_action"], actions)
 
-        problems[file] = states
+        problems[file] = states, boolean_goals
 
     return problems, predicates, actions
 
@@ -100,8 +102,8 @@ def encode_query(h, optimal_action, all_actions, regression=False):
         queries = []
         items = optimal_action[1:-1].split(" ")
         queries.append(f'1 {items[0]}({",".join(items[1:])})')  # the target action with a positive label 1
-        for action, arity in all_actions.items():
-            queries.append(f'0 {action}({",".join([f"X{ar}" for ar in range(arity)])})')  # other actions with label 0
+        for action in all_actions:
+            queries.append(f'0 {action.name}({",".join(action.parameters)})')  # other actions with label 0
             # Note that this will include the same action with label 0 as well, but these will get aggregated via MAX (by default) in the backend
         return queries
 
@@ -191,7 +193,7 @@ def encode_predicates(orig_predicates, encoding="ILG"):
 
 def flatten_states(problems):
     flat_states = []
-    for states in problems.values():
+    for states, _ in problems.values():
         for state, queries in states.items():
             flat_states.append((state, queries))
     return flat_states
@@ -204,7 +206,7 @@ def export_problems(problems, domain, numeric, examples_file="examples", queries
 
     with open(f'{domain_path}/{examples_file}.txt', 'w') as e, open(f'{domain_path}/{queries_file}.txt', 'w') as q:
         i = 0
-        for states in problems.values():
+        for states, _ in problems.values():
             for state, queries in states.items():
                 e.write(f's{i} :- {", ".join(state)}.\n')
                 q.write(f's{i} :- {", ".join(queries)}.\n')

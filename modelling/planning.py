@@ -27,6 +27,7 @@ def parse_literal(string_literal):
     split = string_literal.split("(")
     predicate = split[0]
     terms = split[1][:-1].split(",")
+    terms = [term.strip() for term in terms]
     terms = terms if terms[0] else []
     return negated, predicate, terms
 
@@ -49,12 +50,20 @@ class Action:
         self.add_effects = add_effects
         self.del_effects = del_effects
 
+        self.jAction = None
+
     def backend(self):
-        return jAction(self.name,
-                       jList(self.parameters),
-                       jList(self.preconditions),
-                       jList(self.add_effects),
-                       jList(self.del_effects))
+        self.jAction = jAction(self.name,
+                               jList(self.parameters),
+                               jList(self.preconditions),
+                               jList(self.add_effects),
+                               jList(self.del_effects))
+        return self.jAction
+
+    def ground(self, terms):
+        if self.jAction is None:
+            self.backend()
+        return self.jAction.grounding(terms)
 
     def to_rule(self, predicate_prefix=""):
         body = []
@@ -68,9 +77,18 @@ class Action:
 class State:
     def __init__(self, atoms):
         self.atoms = atoms
+        self.atoms_ILG = atoms  # to be updated when goal is presented
+        self.jState = None
 
     def backend(self):
-        return jState(",".join(self.atoms))
+        self.jState = jState(",".join(self.atoms))
+        return self.jState
+
+    @staticmethod
+    def from_backend(grounding_sample):
+        clause = grounding_sample.grounding.groundingWrap.example.clause
+        clauseE = grounding_sample.grounding.groundingWrap.example.clauseE
+        return jState(clause, clauseE)
 
     def to_clause(self):
         atoms = []
@@ -78,6 +96,42 @@ class State:
             negated, predicate, terms = parse_literal(atom)
             atoms.append(get_literal(predicate, terms, negated, string=False))
         return jList(atoms)
+
+    def make_relations(self):
+        example = []
+        for atom in self.atoms_ILG:
+            negated, predicate, terms = parse_literal(atom)
+            example.append(R.get(predicate)(terms))
+        return example
+
+    def setup_ILG(self, goal_state):
+        """Split the state representation into a pure and ILG-modified representation for an easier use"""
+        is_ilg = False
+        pure_atoms = []
+        ilg_atoms = []
+        for atom in self.atoms:
+            if atom[:3] in ['ap_', 'ag_']:
+                is_ilg = True
+                pure_atoms.append(atom[3:])
+                ilg_atoms.append(atom)
+            elif atom[:3] == '_ug':
+                is_ilg = True
+                ilg_atoms.append(atom)
+            else:
+                pure_atoms.append(atom)
+                is_ilg = False
+                if atom in goal_state:
+                    iatom = "ag_" + atom
+                else:
+                    iatom = "ap_" + atom
+                ilg_atoms.append(iatom)
+        if not is_ilg:
+            for goal in goal_state:
+                if goal not in pure_atoms:
+                    ilg_atoms.append("ug_" + goal)
+
+        self.atoms = pure_atoms
+        self.ilg_atoms = ilg_atoms
 
 
 def extract_actions(pddl_domain, just_strings=True):

@@ -1,5 +1,6 @@
 import argparse
 import logging
+import pickle
 import time
 
 import seaborn
@@ -33,8 +34,9 @@ logging.basicConfig(
 def build_samples(model, data_path):
     logging.log(logging.INFO, "building model samples")
     dataset = FileDataset(f"{data_path}/examples.txt", f"{data_path}/queries.txt")
-    built_samples = model.build_dataset(dataset)
-    return built_samples
+    ground_samples = model.ground(dataset)
+    built_samples = model.build_dataset(ground_samples)
+    return built_samples, ground_samples
 
 
 def predict(built_samples, template, train: bool, regression=True):
@@ -77,25 +79,42 @@ def plot_predictions(target_labels, predicted_labels):
     plt.show()
 
 
-def train(domain, numeric, save_file=None, plotting=False):
-    built_samples, model, template = prepare_experiment(domain, numeric)
+def train(domain, numeric, save_file=None, plotting=False, problem_limit=-1):
+    built_samples, model, template, _ = prepare_experiment(domain, numeric, problem_limit=problem_limit)
 
     target_labels, predicted_labels = predict(built_samples, template, train=True)
 
-    if save_file is not None:
-        state_dict = model.state_dict()
-        state_dict["weight_names"] = {
-            k: str(v) for k, v in state_dict["weight_names"].items()
-        }
-        torch.save(state_dict, save_file)
-        logging.log(logging.INFO, f"Model saved to {save_file}")
+    store_weights(model, save_file)
+
+    store_template(template, save_file)
 
     if plotting:
         plot_predictions(target_labels, predicted_labels)
 
+    return model, template
+
+
+def store_weights(model, save_file):
+    if save_file is not None:
+        state_dict = model.state_dict()
+        # state_dict["weight_names"] = {
+        #     k: str(v) for k, v in state_dict["weight_names"].items()
+        # }
+        # with open(save_file, 'wb') as f:
+        #     pickle.dump(state_dict, f)
+        torch.save(state_dict, f'{save_file}_weights')
+        logging.log(logging.INFO, f"Model weights saved to {save_file}_weights")
+
+
+def store_template(template, save_file):
+    file = open(save_file + "_template", 'wb')
+    pickle.dump(template, file)
+    file.close()
+
 
 def load(domain, numeric, save_file, plotting=False):
-    built_samples, model, template = prepare_experiment(domain, numeric)
+    """to be removed"""
+    built_samples, model, template, _ = prepare_experiment(domain, numeric)
 
     model.load_state_dict(torch.load(save_file))
     target_labels, predicted_labels = predict(built_samples, template, train=False)
@@ -104,17 +123,17 @@ def load(domain, numeric, save_file, plotting=False):
         plot_predictions(target_labels, predicted_labels)
 
 
-def prepare_experiment(domain, numeric, export_lrnn_files=True, draw=True):
-    problems, predicates, actions = parse_domain(domain, numeric)
+def prepare_experiment(domain, numeric, export_lrnn_files=True, draw=False, problem_limit=-1):
+    problems, predicates, actions = parse_domain(domain, numeric, problem_limit=problem_limit)
     model, template = prepare_model(predicates, actions, draw)
     if export_lrnn_files:
         data_path = export_problems(problems, domain, numeric)
     else:
         data_path = get_filename(domain, numeric, "lrnn", "../", "")
-    built_samples = build_samples(model, data_path)
+    built_samples, ground_samples = build_samples(model, data_path)
     if draw:
         built_samples[1].draw("./imgs/sample.png")
-    return built_samples, model, template
+    return built_samples, model, template, ground_samples
 
 
 def prepare_model(predicates, actions=None, draw=True):
@@ -130,7 +149,7 @@ def prepare_model(predicates, actions=None, draw=True):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--domain", type=str, default="blocksworld", choices=["satellite", "blocksworld"])
-    parser.add_argument("--numeric", type=bool, default=False)
+    parser.add_argument("--numeric", type=bool, default=False)  # keep numeric false
     parser.add_argument("--save_file", type=str, default=None)
     args = parser.parse_args()
     domain_name = args.domain
