@@ -61,8 +61,9 @@ def test_model(domain_name, model_file, model=None, steps=100):
 
     for i in range(steps):
         init_state = policy_step(model, init_state, actions)
+        init_state.setup_ILG(goal_state.atoms)
         if init_state.is_goal(goal_state.atoms):
-            print(f"Goal state found: {init_state}")
+            print(f"Goal state found: {init_state.atoms}")
             break
 
 
@@ -120,4 +121,4 @@ if __name__ == "__main__":
     print(f"{saved_file=}")
 
     # test_model(domain_name, saved_file)   # test an already trained, stored model
-    test_model(domain_name, model_file=None)    # train model first and then test
+    test_model(domain_name, None)    # train model first and then test

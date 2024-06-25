@@ -112,7 +112,7 @@ class State:
     def is_goal(self, goal_atoms: set):
         return goal_atoms.issubset(self.atoms)
 
-    def setup_ILG(self, goal_state):
+    def setup_ILG(self, goal_state_atoms):
         """Split the state representation into a pure and ILG-modified representation for an easier use"""
         is_ilg = False
         pure_atoms = []
@@ -122,24 +122,24 @@ class State:
                 is_ilg = True
                 pure_atoms.append(atom[3:])
                 ilg_atoms.append(atom)
-            elif atom[:3] == '_ug':
+            elif atom[:3] == 'ug_':
                 is_ilg = True
                 ilg_atoms.append(atom)
             else:
                 pure_atoms.append(atom)
                 is_ilg = False
-                if atom in goal_state:
+                if atom in goal_state_atoms:
                     iatom = "ag_" + atom
                 else:
                     iatom = "ap_" + atom
                 ilg_atoms.append(iatom)
         if not is_ilg:
-            for goal in goal_state:
+            for goal in goal_state_atoms:
                 if goal not in pure_atoms:
                     ilg_atoms.append("ug_" + goal)
 
         self.atoms = pure_atoms
-        self.ilg_atoms = ilg_atoms
+        self.atoms_ILG = ilg_atoms
 
 
 def extract_actions(pddl_domain, just_strings=True):
