@@ -7,7 +7,7 @@ import neuralogic
 if not neuralogic.is_initialized():
     neuralogic.initialize(jar_path="../jar/NeuraLogic.jar", debug_mode=False)  # custom momentary backend upgrades
 
-from neuralogic.dataset import Dataset
+from neuralogic.dataset import Dataset, Sample
 from neuralogic.core import R
 
 from modelling.planning import State
@@ -45,7 +45,6 @@ def get_domain_setup(domain_name):
     return init_state, actions, goal_state
 
 
-
 def test_model(domain_name, model_file, model=None, steps=100):
     """Test a stored/trained model/template on a given domain"""
     init_state, actions, goal_state = get_domain_setup(domain_name)
@@ -68,7 +67,8 @@ def test_model(domain_name, model_file, model=None, steps=100):
 
 
 def policy_step(model, init_state, actions):
-    sorted_actions, indexed_state = score_applicable_actions(actions, init_state, model)
+    # sorted_actions = score_output_actions(actions, init_state, model)
+    sorted_actions = score_blind_actions(actions, init_state, model)
     print(f'applicable: {sorted_actions}')
 
     best_action = sorted_actions[0]
@@ -87,27 +87,48 @@ def policy_step(model, init_state, actions):
     return successor
 
 
-def score_applicable_actions(actions, init_state, model):
+def score_output_actions(actions, init_state, model):
     """The core step where the model get evaluated, and we check the values of the queries corresponding to actions"""
     dataset = Dataset()
     dataset.add_example(init_state.get_relations())
     dataset.add_queries([action.query for name, action in actions.items()])
     ground_samples = model.ground(dataset)
-    indexed_state = State.from_grounding(ground_samples[0])   # optionally also stored the efficient backend structure
+
+    indexed_state = State.from_grounding(ground_samples[0])  # optionally also stored the efficient backend structure
+
     bd = model.build_dataset(ground_samples)  # todo skip pre/postprocessing here for speedup
 
-    scored_actions = [(str(sample.java_sample.query.neuron.name), model(sample)) for sample in bd]
-    return sorted(scored_actions, key=lambda item: item[1], reverse=True), indexed_state
+    scored_actions = [output_neuron_values(sample, model) for sample in bd]
+
+    return sorted(scored_actions, key=lambda item: item[1], reverse=True)
 
 
-def _inner_atom_values(sample, action_queries):
+def output_neuron_values(sample, model):
+    output_name = str(sample.java_sample.query.neuron.name)
+    output_value = model(sample)
+    return output_name, output_value
+
+
+def score_blind_actions(actions, init_state, model):
+    model.settings['neuralNetsPostProcessing'] = False  # for speedup
+    model.settings.chain_pruning = False
+    model.settings.iso_value_compression = False
+    dataset = Dataset()
+    dataset.add_sample(Sample(query=None, example=init_state.get_relations()))
+    bd = model.build_dataset(dataset)
+    scored_actions = inner_neuron_values(bd[0], actions)
+    return sorted(scored_actions, key=lambda item: item[1], reverse=True)
+
+
+def inner_neuron_values(sample, actions):
     """this can be used to query values of the actions even if they are not the outputs, e.g. in the regression setting"""
-    for q in action_queries:
-        atoms = sample.get_atom(q)
+    scored_actions = []
+    for action_name, action in actions.items():
+        atoms = sample.get_atom(action.query)
         if atoms:
             for a in atoms:
-                print(a.substitutions)
-                print(a.value)
+                scored_actions.append((str(a._atom.name), a.value, action_name, a.substitutions))
+    return scored_actions
 
 
 if __name__ == "__main__":
@@ -120,5 +141,5 @@ if __name__ == "__main__":
     print(f"{domain_name=}")
     print(f"{saved_file=}")
 
-    # test_model(domain_name, saved_file)   # test an already trained, stored model
-    test_model(domain_name, None)    # train model first and then test
+    test_model(domain_name, saved_file)  # test an already trained, stored model
+    # test_model(domain_name, None)    # train model first and then test
