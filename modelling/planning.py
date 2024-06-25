@@ -50,6 +50,7 @@ class Action:
         self.add_effects = add_effects
         self.del_effects = del_effects
 
+        self.query = R.get(name)(parameters)  # turn action headers into lifted queries
         self.jAction = None
 
     def backend(self):
@@ -85,10 +86,14 @@ class State:
         return self.jState
 
     @staticmethod
-    def from_backend(grounding_sample):
+    def from_grounding(grounding_sample):
         clause = grounding_sample.grounding.groundingWrap.example.clause
         clauseE = grounding_sample.grounding.groundingWrap.example.clauseE
         return jState(clause, clauseE)
+
+    @staticmethod
+    def from_backend(state):
+        return State(set([str(l) for l in state.clause.literals()]))
 
     def to_clause(self):
         atoms = []
@@ -97,12 +102,15 @@ class State:
             atoms.append(get_literal(predicate, terms, negated, string=False))
         return jList(atoms)
 
-    def make_relations(self):
+    def get_relations(self):
         example = []
         for atom in self.atoms_ILG:
             negated, predicate, terms = parse_literal(atom)
             example.append(R.get(predicate)(terms))
         return example
+
+    def is_goal(self, goal_atoms: set):
+        return goal_atoms.issubset(self.atoms)
 
     def setup_ILG(self, goal_state):
         """Split the state representation into a pure and ILG-modified representation for an easier use"""
