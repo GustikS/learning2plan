@@ -9,7 +9,7 @@ def basic_template(predicates, dim=10, num_layers=3, actions=None, classificatio
     template = Template()
 
     if actions:
-        template += action_rules(actions, predicates, dim, classification)
+        template += action_rules(actions, predicates, dim, num_layers)
 
     template += anonymous_predicates(predicates, dim)
 
@@ -33,7 +33,7 @@ def basic_template(predicates, dim=10, num_layers=3, actions=None, classificatio
     return template
 
 
-def action_rules(actions, predicates, dim, classification, ILG=True, merge_ilg=True):
+def action_rules(actions, predicates, dim, num_layers, ILG=True, merge_ilg=True, action_messages=False):
     """Of course this is not the only way to incorporate actions in the learning templates..."""
     if ILG:
         if merge_ilg:
@@ -42,26 +42,23 @@ def action_rules(actions, predicates, dim, classification, ILG=True, merge_ilg=T
                 if predicate.startswith("ag_") or predicate.startswith("ap_"):
                     raw_pred = predicate[3:]
                     variables = [f"X{ar}" for ar in range(predicates[predicate])]
-                    rules.append(R.get(raw_pred)(variables) <= R.get(predicate)(variables)[predicate[0:2]:1, ])
-            rules.extend([action.to_rule() for action in actions])
+                    head = R.get(raw_pred)(variables)
+                    # infer the original predicate with a numeric transformation based on the prefix
+                    body = [R.get(predicate)(variables)[predicate[0:2]:dim, ]]
+                    # and extend it with the latent representation of each involved object
+                    body += [R.get(f'h_{num_layers}')(var)[dim,dim] for var in variables]
+                    rules.append(head <= body)
+            rules.extend([action.to_rule(dim=dim) for action in actions])
         else:
-            rules = [action.to_rule(pref) for action in actions for pref in ['ag_', 'ap_']]
+            rules = [action.to_rule(predicate_prefix=pref, dim=dim) for action in actions for pref in ['ag_', 'ap_']]
     else:
-        rules = [action.to_rule() for action in actions]
+        rules = [action.to_rule(dim=dim) for action in actions]
 
-    for action in actions:
-        predicates[action.name] = len(action.parameters)  # just extend the predicates with the action heads...
-
-    # if classification:
-    #     for action in actions:
-    #         rules.append(R.get(action.name)(["xxx" for _ in range(predicates[action.name])]))
+    if action_messages:
+        for action in actions:
+            predicates[action.name] = len(action.parameters)  # just extend the predicates with the action heads...
 
     return rules
-
-
-def basic_classification_template(predicates, dim=10):
-    template = Template()
-    # TODO the action prediction...
 
 
 def anonymous_predicates(predicates, dim, input_dim=1):

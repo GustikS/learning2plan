@@ -66,12 +66,12 @@ class Action:
             self.backend()
         return self.jAction.grounding(terms)
 
-    def to_rule(self, predicate_prefix=""):
+    def to_rule(self, predicate_prefix="", dim=3):
         body = []
         for precondition in self.preconditions:
             negated, predicate, terms = parse_literal(precondition)
-            body.append(get_literal(f'{predicate_prefix}{predicate}', terms, negated, string=False))
-        head = R.get(self.name)(self.parameters)
+            body.append(get_literal(f'{predicate_prefix}{predicate}', terms, negated, string=False)[dim, dim])
+        head = R.get(self.name)(self.parameters)[1, dim]
         return head <= body
 
 

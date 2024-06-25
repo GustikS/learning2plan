@@ -67,8 +67,9 @@ def test_model(domain_name, model_file, model=None, steps=100):
 
 
 def policy_step(model, init_state, actions):
-    # sorted_actions = score_output_actions(actions, init_state, model)
-    sorted_actions = score_blind_actions(actions, init_state, model)
+    sorted_actions = score_output_actions(actions, init_state, model)
+    # sorted_actions = score_blind_actions(actions, init_state, model)  # switch here for a possibly faster version
+
     print(f'applicable: {sorted_actions}')
 
     best_action = sorted_actions[0]
@@ -110,6 +111,7 @@ def output_neuron_values(sample, model):
 
 
 def score_blind_actions(actions, init_state, model):
+    """This will evaluate the actions by directly reading out neuron values from the single network (experimental)"""
     model.settings['neuralNetsPostProcessing'] = False  # for speedup
     model.settings.chain_pruning = False
     model.settings.iso_value_compression = False
