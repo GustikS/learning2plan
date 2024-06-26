@@ -4,7 +4,7 @@ import pickle
 import time
 
 # import seaborn
-import torch
+# import torch
 # from matplotlib import pyplot as plt
 # from matplotlib.pyplot import figure
 # from sklearn.metrics import confusion_matrix

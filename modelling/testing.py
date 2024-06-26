@@ -1,6 +1,6 @@
 import argparse
 import pickle
-import torch
+# import torch
 
 import neuralogic
 
