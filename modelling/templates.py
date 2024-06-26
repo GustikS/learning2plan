@@ -35,6 +35,7 @@ def basic_template(predicates, dim=10, num_layers=3, actions=None, classificatio
 
 def action_rules(actions, predicates, dim, num_layers, ILG=True, merge_ilg=True, action_messages=False):
     """Of course this is not the only way to incorporate actions in the learning templates..."""
+    # todo integrate also action effects - they could inform the template better
     if ILG:
         if merge_ilg:
             rules = []
@@ -46,7 +47,7 @@ def action_rules(actions, predicates, dim, num_layers, ILG=True, merge_ilg=True,
                     # infer the original predicate with a numeric transformation based on the prefix
                     body = [R.get(predicate)(variables)[predicate[0:2]:dim, ]]
                     # and extend it with the latent representation of each involved object
-                    body += [R.get(f'h_{num_layers}')(var)[dim,dim] for var in variables]
+                    body += [R.get(f'h_{num_layers}')(var)[dim, dim] for var in variables]
                     rules.append(head <= body)
             rules.extend([action.to_rule(dim=dim) for action in actions])
         else:

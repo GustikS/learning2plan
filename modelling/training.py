@@ -3,13 +3,13 @@ import logging
 import pickle
 import time
 
-import seaborn
+# import seaborn
 import torch
-from matplotlib import pyplot as plt
-from matplotlib.pyplot import figure
+# from matplotlib import pyplot as plt
+# from matplotlib.pyplot import figure
+# from sklearn.metrics import confusion_matrix
 
 import neuralogic
-
 if not neuralogic.is_initialized():
     # neuralogic.initialize()
     # # neuralogic.initialize(jar_path="../jar/NeuraLogic-maven.jar", debug_mode=False)
@@ -21,9 +21,8 @@ from neuralogic.nn import get_evaluator
 from neuralogic.nn.loss import MSE, CrossEntropy
 from neuralogic.optim import Adam
 
-from samples import export_problems, parse_domain, get_filename
-from sklearn.metrics import confusion_matrix
-from templates import basic_template, build_template
+from modelling.samples import export_problems, parse_domain, get_filename
+from modelling.templates import basic_template, build_template
 
 logging.basicConfig(
     level=logging.INFO,

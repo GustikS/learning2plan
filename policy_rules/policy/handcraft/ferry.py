@@ -2,9 +2,10 @@ from neuralogic.core import R
 from typing_extensions import override
 
 from ..policy import Policy
+from ..policy_learning import LearningPolicy
 
 
-class FerryPolicy(Policy):
+class FerryPolicy(LearningPolicy):
     @override
     def _add_derived_predicates(self):
         # helper

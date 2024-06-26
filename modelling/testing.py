@@ -29,7 +29,7 @@ def load_model(save_file, model=None):
         model = build_template(template)
 
     model.load_state_dict(weights)
-    return model
+    return model, template
 
 
 def get_domain_setup(domain_name):
@@ -53,7 +53,7 @@ def test_model(domain_name, model_file, model=None, steps=100):
 
     if model is None:
         if model_file:
-            model = load_model(model_file)
+            model, template = load_model(model_file)
         else:
             model, template = train(domain_name, numeric=False, save_file="./target/tmp", plotting=True)
     model.test()
