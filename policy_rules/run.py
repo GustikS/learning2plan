@@ -1,5 +1,8 @@
 import argparse
 import sys
+
+sys.path.append("..")  # just a quick fix for the tests to pass... to be removed
+
 from pathlib import Path
 from pprint import pprint
 
@@ -118,7 +121,7 @@ def main():
                 matrix_log.append(["Policy actions", ", ".join(action_names)])
 
             sorted_actions = sorted(policy_actions, key=lambda item: item[0], reverse=True)
-            action = sorted_actions[0][1]   # select the best action
+            action = sorted_actions[0][1]  # select the best action
 
             if _DEBUG_LEVEL > 0:
                 matrix_log.append(["Applying", action.get_name()])
