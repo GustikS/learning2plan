@@ -8,7 +8,7 @@ from neuralogic.core import C, R, Template, V
 from neuralogic.core.constructs.relation import BaseRelation
 from neuralogic.inference.inference_engine import InferenceEngine
 from pymimir import Action, ActionSchema, Atom, Domain, Literal, Object, Problem
-from policy_rules.util.str_atom import StrAtom
+from util.str_atom import StrAtom
 
 Schema = Union[str, ActionSchema]
 

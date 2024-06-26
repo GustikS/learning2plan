@@ -1,7 +1,7 @@
 from neuralogic.core import R
 from pymimir import Atom
 from typing_extensions import override
-from policy_rules.util.printing import print_mat
+from util.printing import print_mat
 
 from ..policy import Policy
 
