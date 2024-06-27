@@ -38,8 +38,6 @@ class LearningPolicy(Policy):
         self._engine = EvaluationInferenceEngine(self._template, self.settings)
         self.model = self._engine.model
 
-        store_template(self._template, template_path)
-
         self.action_header2query = {query.predicate.name: query
                                     for schema in self._schemata
                                     if (query := self.relation_from_schema(schema))}
