@@ -2,7 +2,7 @@
 
 from abc import abstractmethod
 from itertools import product
-from typing import Union
+from typing import Union, Iterable
 
 from neuralogic.core import C, R, Template, V
 from neuralogic.core.constructs.relation import BaseRelation
@@ -36,12 +36,15 @@ class Policy:
         # different problems in the same domain. Although it is probably more robust to just 
         # reinstantiate for each problem like you mentioned. However, since it works, I'll just 
         # keep the code here for now.
+        # GS 27/06/24: but that is exactly why it is not useful, no? If the same policy should work
+        # for different problems, then there should be nothing problem-specific stored in it, no?
+        # Completely agree with storing for a given domain though.
         self._problem = problem
         self._objects = self._problem.objects
         self._goal = self._problem.goal
         self._name_to_object: dict[str, Object] = {obj.name: obj for obj in self._objects}
 
-    def solve(self, state: list[Atom]) -> list[Action]:
+    def solve(self, state: list[Atom]) -> list[(float, Action)]:
         """given a state, return possible actions from policy rules"""
         ilg_atoms = self.get_ilg_facts(state)
         lrnn_atoms = [R.get(atom.predicate)([C.get(obj) for obj in atom.objects]) for atom in ilg_atoms]
@@ -63,7 +66,7 @@ class Policy:
 
         return self.query_actions()
 
-    def query_actions(self):
+    def query_actions(self) -> list[(float, Action)]:
         ret = []
         for schema in self._schemata:
             assignments = self.get_action_substitutions(schema.name)
@@ -78,7 +81,7 @@ class Policy:
                 ret.append((value, ret_action))
         return ret
 
-    def get_action_substitutions(self, action_name):
+    def get_action_substitutions(self, action_name: str) -> Iterable[tuple[float, dict]]:
         action_header = self.relation_from_schema(action_name)
         assignments = self._engine.query(action_header)
         for assignment in assignments:
@@ -87,9 +90,9 @@ class Policy:
     def query(self, query: BaseRelation):
         return self._engine.query(query)
 
-    def _init_template(self, dim=1):
+    def _init_template(self):
         self._template = Template()
-        self._add_predicate_copies(dim=dim)
+        self._add_predicate_copies()
         try:
             self._add_derived_predicates()
             self._add_policy_rules()
@@ -99,9 +102,9 @@ class Policy:
         # add a derived predicate containing just the preconditions
         for schema in self._schemata:
             schema_name = schema.name
-            head = self.relation_from_schema(schema_name, name=f"applicable_{schema_name}", dim=dim)
-            body = self.get_schema_preconditions(schema_name, dim=dim)
-            self._template += head <= body
+            head = self.relation_from_schema(schema_name, name=f"applicable_{schema_name}")
+            body = self.get_schema_preconditions(schema_name)
+            self.add_rule(head, body)
 
     def print_state(self, state: list[Atom]):
         # may be extended and replaced
@@ -142,17 +145,18 @@ class Policy:
             relation = self.relation_from_schema(schema)
             self._debug_inference_helper(relation)
 
-    def _add_predicate_copies(self, dim=1) -> None:
+    def _add_predicate_copies(self) -> None:
         """add ug, ag, ap copies of predicates and rules"""
         ## do not add ug as it is unachieved
         for prefix, predicate in product(["ag", "ap"], self._predicates):
             variables = [V.get(f"X{i}") for i in range(predicate.arity)]
-            new_predicate = R.get(f"{prefix}_{predicate.name}")(variables)
+            # the only place with a hardcoded weight - a shared scalar based on the prefix
+            new_predicate = R.get(f"{prefix}_{predicate.name}")(variables)[prefix:1, ]
             og_predicate = R.get(predicate.name)(variables)
-            self._template += og_predicate <= new_predicate[prefix:dim, 1]
+            self.add_rule(og_predicate, new_predicate)
 
     def get_object_information(self) -> list[BaseRelation]:
-        """add object types to the template"""
+        """return object type facts"""
         object_types = []
         for obj in self._problem.objects:
             assert obj.is_constant()
@@ -162,8 +166,11 @@ class Policy:
             # self._template += R.get(obj.type.base.name)(C.get(obj.name))
         return object_types
 
-    def add_rule(self, head_or_schema_name: Union[BaseRelation, str], body: list[BaseRelation], dim=1):
-        assert isinstance(body, list)
+    def add_rule(self, head_or_schema_name: Union[BaseRelation, str], body: list[BaseRelation]):
+        self._template += self.get_rule(body, head_or_schema_name)
+
+    def get_rule(self, body: Union[list | BaseRelation], head_or_schema_name: Union[str | BaseRelation]):
+        assert isinstance(body, Union[list | BaseRelation])
         if isinstance(head_or_schema_name, BaseRelation):
             head = head_or_schema_name
             body = body
@@ -173,9 +180,9 @@ class Policy:
             head = self.relation_from_schema(schema_name)
             body = body
             body += [self.relation_from_schema(schema_name, name=f"applicable_{schema_name}")]
-        self._template += head <= body
+        return head <= body
 
-    def relation_from_schema(self, schema: Schema, name=None, dim=1) -> BaseRelation:
+    def relation_from_schema(self, schema: Schema, name=None) -> BaseRelation:
         """construct a relation object from a schema"""
         if isinstance(schema, str):
             schema = self._name_to_schema[schema]
@@ -183,10 +190,10 @@ class Policy:
         parameters = [V.get(p) for p in parameters]
         if name is None:
             name = schema.name
-        head = R.get(name)(parameters)[dim, dim]
+        head = R.get(name)(parameters)
         return head
 
-    def get_schema_preconditions(self, schema: Schema, dim=1) -> list[BaseRelation]:
+    def get_schema_preconditions(self, schema: Schema) -> list[BaseRelation]:
         """construct base body of a schema from its preconditions with typing"""
         if isinstance(schema, str):
             schema = self._name_to_schema[schema]
@@ -200,7 +207,7 @@ class Policy:
             assert param.is_variable()
             remap = param_remap[param.name]
             object_type = param.type.name
-            atom = R.get(object_type)(V.get(remap))[dim, dim]
+            atom = R.get(object_type)(V.get(remap))
             body.append(atom)
 
         ## add preconditions
@@ -211,10 +218,9 @@ class Policy:
             predicate = p.atom.predicate.name
             objects = p.atom.terms
             prec_vars = [V.get(param_remap[obj.name]) for obj in objects]
+            literal = R.get(predicate)(prec_vars)
             if p.negated:
-                literal = ~R.get(predicate)(prec_vars)
-            else:
-                literal = R.get(predicate)(prec_vars)[dim, dim]
+                literal = ~literal
             body.append(literal)
 
         return body

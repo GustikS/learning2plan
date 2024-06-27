@@ -1,12 +1,13 @@
 import os
 import pickle
 import warnings
+from typing import Union, Iterable
 
 from neuralogic.dataset import Dataset, Sample
 from typing_extensions import override
 
-from neuralogic.core import Template, Settings, R, C, Transformation, Aggregation
-from neuralogic.core.constructs.relation import BaseRelation
+from neuralogic.core import Template, Settings, R, C, Transformation, Aggregation, Rule
+from neuralogic.core.constructs.relation import BaseRelation, WeightedRelation
 from neuralogic.inference import EvaluationInferenceEngine
 from pymimir import Domain, Problem, Atom, Action
 
@@ -65,7 +66,7 @@ class LearningPolicy(Policy):
                 print("Training not allowed - resorting to a pure handcrafted template")
 
     @override
-    def get_action_substitutions(self, action_name):
+    def get_action_substitutions(self, action_name: str) -> Iterable[tuple[float, dict]]:
         action_query = self.action_header2query[action_name]
         # there is a little bug/discrepancy between the eval/inference in neuralogic
         # so we need to reformat a bit here (upper string instead of capital var) - will correct that in next version
@@ -81,15 +82,30 @@ class LearningPolicy(Policy):
         return assignments
 
     @override
-    def _get_schema_preconditions(self, schema: Schema, dim=1, num_layers=1) -> list[BaseRelation]:
-        if isinstance(schema, str):
-            schema = self._name_to_schema[schema]
-        body = super().get_schema_preconditions(schema)
-        variables = [p.name.replace("?", "").upper() for p in schema.parameters]
-        # just extend each action with the latent representation of each involved object
-        # todo next - merge with the message passing here...
-        body += [R.get(f'h_{num_layers}')(var)[dim, dim] for var in variables]
-        return body
+    def add_rule(self,
+                 head_or_schema_name: Union[BaseRelation, str],
+                 body: list[BaseRelation],
+                 dim: int = 1,
+                 embedding_layer: int = -1):
+        rule: Rule = self.get_rule(body, head_or_schema_name)
+        if dim > 0:  # we want weights
+            rule.head = self.add_weight(rule.head, dim)
+            for i in range(len(rule.body)):
+                rule.body[i] = self.add_weight(rule.body[i], dim)
+        if embedding_layer > 0:  # add object embeddings
+            variables = rule.head.terms
+            for lit in rule.body:
+                variables += lit.terms
+            rule.body += [R.get(f'h_{embedding_layer}')(var)[dim, dim] for var in variables]
+        self._template += rule
+
+    def add_weight(self, literal: BaseRelation, dim: int) -> WeightedRelation:
+        if not isinstance(literal, WeightedRelation) and not literal.negated:  # not yet weighted
+            return literal[dim, dim]
+        else:
+            if self._debug > 2:
+                print(f"{literal} is already weighted")
+            return literal
 
     @staticmethod
     def train_parameters(model, lrnn_dataset_path: str, epochs: int = 100, save_model_path: str = None):
@@ -120,7 +136,7 @@ class FasterEvaluationPolicy(LearningPolicy):
         self.model.settings.iso_value_compression = False
 
     @override
-    def query_actions(self):
+    def query_actions(self) -> list[(float, Action)]:
         try:
             built_dataset = self.model.build_dataset(self._engine.dataset)
             self._built_state_network = built_dataset[0]
@@ -130,7 +146,7 @@ class FasterEvaluationPolicy(LearningPolicy):
         return super().query_actions()
 
     @override
-    def get_action_substitutions(self, action_name):
+    def get_action_substitutions(self, action_name: str) -> (float, dict):
         atoms = self._built_state_network.get_atom(self.action_header2query[action_name])
         if atoms:
             for a in atoms:
