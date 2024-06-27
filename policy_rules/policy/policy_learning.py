@@ -38,6 +38,8 @@ class LearningPolicy(Policy):
         self._engine = EvaluationInferenceEngine(self._template, self.settings)
         self.model = self._engine.model
 
+        store_template(self._template, template_path)
+
         self.action_header2query = {query.predicate.name: query
                                     for schema in self._schemata
                                     if (query := self.relation_from_schema(schema))}
@@ -45,7 +47,7 @@ class LearningPolicy(Policy):
     def setup_template(self, domain: Domain, template_path: str, train: bool):
         """Initialize a learning policy template - either load from file or create a new one and possibly train + store"""
         try:
-            self._template = load_model(template_path)
+            _, self._template = load_model(template_path)
         except FileNotFoundError:
             print(f"No stored template found at {template_path} - will train a default one and store it there instead!")
             # self._init_template()     - called in superclass already

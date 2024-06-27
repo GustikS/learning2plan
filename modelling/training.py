@@ -4,7 +4,6 @@ import pickle
 import time
 
 # import seaborn
-# import torch
 # from matplotlib import pyplot as plt
 # from matplotlib.pyplot import figure
 # from sklearn.metrics import confusion_matrix
@@ -15,7 +14,7 @@ if not neuralogic.is_initialized():
     # # neuralogic.initialize(jar_path="../jar/NeuraLogic-maven.jar", debug_mode=False)
     neuralogic.initialize(jar_path="../jar/NeuraLogic.jar", debug_mode=False)  # custom momentary backend upgrades
 
-from neuralogic.core import Settings
+from neuralogic.core import Settings, Template
 from neuralogic.dataset import FileDataset
 from neuralogic.nn import get_evaluator
 from neuralogic.nn.loss import MSE, CrossEntropy
@@ -100,15 +99,18 @@ def store_weights(model, save_file):
         # state_dict["weight_names"] = {
         #     k: str(v) for k, v in state_dict["weight_names"].items()
         # }
-        # with open(save_file, 'wb') as f:
-        #     pickle.dump(state_dict, f)
-        torch.save(state_dict, f'{save_file}_weights')
+        with open(f'{save_file}_weights', 'wb') as f:
+            pickle.dump(state_dict, f)
+        # torch.save(state_dict, f'{save_file}_weights')
         logging.log(logging.INFO, f"Model weights saved to {save_file}_weights")
 
 
-def store_template(template, save_file):
+def store_template(template: Template, save_file):
     file = open(save_file + "_template", 'wb')
     pickle.dump(template, file)
+    file.close()
+    file = open(save_file + "_template.txt", "w")
+    file.write(str(template))
     file.close()
 
 

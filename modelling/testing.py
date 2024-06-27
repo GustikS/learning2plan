@@ -2,7 +2,6 @@ import argparse
 import pickle
 
 import neuralogic
-import torch
 
 if not neuralogic.is_initialized():
     neuralogic.initialize(jar_path="../jar/NeuraLogic.jar", debug_mode=False)  # custom momentary backend upgrades
@@ -20,12 +19,15 @@ def load_model(save_file, model=None):
     """This serialization will be done more correctly as a function in the next release of neuralogic..."""
 
     with open(save_file + "_weights", 'rb') as f:
-        weights = torch.load(f)
+        # weights = torch.load(f)
+        weights = pickle.load(f)
 
     if model is None:
         with open(save_file + "_template", 'rb') as f:
             template = pickle.load(f)
         model = build_template(template)
+    else:
+        template = None
 
     model.load_state_dict(weights)
     return model, template
