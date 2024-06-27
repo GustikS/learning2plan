@@ -1,16 +1,19 @@
 #!/usr/bin/env python
 
 import argparse
+import random
 import sys
+
+import numpy as np
+from termcolor import colored
 
 sys.path.append("..")  # just a quick fix for the tests to pass... to be removed
 
 from pathlib import Path
 from pprint import pprint
 
-import pymimir
-
 import neuralogic
+import pymimir
 from neuralogic.logging import Formatter, Level, add_handler
 
 if not neuralogic.is_initialized():
@@ -56,7 +59,11 @@ def main():
     parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound.")
     parser.add_argument("-t", "--template", type=str, default="")
     parser.add_argument("-l", "--learning", type=bool, default=False)
+    parser.add_argument("-s", "--seed", type=int, default=2024, help="Random seed.")
+    parser.add_argument("-c", "--choice", default="best", choices=["sample", "best"], help="Choose the best action or sample from the policy.")
     args = parser.parse_args()
+    random.seed(args.seed)
+    np.random.seed(args.seed)
     domain_name = args.domain
     problem_name = args.problem
     template_name = args.template
@@ -67,6 +74,8 @@ def main():
     _DEBUG_LEVEL = args.verbose
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
     assert Path(problem_path).exists(), f"Problem file not found: {problem_path}"
+
+    # TODO(DZC): cycle checking
 
     if _DEBUG_LEVEL > 4:
         add_handler(sys.stdout, Level.ALL, Formatter.COLOR)
@@ -109,10 +118,14 @@ def main():
             goals_left = goal_count(state, goal)
             if goals_left == 0:
                 break
-
+            
+            # returns list[tuple[float, Action]]
             policy_actions = policy.solve(state.get_atoms())
 
             if len(policy_actions) == 0:
+                if _DEBUG_LEVEL > 1:
+                    # may or may not be implemented depending on domain
+                    policy.print_state(state.get_atoms())
                 print("Error: No actions computed and not at goal state!")
                 print("Terminating...")
                 exit(-1)
@@ -125,11 +138,18 @@ def main():
                 action_names = [f'{v}:{a.get_name()}' for v, a in policy_actions]
                 matrix_log.append(["Policy actions", ", ".join(action_names)])
 
-            sorted_actions = sorted(policy_actions, key=lambda item: item[0], reverse=True)
-            action = sorted_actions[0][1]  # select the best action
+            if args.choice == "sample":
+                actions = [a[1] for a in policy_actions]
+                p = [a[0] for a in policy_actions]
+                div = sum(np.exp(p))
+                p = np.exp(p)/div  # softmax
+                action = np.random.choice(actions, p=p)
+            else:
+                sorted_actions = sorted(policy_actions, key=lambda item: item[0], reverse=True)
+                action = sorted_actions[0][1]  # select the best action
 
             if _DEBUG_LEVEL > 0:
-                matrix_log.append(["Applying", action.get_name()])
+                matrix_log.append(["Applying", colored(action.get_name(), "cyan")])
             plan.append(action.get_name())
 
             state = action.apply(state)

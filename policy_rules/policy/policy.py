@@ -47,8 +47,12 @@ class Policy:
             print("=" * 80)
             print("Template for current state:")
             print(self._template)
+            # print("=" * 80)
+            print("-" * 80)
+            for a in sorted(self._engine.examples, key=lambda x: str(x)):
+                print(a)
             print("=" * 80)
-            print(self._engine.examples)
+            # print(self._engine.examples)
 
         if self._debug > 2:
             self._debug_inference()
@@ -111,7 +115,7 @@ class Policy:
     def _debug_inference(self):
         pass
 
-    def _debug_inference_helper(self, relation: BaseRelation):
+    def _debug_inference_helper(self, relation: BaseRelation, newline=False):
         print("-" * 80)
         rel_repr = str(relation).split("(")[0]
         print(rel_repr)
@@ -125,7 +129,10 @@ class Policy:
                 result_repr = result_repr.replace(k, v)
             results_repr.append(result_repr)
         results_repr = sorted(results_repr)
-        print(" ".join(results_repr))
+        if newline:
+            print("\n".join(results_repr))
+        else:
+            print(" ".join(results_repr))
 
     def _debug_inference_actions(self):
         for schema in self._schemata:
