@@ -1,20 +1,19 @@
 import argparse
 import pickle
-import torch
 
 import neuralogic
+import torch
 
 if not neuralogic.is_initialized():
     neuralogic.initialize(jar_path="../jar/NeuraLogic.jar", debug_mode=False)  # custom momentary backend upgrades
 
-from neuralogic.dataset import Dataset
 from neuralogic.core import R
+from neuralogic.dataset import Dataset
 
 from modelling.planning import State
+from modelling.samples import flatten_states, parse_domain
 from modelling.templates import build_template
-
-from modelling.samples import parse_domain, flatten_states
-from modelling.training import train, store_template, prepare_model
+from modelling.training import prepare_model, store_template, train
 
 
 def load_model(save_file, model=None):
@@ -77,6 +76,7 @@ def test_model(domain_name, model_file, model=None):
 
 def score_applicable_actions(action_queries, init_state, model):
     """The core step where the model get evaluated, and we check the values of the queries corresponding to actions"""
+    # TODO(DZC): action_queries: list[str] of lifted actions, init_state: list[str] with prefixes
     dataset = Dataset()
     dataset.add_example(init_state.make_relations())
     dataset.add_queries(action_queries)
