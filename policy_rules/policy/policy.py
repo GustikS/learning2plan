@@ -32,6 +32,10 @@ class Policy:
     def setup_problem(self, problem: Problem):
         """A stateful storing of a current problem"""
         # todo remove this dependence completely and just pass it as an argument (after asking Dillon) ?
+        # DZC 27/06/24: The reason why this may be useful is if we want to use the same policy for 
+        # different problems in the same domain. Although it is probably more robust to just 
+        # reinstantiate for each problem like you mentioned. However, since it works, I'll just 
+        # keep the code here for now.
         self._problem = problem
         self._objects = self._problem.objects
         self._goal = self._problem.goal
@@ -86,7 +90,6 @@ class Policy:
     def _init_template(self, dim=1):
         self._template = Template()
         self._add_predicate_copies(dim=dim)
-        # self._add_object_information()    - this is not general domain knowledge - doesn't belong to the template
         try:
             self._add_derived_predicates()
             self._add_policy_rules()
@@ -154,6 +157,7 @@ class Policy:
         for obj in self._problem.objects:
             assert obj.is_constant()
             # TODO intermediate types?  - you can e.g. add rules supertype(X) :- subtype(X). for each type
+            # DZC 27/06/24: That is true, I'm too lazy to do that now and everything seems to work for the current domains
             object_types.append(R.get(obj.type.name)(C.get(obj.name)))
             # self._template += R.get(obj.type.base.name)(C.get(obj.name))
         return object_types
