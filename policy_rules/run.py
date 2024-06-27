@@ -2,11 +2,20 @@
 
 import argparse
 import sys
+
+sys.path.append("..")  # just a quick fix for the tests to pass... to be removed
+
 from pathlib import Path
 from pprint import pprint
 
 import pymimir
+
+import neuralogic
 from neuralogic.logging import Formatter, Level, add_handler
+
+if not neuralogic.is_initialized():
+    neuralogic.initialize(jar_path="../jar/NeuraLogic.jar", debug_mode=False)  # custom momentary backend upgrades
+
 from policy.handcraft.handcraft_factory import get_handcraft_policy
 from util.printing import print_mat
 from util.timer import TimerContextManager
@@ -45,11 +54,16 @@ def main():
     parser.add_argument("-p", "--problem", type=str, default="0_01", help="Of the form 'x_yy'")
     parser.add_argument("-v", "--verbose", type=int, default=0)
     parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound.")
+    parser.add_argument("-t", "--template", type=str, default="")
+    parser.add_argument("-l", "--learning", type=bool, default=False)
     args = parser.parse_args()
     domain_name = args.domain
     problem_name = args.problem
+    template_name = args.template
+    learning_on = args.learning
     domain_path = f"l4np/{domain_name}/classic/domain.pddl"
     problem_path = f"l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
+    template_path = f"../datasets/lrnn/{domain_name}/classic/{template_name}"
     _DEBUG_LEVEL = args.verbose
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
     assert Path(problem_path).exists(), f"Problem file not found: {problem_path}"
@@ -69,7 +83,8 @@ def main():
         total_time += timer.get_time()
 
     with TimerContextManager("initialising policy") as timer:
-        policy = get_handcraft_policy(domain.name)(domain, problem, debug=_DEBUG_LEVEL)
+        policy = get_handcraft_policy(domain.name)(domain, template_path, debug=_DEBUG_LEVEL, train=learning_on)
+        policy.setup_problem(problem)
         total_time += timer.get_time()
 
     # print initial state
@@ -107,9 +122,11 @@ def main():
             Step = len(plan)
             print(f"[{Step=}, {goals_left=}, {timer.get_time()}s]")
             if _DEBUG_LEVEL > 1:
-                action_names = [a.get_name() for a in policy_actions]
+                action_names = [f'{v}:{a.get_name()}' for v, a in policy_actions]
                 matrix_log.append(["Policy actions", ", ".join(action_names)])
-            action = policy_actions[0]  # TODO randomise this?
+
+            sorted_actions = sorted(policy_actions, key=lambda item: item[0], reverse=True)
+            action = sorted_actions[0][1]  # select the best action
 
             if _DEBUG_LEVEL > 0:
                 matrix_log.append(["Applying", action.get_name()])

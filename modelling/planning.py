@@ -2,8 +2,6 @@ import logging
 import time
 
 import neuralogic
-from pddl.logic.functions import NumericFunction, NumericValue
-from pddl.logic.predicates import EqualTo
 
 if not neuralogic.is_initialized():
     neuralogic.initialize()
@@ -18,8 +16,10 @@ jLiteral = jpype.JClass("cz.cvut.fel.ida.logic.Literal")
 jState = jpype.JClass("cz.cvut.fel.ida.logic.grounding.planning.State")
 jAction = jpype.JClass("cz.cvut.fel.ida.logic.grounding.planning.Action")
 
-import pddl
-from pddl.logic import Variable, Predicate
+# import pddl
+# from pddl.logic import Variable, Predicate
+# from pddl.logic.functions import NumericFunction, NumericValue
+# from pddl.logic.predicates import EqualTo
 
 
 def parse_literal(string_literal):
@@ -50,6 +50,7 @@ class Action:
         self.add_effects = add_effects
         self.del_effects = del_effects
 
+        self.query = R.get(name)(parameters)  # turn action headers into lifted queries
         self.jAction = None
 
     def backend(self):
@@ -65,12 +66,12 @@ class Action:
             self.backend()
         return self.jAction.grounding(terms)
 
-    def to_rule(self, predicate_prefix=""):
+    def to_rule(self, predicate_prefix="", dim=3):
         body = []
         for precondition in self.preconditions:
             negated, predicate, terms = parse_literal(precondition)
-            body.append(get_literal(f'{predicate_prefix}{predicate}', terms, negated, string=False))
-        head = R.get(self.name)(self.parameters)
+            body.append(get_literal(f'{predicate_prefix}{predicate}', terms, negated, string=False)[dim, dim])
+        head = R.get(self.name)(self.parameters)[1, dim]
         return head <= body
 
 
@@ -85,10 +86,14 @@ class State:
         return self.jState
 
     @staticmethod
-    def from_backend(grounding_sample):
+    def from_grounding(grounding_sample):
         clause = grounding_sample.grounding.groundingWrap.example.clause
         clauseE = grounding_sample.grounding.groundingWrap.example.clauseE
         return jState(clause, clauseE)
+
+    @staticmethod
+    def from_backend(state):
+        return State(set([str(l) for l in state.clause.literals()]))
 
     def to_clause(self):
         atoms = []
@@ -97,14 +102,17 @@ class State:
             atoms.append(get_literal(predicate, terms, negated, string=False))
         return jList(atoms)
 
-    def make_relations(self):
+    def get_relations(self):
         example = []
         for atom in self.atoms_ILG:
             negated, predicate, terms = parse_literal(atom)
             example.append(R.get(predicate)(terms))
         return example
 
-    def setup_ILG(self, goal_state):
+    def is_goal(self, goal_atoms: set):
+        return goal_atoms.issubset(self.atoms)
+
+    def setup_ILG(self, goal_state_atoms):
         """Split the state representation into a pure and ILG-modified representation for an easier use"""
         is_ilg = False
         pure_atoms = []
@@ -114,24 +122,24 @@ class State:
                 is_ilg = True
                 pure_atoms.append(atom[3:])
                 ilg_atoms.append(atom)
-            elif atom[:3] == '_ug':
+            elif atom[:3] == 'ug_':
                 is_ilg = True
                 ilg_atoms.append(atom)
             else:
                 pure_atoms.append(atom)
                 is_ilg = False
-                if atom in goal_state:
+                if atom in goal_state_atoms:
                     iatom = "ag_" + atom
                 else:
                     iatom = "ap_" + atom
                 ilg_atoms.append(iatom)
         if not is_ilg:
-            for goal in goal_state:
+            for goal in goal_state_atoms:
                 if goal not in pure_atoms:
                     ilg_atoms.append("ug_" + goal)
 
         self.atoms = pure_atoms
-        self.ilg_atoms = ilg_atoms
+        self.atoms_ILG = ilg_atoms
 
 
 def extract_actions(pddl_domain, just_strings=True):
