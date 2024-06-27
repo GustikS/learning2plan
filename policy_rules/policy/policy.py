@@ -38,22 +38,17 @@ class Policy:
         self._name_to_object: dict[str, Object] = {obj.name: obj for obj in self._objects}
 
     def solve(self, state: list[Atom]) -> list[Action]:
-        """given a state and goal pair, return possible actions from policy rules"""
-        state_information = self.get_object_information()
-
+        """given a state, return possible actions from policy rules"""
         ilg_atoms = self.get_ilg_facts(state)
-        for atom in ilg_atoms:
-            lrnn_fact = R.get(atom.predicate)([C.get(obj) for obj in atom.objects])
-            # self._template.add_rule(lrnn_fact)    - this is not general domain knowledge - doesn't belong to the template
-            state_information.append(lrnn_fact)
-
-        self._engine.set_knowledge(state_information)
+        lrnn_atoms = [R.get(atom.predicate)([C.get(obj) for obj in atom.objects]) for atom in ilg_atoms]
+        self._engine.set_knowledge(lrnn_atoms + self.get_object_information())
 
         if self._debug > 2:
             print("=" * 80)
             print("Template for current state:")
             print(self._template)
             print("=" * 80)
+            print(self._engine.examples)
 
         if self._debug > 2:
             self._debug_inference()

@@ -50,17 +50,9 @@ class LearningPolicy(Policy):
         self._engine = EvaluationInferenceEngine(self._template, self.settings)
         self.model = self._engine.model
 
-        self.header2query = {}
-        for schema in self._schemata:
-            query = self.relation_from_schema(schema)
-            self.header2query[query.predicate.name] = query
-
-    @override
-    def solve(self, state: list[Atom]) -> list[Action]:
-        ilg_atoms = self.get_ilg_facts(state)
-        lrnn_atoms = [R.get(atom.predicate)([C.get(obj) for obj in atom.objects]) for atom in ilg_atoms]
-        self._engine.set_knowledge(lrnn_atoms)
-        return self.query_actions()
+        self.header2query = {query.predicate.name: query
+                             for schema in self._schemata
+                             if (query := self.relation_from_schema(schema))}
 
     @override
     def get_action_substitutions(self, action_name):
@@ -111,7 +103,6 @@ class FasterEvaluationPolicy(LearningPolicy):
 
     def __init__(self, domain: Domain, template_path: str, debug=0, train: bool = True):
         super().__init__(domain, template_path, debug, train)
-
 
     @override
     def solve(self, state: list[Atom]) -> list[Action]:
