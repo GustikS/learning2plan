@@ -5,7 +5,7 @@ from ..policy import Policy
 from ..policy_learning import LearningPolicy
 
 
-class FerryPolicy(LearningPolicy):
+class FerryPolicy(Policy):
     @override
     def _add_derived_predicates(self):
         # helper

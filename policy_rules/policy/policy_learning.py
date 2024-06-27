@@ -1,7 +1,7 @@
 import pickle
 from typing_extensions import override
 
-from neuralogic.core import Template, Settings, R, C
+from neuralogic.core import Template, Settings, R, C, Transformation, Aggregation
 from neuralogic.core.constructs.relation import BaseRelation
 from neuralogic.inference import EvaluationInferenceEngine
 from pymimir import Domain, Problem, Atom, Action
@@ -14,14 +14,17 @@ from policy_rules.policy.policy import Policy, Schema
 
 class LearningPolicy(Policy):
 
-    def __init__(self, domain: Domain, problem: Problem, template_path: str, debug=0, train: bool = True):
+    def __init__(self, domain: Domain, template_path: str, debug=0, train: bool = True):
         # TODO remove the Problem dependency - a policy should generalize over different problems, right?
-        super().__init__(domain, problem, debug)
+        super().__init__(domain, template_path, train, debug)
 
         # we can setup all the learning/evaluation-related settings here
         self.settings = Settings(
             iso_value_compression=False,
             chain_pruning=False,
+            rule_transformation=Transformation.RELU,
+            rule_aggregation=Aggregation.SUM,  # avg for better generalization then
+            relation_transformation=Transformation.RELU,
             epochs=100
         )
 
@@ -34,10 +37,12 @@ class LearningPolicy(Policy):
             if train:
                 training_data_path = get_filename(domain.name, False, 'lrnn', "..", "")
                 try:
-                    LearningPolicy.train_parameters(self._template.build(self.settings), training_data_path,
+                    LearningPolicy.train_parameters(self._template.build(self.settings),
+                                                    training_data_path,
                                                     save_model_path=template_path)
                 except Exception as e:
                     print(f"No training possible (no data available?) from: {training_data_path}")
+                    print(e)
             else:
                 print("Resorting to a pure handcrafted template")
 
@@ -45,17 +50,21 @@ class LearningPolicy(Policy):
         self._engine = EvaluationInferenceEngine(self._template, self.settings)
         self.model = self._engine.model
 
+        self.header2query = {}
+        for schema in self._schemata:
+            query = self.relation_from_schema(schema)
+            self.header2query[query.predicate.name] = query
+
     @override
     def solve(self, state: list[Atom]) -> list[Action]:
         ilg_atoms = self.get_ilg_facts(state)
         lrnn_atoms = [R.get(atom.predicate)([C.get(obj) for obj in atom.objects]) for atom in ilg_atoms]
         self._engine.set_knowledge(lrnn_atoms)
-
         return self.query_actions()
 
     @override
     def get_action_substitutions(self, action_name):
-        action_header = self.relation_from_schema(action_name)  # todo store these
+        action_header = self.header2query[action_name]  # todo store these
         # there is a little bug/discrepancy between the eval/inference in neuralogic
         # so we need to reformat a bit here (upper string instead of capital var) - will correct that in next version
         for term in action_header.terms:
@@ -66,7 +75,7 @@ class LearningPolicy(Policy):
             subss = {}
             for var, const in subs.items():
                 subss[var.name.capitalize()] = const
-            assignments.append((val,subss))
+            assignments.append((val, subss))
         return assignments
 
     @override
@@ -96,3 +105,14 @@ class LearningPolicy(Policy):
         with open(file_path + "_weights", 'rb') as f:
             weights = pickle.load(f)
             self.model.load_state_dict(weights)
+
+
+class FasterEvaluationPolicy(LearningPolicy):
+
+    def __init__(self, domain: Domain, template_path: str, debug=0, train: bool = True):
+        super().__init__(domain, template_path, debug, train)
+
+
+    @override
+    def solve(self, state: list[Atom]) -> list[Action]:
+        pass

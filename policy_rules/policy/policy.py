@@ -14,40 +14,46 @@ Schema = Union[str, ActionSchema]
 
 
 class Policy:
-    def __init__(self, domain: Domain, problem: Problem, template_path: str = None, debug=0):
+    def __init__(self, domain: Domain, template_path: str = None, debug=0, train: bool = False):
         self._domain = domain
-        self._problem = problem
         self._debug = debug
-        self._goal = self._problem.goal
 
         self._schemata = self._domain.action_schemas
         self._predicates = self._domain.predicates
         self._name_to_schema: dict[str, ActionSchema] = {
             schema.name: schema for schema in self._schemata
         }
-        self._objects = self._problem.objects
-        self._name_to_object: dict[str, Object] = {obj.name: obj for obj in self._objects}
-
         self._prev_state = None
+
+        # no need to recreate the template with every new state, we can retain it for the whole domain
+        self._init_template()
+        self._engine = InferenceEngine(self._template)
+
+    def setup_problem(self, problem: Problem):
+        """A stateful storing of a current problem"""
+        # todo remove this dependence completely and just pass it as an argument (after asking Dillon) ?
+        self._problem = problem
+        self._objects = self._problem.objects
+        self._goal = self._problem.goal
+        self._name_to_object: dict[str, Object] = {obj.name: obj for obj in self._objects}
 
     def solve(self, state: list[Atom]) -> list[Action]:
         """given a state and goal pair, return possible actions from policy rules"""
-        self._init_template()
+        state_information = self.get_object_information()
 
         ilg_atoms = self.get_ilg_facts(state)
-
-        ## add atoms to template
         for atom in ilg_atoms:
             lrnn_fact = R.get(atom.predicate)([C.get(obj) for obj in atom.objects])
-            self._template.add_rule(lrnn_fact)
+            # self._template.add_rule(lrnn_fact)    - this is not general domain knowledge - doesn't belong to the template
+            state_information.append(lrnn_fact)
+
+        self._engine.set_knowledge(state_information)
 
         if self._debug > 2:
             print("=" * 80)
             print("Template for current state:")
             print(self._template)
             print("=" * 80)
-
-        self._engine = InferenceEngine(self._template)
 
         if self._debug > 2:
             self._debug_inference()
@@ -81,7 +87,7 @@ class Policy:
     def _init_template(self, dim=1):
         self._template = Template()
         self._add_predicate_copies(dim=dim)
-        self._add_object_information()
+        # self._add_object_information()    - this is not general domain knowledge - doesn't belong to the template
         try:
             self._add_derived_predicates()
             self._add_policy_rules()
@@ -140,13 +146,15 @@ class Policy:
             og_predicate = R.get(predicate.name)(variables)
             self._template += og_predicate <= new_predicate[prefix:dim, 1]
 
-    def _add_object_information(self) -> None:
+    def get_object_information(self) -> list[BaseRelation]:
         """add object types to the template"""
+        object_types = []
         for obj in self._problem.objects:
             assert obj.is_constant()
             # TODO intermediate types?  - you can e.g. add rules supertype(X) :- subtype(X). for each type
-            self._template += R.get(obj.type.name)(C.get(obj.name))
+            object_types.append(R.get(obj.type.name)(C.get(obj.name)))
             # self._template += R.get(obj.type.base.name)(C.get(obj.name))
+        return object_types
 
     def add_rule(self, head_or_schema_name: Union[BaseRelation, str], body: list[BaseRelation], dim=1):
         assert isinstance(body, list)

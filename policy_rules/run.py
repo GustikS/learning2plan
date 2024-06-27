@@ -53,10 +53,12 @@ def main():
     parser.add_argument("-v", "--verbose", type=int, default=0)
     parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound.")
     parser.add_argument("-t", "--template", type=str, default="")
+    parser.add_argument("-l", "--learning", type=bool, default=False)
     args = parser.parse_args()
     domain_name = args.domain
     problem_name = args.problem
     template_name = args.template
+    learning_on = args.learning
     domain_path = f"l4np/{domain_name}/classic/domain.pddl"
     problem_path = f"l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
     template_path = f"../datasets/lrnn/{domain_name}/classic/{template_name}"
@@ -79,7 +81,8 @@ def main():
         total_time += timer.get_time()
 
     with TimerContextManager("initialising policy") as timer:
-        policy = get_handcraft_policy(domain.name)(domain, problem, template_path, debug=_DEBUG_LEVEL)
+        policy = get_handcraft_policy(domain.name)(domain, template_path, debug=_DEBUG_LEVEL, train=learning_on)
+        policy.setup_problem(problem)
         total_time += timer.get_time()
 
     # print initial state
