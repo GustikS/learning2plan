@@ -10,9 +10,9 @@ from neuralogic.nn.java import NeuraLogic
 from pymimir import Domain, Action
 from typing_extensions import override
 
-from modelling.training import build_samples, store_weights, store_template
+from modelling.training import build_samples
 from policy_rules.policy.policy import Policy
-from policy_rules.util.template_settings import neuralogic_settings
+from policy_rules.util.template_settings import neuralogic_settings, store_template_model, load_model_weights
 
 
 class LearningPolicy(Policy):
@@ -32,14 +32,6 @@ class LearningPolicy(Policy):
         self.action_header2query = {query.predicate.name: query
                                     for schema in self._schemata
                                     if (query := self.relation_from_schema(schema))}
-
-    def train_model_from(self, train_data_path: str):
-        assert os.path.isdir(train_data_path), print(f"No LRNN training data available at {train_data_path}")
-        try:
-            LearningPolicy.train_parameters(self.model, train_data_path)
-        except Exception as e:
-            print(f"Invalid training setup from: {train_data_path}")
-            print(e)
 
     @override
     def get_action_substitutions(self, action_name: str) -> Iterable[tuple[float, dict]]:
@@ -83,22 +75,29 @@ class LearningPolicy(Policy):
                 print(f"{literal} is already weighted")
             return literal
 
-    @staticmethod
-    def train_parameters(model, lrnn_dataset_path: str, epochs: int = 100, save_model_path: str = None):
-        neural_samples, logic_samples = build_samples(model, lrnn_dataset_path)
-        results = model(neural_samples, train=True, epochs=epochs)
+    def train_model_from(self, train_data_dir: str):
+        assert os.path.isdir(train_data_dir), print(f"No LRNN training data available at {train_data_dir}")
+        try:
+            self.train_parameters(train_data_dir)
+        except Exception as e:
+            print(f"Invalid training setup from: {train_data_dir}")
+            print(e)
+
+    def train_parameters(self, lrnn_dataset_dir: str, epochs: int = 100, save_model_path: str = None):
+        neural_samples, logic_samples = build_samples(self.model, lrnn_dataset_dir)
+        results = self.model(neural_samples, train=True, epochs=epochs)
         print(results)
         if save_model_path:
-            store_weights(model, save_model_path)
-            store_template(model, save_model_path)
+            store_template_model(self.model, save_model_path)
 
     def reset_parameters(self):
         self.model.reset_parameters()
 
-    def load_parameters(self, file_path: str = None):
-        with open(file_path + "_weights", 'rb') as f:
-            weights = pickle.load(f)
-            self.model.load_state_dict(weights)
+    def load_parameters(self, weights_file_path: str = None):
+        load_model_weights(self.model, weights_file_path)
+
+    def store_policy(self, save_path: str):
+        store_template_model(self.model, save_path)
 
 
 class FasterEvaluationPolicy(LearningPolicy):

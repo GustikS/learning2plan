@@ -6,7 +6,7 @@ import sys
 
 from neuralogic.nn.java import NeuraLogic
 
-from util.template_settings import load_stored_model
+from util.template_settings import load_stored_model, store_template_model
 
 sys.path.append("..")  # just a quick fix for the tests to pass... to be removed
 
@@ -59,8 +59,8 @@ def main():
     parser.add_argument("-p", "--problem", type=str, default="0_01", help="Of the form 'x_yy'")
     parser.add_argument("-v", "--verbose", type=int, default=0)
     parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound.")
-    parser.add_argument("-t", "--template", type=str, default="", help="Policy template name.")
-    parser.add_argument("-f", "--files", type=str, default="", help="Save template file(s) name.")
+    parser.add_argument("-t", "--template", type=str, default="tmp", help="Policy template name.")
+    parser.add_argument("-f", "--files", type=str, default="tmp", help="Save template file(s) name.")
     parser.add_argument("-l", "--learning", type=str, default="", help="Training data directory.")
     parser.add_argument("-s", "--seed", type=int, default=2024, help="Random seed.")
     parser.add_argument("-c", "--choice", default="best", choices=["sample", "best"],
@@ -72,12 +72,12 @@ def main():
     domain_name = args.domain
     problem_name = args.problem
     template_name = args.template
-    save_dir_name = args.files
+    save_file_name = args.files
     training_data_dir = args.learning
     domain_path = f"l4np/{domain_name}/classic/domain.pddl"
     test_problem_path = f"l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
     template_path = f"../datasets/lrnn/{domain_name}/classic/{template_name}"
-    template_saving_path = f"../datasets/lrnn/{domain_name}/classic/{save_dir_name}"
+    template_saving_path = f"../datasets/lrnn/{domain_name}/classic/{save_file_name}"
     training_data_path = f"../datasets/lrnn/{domain_name}/classic/{training_data_dir}"
     _DEBUG_LEVEL = args.verbose
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
@@ -109,8 +109,8 @@ def main():
             policy.train_model_from(training_data_path)
             total_time += timer.get_time()
 
-    if save_dir_name:
-        policy.save_to_drive(template_saving_path)
+    if save_file_name:
+        policy.store_policy(template_saving_path)
 
     if problem_name:
         with TimerContextManager("parsing + loading the test Problem") as timer:
