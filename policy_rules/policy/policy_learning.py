@@ -20,7 +20,7 @@ class LearningPolicy(Policy):
     def __init__(self, domain: Domain, init_model: NeuraLogic = None, debug=0):
         super().__init__(domain, init_model, debug)
 
-        # """An inference engine just like in Policy, but this one returns the numeric values also"""
+        # An inference engine just like in Policy, but this one returns the numeric values also
         self._engine = EvaluationInferenceEngine(self._template, neuralogic_settings)
 
         if init_model:
@@ -76,6 +76,8 @@ class LearningPolicy(Policy):
             return literal
 
     def train_model_from(self, train_data_dir: str):
+        if train_data_dir.endswith("/_"):
+            train_data_dir = train_data_dir[:-2]
         assert os.path.isdir(train_data_dir), print(f"No LRNN training data available at {train_data_dir}")
         try:
             self.train_parameters(train_data_dir)
@@ -84,7 +86,11 @@ class LearningPolicy(Policy):
             print(e)
 
     def train_parameters(self, lrnn_dataset_dir: str, epochs: int = 100, save_model_path: str = None):
-        neural_samples, logic_samples = build_samples(self.model, lrnn_dataset_dir)
+        try:
+            neural_samples, logic_samples = build_samples(self.model, lrnn_dataset_dir)
+        except Exception as e:
+            print(f"An error occured during attempt to train policy model from: {lrnn_dataset_dir}")
+            print(e)
         results = self.model(neural_samples, train=True, epochs=epochs)
         print(results)
         if save_model_path:

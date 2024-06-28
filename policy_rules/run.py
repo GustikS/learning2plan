@@ -6,8 +6,6 @@ import sys
 
 from neuralogic.nn.java import NeuraLogic
 
-from util.template_settings import load_stored_model, store_template_model
-
 sys.path.append("..")  # just a quick fix for the tests to pass... to be removed
 
 import numpy as np
@@ -22,6 +20,7 @@ if not neuralogic.is_initialized():
     neuralogic.initialize(jar_path="../jar/NeuraLogic.jar", debug_mode=False)  # custom momentary backend upgrades
 
 from policy.handcraft.handcraft_factory import get_handcraft_policy
+from util.template_settings import load_stored_model
 from util.printing import print_mat
 from util.timer import TimerContextManager
 
@@ -55,13 +54,14 @@ def goal_repr(goal: list[pymimir.Literal]):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--domain", type=str, default="ferry")
+    parser.add_argument("-d", "--domain", type=str, default="blocksworld")
     parser.add_argument("-p", "--problem", type=str, default="0_01", help="Of the form 'x_yy'")
     parser.add_argument("-v", "--verbose", type=int, default=0)
     parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound.")
-    parser.add_argument("-t", "--template", type=str, default="tmp", help="Policy template name.")
-    parser.add_argument("-f", "--files", type=str, default="tmp", help="Save template file(s) name.")
-    parser.add_argument("-l", "--learning", type=str, default="", help="Training data directory.")
+    parser.add_argument("-t", "--template", type=str, default="", help="Policy template name.")
+    parser.add_argument("-f", "--files", type=str, default="", help="Save template file(s) name.")
+    parser.add_argument("-l", "--learning", type=str, default="", choices=["", "_", "string"],
+                        help="Training data subdirectory ( '_' for root subdir).")
     parser.add_argument("-s", "--seed", type=int, default=2024, help="Random seed.")
     parser.add_argument("-c", "--choice", default="best", choices=["sample", "best"],
                         help="Choose the best action or sample from the policy.")
@@ -104,7 +104,7 @@ def main():
         policy = get_handcraft_policy(domain.name)(domain, loaded_model, debug=_DEBUG_LEVEL)
         total_time += timer.get_time()
 
-    if training_data_dir:
+    if training_data_dir and hasattr(policy, "model"):
         with TimerContextManager("training the policy template") as timer:
             policy.train_model_from(training_data_path)
             total_time += timer.get_time()

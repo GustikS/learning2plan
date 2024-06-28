@@ -4,6 +4,8 @@ from typing_extensions import override
 from util.printing import print_mat
 
 from ..policy import Policy
+from ..policy_learning import LearningPolicy
+
 
 # policy_rules/l4np/blocksworld/classic/testing/p0_01.pddl
 # initial state
@@ -17,7 +19,7 @@ from ..policy import Policy
 # =====
 
 
-class BlocksworldPolicy(Policy):
+class BlocksworldPolicy(LearningPolicy):
     def _print_bw_state(self, state: list[Atom]):
         on_table = []
         block_dict = {}
