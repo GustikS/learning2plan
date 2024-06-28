@@ -54,7 +54,7 @@ def goal_repr(goal: list[pymimir.Literal]):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--domain", type=str, default="blocksworld")
+    parser.add_argument("-d", "--domain", type=str, default="ferry")
     parser.add_argument("-p", "--problem", type=str, default="0_01", help="Of the form 'x_yy'")
     parser.add_argument("-v", "--verbose", type=int, default=0)
     parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound.")

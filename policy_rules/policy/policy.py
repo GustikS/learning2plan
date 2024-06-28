@@ -114,7 +114,7 @@ class Policy:
             schema_name = schema.name
             head = self.relation_from_schema(schema_name, name=f"applicable_{schema_name}")
             body = self.get_schema_preconditions(schema_name)
-            self.add_rule(head, body)
+            self.add_output_action(head, body)
 
     def print_state(self, state: list[Atom]):
         # may be extended and replaced
@@ -161,9 +161,15 @@ class Policy:
         for prefix, predicate in product(["ag", "ap"], self._predicates):
             variables = [V.get(f"X{i}") for i in range(predicate.arity)]
             # the only place with a hardcoded weight - a shared scalar based on the prefix
-            new_predicate = R.get(f"{prefix}_{predicate.name}")(variables)[prefix:1, ]
+            new_predicate = R.get(f"{prefix}_{predicate.name}")(variables)
             og_predicate = R.get(predicate.name)(variables)
-            self.add_rule(og_predicate, new_predicate)
+            self.add_input_predicate(og_predicate, new_predicate)
+
+    def add_input_predicate(self, og_predicate, new_predicate):
+        self.add_rule(og_predicate, new_predicate)
+
+    def add_output_action(self, head, body):
+        self.add_rule(head, body)
 
     def get_object_information(self) -> list[BaseRelation]:
         """return object type facts"""
@@ -217,7 +223,7 @@ class Policy:
             assert param.is_variable()
             remap = param_remap[param.name]
             object_type = param.type.name
-            atom = R.get(object_type)(V.get(remap))
+            atom = self.get_object_type(object_type, remap)
             body.append(atom)
 
         ## add preconditions
@@ -234,6 +240,9 @@ class Policy:
             body.append(literal)
 
         return body
+
+    def get_object_type(self, object_type: str, var_name: str):
+        return R.get(object_type)(V.get(var_name))
 
     def get_ilg_facts(self, state: list[Atom]) -> list[StrAtom]:
         ret = []

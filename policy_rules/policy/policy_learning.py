@@ -3,7 +3,7 @@ import pickle
 import warnings
 from typing import Union, Iterable
 
-from neuralogic.core import R, Rule
+from neuralogic.core import R, Rule, V
 from neuralogic.core.constructs.relation import BaseRelation, WeightedRelation
 from neuralogic.inference import EvaluationInferenceEngine
 from neuralogic.nn.java import NeuraLogic
@@ -17,7 +17,10 @@ from policy_rules.util.template_settings import neuralogic_settings, store_templ
 
 class LearningPolicy(Policy):
 
-    def __init__(self, domain: Domain, init_model: NeuraLogic = None, debug=0):
+    def __init__(self, domain: Domain, init_model: NeuraLogic = None, debug=0, dim=1, num_layers=1):
+        self.dim = dim
+        self.num_layers = num_layers
+
         super().__init__(domain, init_model, debug)
 
         # An inference engine just like in Policy, but this one returns the numeric values also
@@ -49,6 +52,20 @@ class LearningPolicy(Policy):
             assignments.append((val, subss))
         return assignments
 
+    def add_input_predicate(self, og_predicate, new_predicate):
+        """The input predicate mapping from scalar 1 to a given embedding dimension vector"""
+        prefix = new_predicate.predicate.name[:2]
+        og_predicate = og_predicate
+        self.add_rule(og_predicate, new_predicate[prefix: 1, self.dim], dim=self.dim, embedding_layer=-1)
+
+    @override
+    def get_object_type(self, object_type: str, var_name: str) -> BaseRelation:
+        return R.get(object_type)(V.get(var_name))[1, self.dim]
+
+    def add_output_action(self, head, body):
+        """The output action predicate mapping from the given embedding dimension back to a scalar value"""
+        self.add_rule(head[1, self.dim], body, dim=self.dim)
+
     @override
     def add_rule(self,
                  head_or_schema_name: Union[BaseRelation, str],
@@ -64,7 +81,10 @@ class LearningPolicy(Policy):
             variables = rule.head.terms
             for lit in rule.body:
                 variables += lit.terms
-            rule.body += [R.get(f'h_{embedding_layer}')(var)[dim, dim] for var in variables]
+            if variables:
+                rule.body += [R.get(f'h_{embedding_layer}')(var)[dim, dim] for var in variables]
+            else:
+                rule.body.append(R.get(f'h_{embedding_layer}')[dim, dim])
         self._template += rule
 
     def add_weight(self, literal: BaseRelation, dim: int) -> WeightedRelation:
