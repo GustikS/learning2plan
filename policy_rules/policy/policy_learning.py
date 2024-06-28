@@ -3,67 +3,43 @@ import pickle
 import warnings
 from typing import Union, Iterable
 
-from neuralogic.dataset import Dataset, Sample
-from typing_extensions import override
-
-from neuralogic.core import Template, Settings, R, C, Transformation, Aggregation, Rule
+from neuralogic.core import R, Rule
 from neuralogic.core.constructs.relation import BaseRelation, WeightedRelation
 from neuralogic.inference import EvaluationInferenceEngine
-from pymimir import Domain, Problem, Atom, Action
+from neuralogic.nn.java import NeuraLogic
+from pymimir import Domain, Action
+from typing_extensions import override
 
-from modelling.samples import get_filename
-from modelling.testing import load_model
 from modelling.training import build_samples, store_weights, store_template
-from policy_rules.policy.policy import Policy, Schema
+from policy_rules.policy.policy import Policy
+from policy_rules.util.template_settings import neuralogic_settings
 
 
 class LearningPolicy(Policy):
 
-    def __init__(self, domain: Domain, template_path: str, debug=0, train: bool = True):
-        # TODO remove the Problem dependency - a policy should generalize over different problems, right?
-        super().__init__(domain, template_path, debug, train)
+    def __init__(self, domain: Domain, init_model: NeuraLogic = None, debug=0):
+        super().__init__(domain, init_model, debug)
 
-        # we can setup all the learning/numeric-evaluation-related settings here
-        self.settings = Settings(
-            iso_value_compression=False,
-            chain_pruning=True,
-            rule_transformation=Transformation.TANH,  # change to RELU for better training
-            rule_aggregation=Aggregation.SUM,  # change to avg for better generalization
-            relation_transformation=Transformation.SIGMOID,  # change to RELU for better training - check label match
-            epochs=100
-        )
+        # """An inference engine just like in Policy, but this one returns the numeric values also"""
+        self._engine = EvaluationInferenceEngine(self._template, neuralogic_settings)
 
-        self.setup_template(domain, template_path, train)
-
-        # an inference engine just like in Policy, but this one returns the numeric values also
-        self._engine = EvaluationInferenceEngine(self._template, self.settings)
-        self.model = self._engine.model
+        if init_model:
+            self.model = init_model
+            self._engine.model = init_model
+        else:
+            self.model = self._engine.model
 
         self.action_header2query = {query.predicate.name: query
                                     for schema in self._schemata
                                     if (query := self.relation_from_schema(schema))}
 
-    def setup_template(self, domain: Domain, template_path: str, train: bool):
-        """Initialize a learning policy template - either load from file or create a new one and possibly train + store"""
+    def train_model_from(self, train_data_path: str):
+        assert os.path.isdir(train_data_path), print(f"No LRNN training data available at {train_data_path}")
         try:
-            _, self._template = load_model(template_path)
-        except FileNotFoundError:
-            print(f"No stored template found at {template_path} - will train a default one and store it there instead!")
-            # self._init_template()     - called in superclass already
-            if train:
-                training_data_path = get_filename(domain.name, False, 'lrnn', "..", "")
-                if os.path.isdir(training_data_path):
-                    try:
-                        LearningPolicy.train_parameters(self._template.build(self.settings),
-                                                        training_data_path,
-                                                        save_model_path=template_path)
-                    except Exception as e:
-                        print(f"Invalid training setup from: {training_data_path}")
-                        print(e)
-                else:
-                    print(f"No LRNN-format training data available at {training_data_path}")
-            else:
-                print("Training not allowed - resorting to a pure handcrafted template")
+            LearningPolicy.train_parameters(self.model, train_data_path)
+        except Exception as e:
+            print(f"Invalid training setup from: {train_data_path}")
+            print(e)
 
     @override
     def get_action_substitutions(self, action_name: str) -> Iterable[tuple[float, dict]]:
@@ -128,8 +104,8 @@ class LearningPolicy(Policy):
 class FasterEvaluationPolicy(LearningPolicy):
     """Experimental speedup version by avoiding all duplicit and redundant computation"""
 
-    def __init__(self, domain: Domain, template_path: str, debug=0, train: bool = True):
-        super().__init__(domain, template_path, debug, train)
+    def __init__(self, domain: Domain, init_model: NeuraLogic = None, debug=0):
+        super().__init__(domain, init_model, debug)
 
         # self.model.settings['neuralNetsPostProcessing'] = False  # for speedup
         # self.model.settings.chain_pruning = False     # if trained with pruning we should keep it for evaluation too

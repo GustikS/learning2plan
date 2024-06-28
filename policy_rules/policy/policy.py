@@ -1,5 +1,4 @@
 """Make use of neuralogic and pymimir to encode policies as Horn clause rules"""
-
 from abc import abstractmethod
 from itertools import product
 from typing import Union, Iterable
@@ -7,14 +6,18 @@ from typing import Union, Iterable
 from neuralogic.core import C, R, Template, V
 from neuralogic.core.constructs.relation import BaseRelation
 from neuralogic.inference.inference_engine import InferenceEngine
+from neuralogic.nn.java import NeuraLogic
 from pymimir import Action, ActionSchema, Atom, Domain, Literal, Object, Problem
-from util.str_atom import StrAtom
+
+from policy_rules.util.str_atom import StrAtom
+
+from policy_rules.util.template_settings import neuralogic_settings
 
 Schema = Union[str, ActionSchema]
 
 
 class Policy:
-    def __init__(self, domain: Domain, template_path: str = None, debug=0, train: bool = False):
+    def __init__(self, domain: Domain, init_model: NeuraLogic = None, debug=0):
         self._domain = domain
         self._debug = debug
 
@@ -26,12 +29,18 @@ class Policy:
         self._prev_state = None
 
         # no need to recreate the template with every new state, we can retain it for the whole domain
-        self._init_template()
-        self._engine = InferenceEngine(self._template)
+        if init_model:
+            template = Template()
+            template.template = init_model.source_template
+            self._template = template
+        else:
+            self._init_template()
 
-    def setup_problem(self, problem: Problem):
-        """A stateful storing of a current problem"""
-        # todo remove this dependence completely and just pass it as an argument (after asking Dillon) ?
+        self._engine = InferenceEngine(self._template, neuralogic_settings)
+
+    def setup_test_problem(self, problem: Problem):
+        """Set up a STATEFUL dependency on a current test problem"""
+        # todo remove this stateful dependence completely and just pass it as an argument (after asking Dillon) ?
         # DZC 27/06/24: The reason why this may be useful is if we want to use the same policy for 
         # different problems in the same domain. Although it is probably more robust to just 
         # reinstantiate for each problem like you mentioned. However, since it works, I'll just 
@@ -44,11 +53,15 @@ class Policy:
         self._goal = self._problem.goal
         self._name_to_object: dict[str, Object] = {obj.name: obj for obj in self._objects}
 
-    def solve(self, state: list[Atom]) -> list[(float, Action)]:
-        """given a state, return possible actions from policy rules"""
+    def setup_test_state(self, state: list[Atom]):
+        """Set up a STATEFUL dependency on a current test State"""
         ilg_atoms = self.get_ilg_facts(state)
         lrnn_atoms = [R.get(atom.predicate)([C.get(obj) for obj in atom.objects]) for atom in ilg_atoms]
         self._engine.set_knowledge(lrnn_atoms + self.get_object_information())
+
+    def solve(self, state: list[Atom]) -> list[(float, Action)]:
+        """given a State from the currently assumed Problem, return possible actions from policy rules"""
+        self.setup_test_state(state)
 
         if self._debug > 2:
             print("=" * 80)
@@ -86,9 +99,6 @@ class Policy:
         assignments = self._engine.query(action_header)
         for assignment in assignments:
             yield 1, assignment  # all action equally good here
-
-    def query(self, query: BaseRelation):
-        return self._engine.query(query)
 
     def _init_template(self):
         self._template = Template()

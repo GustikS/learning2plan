@@ -4,13 +4,15 @@ import argparse
 import random
 import sys
 
-import numpy as np
-from termcolor import colored
+from neuralogic.nn.java import NeuraLogic
+
+from util.template_settings import load_stored_model
 
 sys.path.append("..")  # just a quick fix for the tests to pass... to be removed
 
+import numpy as np
+from termcolor import colored
 from pathlib import Path
-from pprint import pprint
 
 import neuralogic
 import pymimir
@@ -57,23 +59,30 @@ def main():
     parser.add_argument("-p", "--problem", type=str, default="0_01", help="Of the form 'x_yy'")
     parser.add_argument("-v", "--verbose", type=int, default=0)
     parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound.")
-    parser.add_argument("-t", "--template", type=str, default="")
-    parser.add_argument("-l", "--learning", type=bool, default=False)
+    parser.add_argument("-t", "--template", type=str, default="", help="Policy template name.")
+    parser.add_argument("-f", "--files", type=str, default="", help="Save template file(s) name.")
+    parser.add_argument("-l", "--learning", type=str, default="", help="Training data directory.")
     parser.add_argument("-s", "--seed", type=int, default=2024, help="Random seed.")
-    parser.add_argument("-c", "--choice", default="best", choices=["sample", "best"], help="Choose the best action or sample from the policy.")
+    parser.add_argument("-c", "--choice", default="best", choices=["sample", "best"],
+                        help="Choose the best action or sample from the policy.")
     args = parser.parse_args()
     random.seed(args.seed)
+    neuralogic.manual_seed(args.seed)
     np.random.seed(args.seed)
     domain_name = args.domain
     problem_name = args.problem
     template_name = args.template
-    learning_on = args.learning
+    save_dir_name = args.files
+    training_data_dir = args.learning
     domain_path = f"l4np/{domain_name}/classic/domain.pddl"
-    problem_path = f"l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
+    test_problem_path = f"l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
     template_path = f"../datasets/lrnn/{domain_name}/classic/{template_name}"
+    template_saving_path = f"../datasets/lrnn/{domain_name}/classic/{save_dir_name}"
+    training_data_path = f"../datasets/lrnn/{domain_name}/classic/{training_data_dir}"
     _DEBUG_LEVEL = args.verbose
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
-    assert Path(problem_path).exists(), f"Problem file not found: {problem_path}"
+    assert Path(training_data_path).exists() or Path(test_problem_path).exists(), \
+        f"No training at: {training_data_path} nor testing at: {test_problem_path} Problem(s) found!"
 
     # TODO(DZC): cycle checking
 
@@ -84,17 +93,32 @@ def main():
 
     total_time = 0
 
-    with TimerContextManager("parsing PDDL files") as timer:
+    with TimerContextManager("parsing PDDL domain file") as timer:
         domain = pymimir.DomainParser(str(domain_path)).parse()
-        problem = pymimir.ProblemParser(str(problem_path)).parse(domain)
-        state = problem.create_state(problem.initial)
-        goal = problem.goal
         total_time += timer.get_time()
 
-    with TimerContextManager("initialising policy") as timer:
-        policy = get_handcraft_policy(domain.name)(domain, template_path, debug=_DEBUG_LEVEL, train=learning_on)
-        policy.setup_problem(problem)
+    # possibly load an initial template from file with the same template_name if found
+    loaded_model: NeuraLogic = load_stored_model(template_path) if template_name else None
+
+    with TimerContextManager("initialising policy template") as timer:
+        policy = get_handcraft_policy(domain.name)(domain, loaded_model, debug=_DEBUG_LEVEL)
         total_time += timer.get_time()
+
+    if training_data_dir:
+        with TimerContextManager("training the policy template") as timer:
+            policy.train_model_from(training_data_path)
+            total_time += timer.get_time()
+
+    if save_dir_name:
+        policy.save_to_drive(template_saving_path)
+
+    if problem_name:
+        with TimerContextManager("parsing + loading the test Problem") as timer:
+            problem = pymimir.ProblemParser(str(test_problem_path)).parse(domain)
+            state = problem.create_state(problem.initial)
+            goal = problem.goal
+            policy.setup_test_problem(problem)
+            total_time += timer.get_time()
 
     # print initial state
     if _DEBUG_LEVEL > 1:
@@ -118,7 +142,7 @@ def main():
             goals_left = goal_count(state, goal)
             if goals_left == 0:
                 break
-            
+
             # returns list[tuple[float, Action]]
             policy_actions = policy.solve(state.get_atoms())
 
@@ -142,7 +166,7 @@ def main():
                 actions = [a[1] for a in policy_actions]
                 p = [a[0] for a in policy_actions]
                 div = sum(np.exp(p))
-                p = np.exp(p)/div  # softmax
+                p = np.exp(p) / div  # softmax
                 action = np.random.choice(actions, p=p)
             else:
                 sorted_actions = sorted(policy_actions, key=lambda item: item[0], reverse=True)
