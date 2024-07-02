@@ -78,6 +78,7 @@ class LearningPolicy(Policy):
         super()._debug_inference()
         print("=" * 80)
         print("All state neuron values:")
+        self._engine.dataset[0].query = None
         built_dataset = self.model.build_dataset(self._engine.dataset)
         atom_values = built_dataset[0]._get_literals()
         for predicate, substitutions in atom_values.items():
@@ -197,8 +198,19 @@ class FasterEvaluationPolicy(LearningPolicy):
     def get_action_substitutions(self, action_name: str) -> (float, dict):
         atoms = self._built_state_network.get_atom(self.action_header2query[action_name])
         if atoms:
-            for a in atoms:
-                yield a.value, a.substitutions
+            result =  [(a.value, a.substitutions) for a in atoms]
         else:
-            pass
-            # print(f"Failed to evaluate action{action_name} at state: {self._engine.dataset}")
+            result = []
+
+        if self._debug > 2:
+            check_result = super().get_action_substitutions(action_name)
+            check = str(check_result).lower()
+            fast = str(result).lower()
+            if fast != check:
+                print("-" * 80)
+                print("Debugging error: mismatch between inference engine and fast evaluation")
+                print(fast)
+                print(check)
+                raise RuntimeError(f"Results mismatch between standard and fast policy evaluation")
+
+        return result
