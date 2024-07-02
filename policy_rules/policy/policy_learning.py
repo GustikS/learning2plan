@@ -17,7 +17,7 @@ from policy_rules.util.template_settings import neuralogic_settings, store_templ
 
 class LearningPolicy(Policy):
 
-    def __init__(self, domain: Domain, init_model: NeuraLogic = None, debug=0, dim=1, num_layers=1):
+    def __init__(self, domain: Domain, init_model: NeuraLogic = None, debug=0, dim=3, num_layers=1):
         self.dim = dim
         self.num_layers = num_layers
 
@@ -56,23 +56,42 @@ class LearningPolicy(Policy):
         """The input predicate mapping from scalar 1 to a given embedding dimension vector"""
         prefix = new_predicate.predicate.name[:2]
         og_predicate = og_predicate
-        self.add_rule(og_predicate, new_predicate[prefix: 1, self.dim], dim=self.dim, embedding_layer=-1)
+        self.add_rule(og_predicate, new_predicate[prefix: self.dim, 1], embedding_layer=-1)
 
     @override
     def get_object_type(self, object_type: str, var_name: str) -> BaseRelation:
-        return R.get(object_type)(V.get(var_name))[1, self.dim]
+        return R.get(object_type)(V.get(var_name))[self.dim, 1]
 
     def add_output_action(self, head, body):
         """The output action predicate mapping from the given embedding dimension back to a scalar value"""
-        self.add_rule(head[1, self.dim], body, dim=self.dim)
+        rule = self.get_rule(body, head)
+        self.add_rule(rule.head[1, self.dim], rule.body)
+
+    def _debug_template(self):
+        print("=" * 80)
+        print("Template:")
+        print(self._template)
+        print("=" * 80)
+
+    def _debug_inference(self):
+        super()._debug_inference()
+        print("=" * 80)
+        print("All state neuron values:")
+        built_dataset = self.model.build_dataset(self._engine.dataset)
+        atom_values = built_dataset[0]._get_literals()
+        for predicate, substitutions in atom_values.items():
+            for subs, neuron in substitutions.items():
+                print(neuron.getClass().getSimpleName(), predicate, subs, ':', neuron.getRawState().getValue())
+        print("=" * 80)
 
     @override
     def add_rule(self,
                  head_or_schema_name: Union[BaseRelation, str],
                  body: list[BaseRelation],
-                 dim: int = 1,
                  embedding_layer: int = -1):
+
         rule: Rule = self.get_rule(body, head_or_schema_name)
+        dim = self.dim
         if dim > 0:  # we want weights
             rule.head = self.add_weight(rule.head, dim)
             for i in range(len(rule.body)):
@@ -89,9 +108,14 @@ class LearningPolicy(Policy):
 
     def add_weight(self, literal: BaseRelation, dim: int) -> WeightedRelation:
         if not isinstance(literal, WeightedRelation) and not literal.negated:  # not yet weighted
-            return literal[dim, dim]
+            # if literal.predicate.name.startswith('applicable_'):
+            #     return literal[dim, dim]
+            if literal.predicate.name[:3] in ['ap_', 'ag_', 'ug_']:  # scalar inputs
+                return literal[dim, 1]
+            else:
+                return literal[dim, dim]
         else:
-            if self._debug > 2:
+            if self._debug > 3:
                 print(f"{literal} is already weighted")
             return literal
 

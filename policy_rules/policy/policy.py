@@ -38,6 +38,9 @@ class Policy:
 
         self._engine = InferenceEngine(self._template, neuralogic_settings)
 
+        if debug > 1:
+            self._debug_template()
+
     def setup_test_problem(self, problem: Problem):
         """Set up a STATEFUL dependency on a current test problem"""
         # todo remove this stateful dependence completely and just pass it as an argument (after asking Dillon) ?
@@ -63,16 +66,8 @@ class Policy:
         """given a State from the currently assumed Problem, return possible actions from policy rules"""
         self.setup_test_state(state)
 
-        if self._debug > 2:
-            print("=" * 80)
-            print("Template for current state:")
-            print(self._template)
-            # print("=" * 80)
-            print("-" * 80)
-            for a in sorted(self._engine.examples, key=lambda x: str(x)):
-                print(a)
-            print("=" * 80)
-            # print(self._engine.examples)
+        if self._debug > 3:
+            self._debug_template()
 
         if self._debug > 2:
             self._debug_inference()
@@ -114,7 +109,7 @@ class Policy:
             schema_name = schema.name
             head = self.relation_from_schema(schema_name, name=f"applicable_{schema_name}")
             body = self.get_schema_preconditions(schema_name)
-            self.add_output_action(head, body)
+            self.add_rule(head, body)
 
     def print_state(self, state: list[Atom]):
         # may be extended and replaced
@@ -127,6 +122,17 @@ class Policy:
     @abstractmethod
     def _add_derived_predicates(self):
         raise NotImplementedError
+
+    def _debug_template(self):
+        print("=" * 80)
+        print("Template for current state:")
+        print(self._template)
+        # print("=" * 80)
+        print("-" * 80)
+        for a in sorted(self._engine.examples, key=lambda x: str(x)):
+            print(a)
+        print("=" * 80)
+        # print(self._engine.examples)
 
     def _debug_inference(self):
         pass

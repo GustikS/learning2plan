@@ -14,7 +14,7 @@ class FerryPolicy(FasterEvaluationPolicy):
             R.get("ug_at")("Car2", "Goal_loc"),
             R.get("ap_at")("Car2", "Loc"),
         ]
-        self._template += head <= body
+        self.add_rule(head, body)
 
     @override
     def _add_policy_rules(self):
@@ -24,7 +24,7 @@ class FerryPolicy(FasterEvaluationPolicy):
             R.get("ug_at")("Car", "To"),
             R.get("ap_on")("Car"),
         ]
-        self.add_rule("sail", body)
+        self.add_output_action("sail", body)
 
         # sail(?from - location ?to - location)
         # ferry is empty
@@ -34,16 +34,16 @@ class FerryPolicy(FasterEvaluationPolicy):
             R.get("empty-ferry")(),
             ~R.get("exists_goal_car_at")("From"),
         ]
-        self.add_rule("sail", body)
+        self.add_output_action("sail", body)
 
         # board(?car - car ?loc - location)
         body = [
             R.get("ug_at")("Car", "Goal_loc"),
         ]
-        self.add_rule("board", body)
+        self.add_output_action("board", body)
 
         # debark(?car - car  ?loc - location)
         body = [
             R.get("ug_at")("Car", "Loc"),
         ]
-        self.add_rule("debark", body)
+        self.add_output_action("debark", body)
