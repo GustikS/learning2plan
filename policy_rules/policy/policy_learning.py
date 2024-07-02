@@ -84,6 +84,22 @@ class LearningPolicy(Policy):
                 print(neuron.getClass().getSimpleName(), predicate, subs, ':', neuron.getRawState().getValue())
         print("=" * 80)
 
+    def _debug_inference_helper(self, relation: BaseRelation, newline=True):
+        print("-" * 80)
+        results_repr = []
+        relation.terms = [str(term).upper() for term in relation.terms]
+        atom_values = self._engine.query(relation)
+        if atom_values:
+            for a in atom_values:
+                results_repr.append(f'{relation.predicate.name} {a[1]} : {a[0]}')
+        else:
+            results_repr = [relation.predicate.name + " <- no inference"]
+
+        if newline:
+            print("\n".join(results_repr))
+        else:
+            print(" ".join(results_repr))
+
     @override
     def add_rule(self,
                  head_or_schema_name: Union[BaseRelation, str],

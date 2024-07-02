@@ -93,14 +93,14 @@ class BlocksworldPolicy(LearningPolicy):
             R.get("ag_on")("A", "B"),
             R.get("well_placed_block")("B"),
         ]
-        self._template += head <= body
+        self.add_rule(head, body)
 
         # correctly on the table
         head = R.well_placed_block("A")
         body = [
             R.get("ag_on-table")("A")
         ]
-        self._template += head <= body
+        self.add_rule(head, body)
 
     @override
     def _add_policy_rules(self):
@@ -109,7 +109,7 @@ class BlocksworldPolicy(LearningPolicy):
         body = [
             ~R.get("well_placed_block")("Ob"),
         ]
-        self.add_rule("unstack", body)
+        self.add_output_action("unstack", body)
 
         """stack(?ob, ?underob)"""
         # [stack on top of a well-placed goal block]
@@ -117,7 +117,7 @@ class BlocksworldPolicy(LearningPolicy):
             R.get("ug_on")("Ob", "Underob"),
             R.get("well_placed_block")("Underob"),
         ]
-        self.add_rule("stack", body)
+        self.add_output_action("stack", body)
 
         """pickup(?ob)"""
         # [pick up from table if goal underneath block is well-placed]
@@ -126,7 +126,7 @@ class BlocksworldPolicy(LearningPolicy):
             R.get("well_placed_block")("Underob"),
             R.get("clear")("Underob"),
         ]
-        self.add_rule("pickup", body)
+        self.add_output_action("pickup", body)
 
         """ putdown(?ob) """
         # [put on table if goal block to put on is not well-placed]
@@ -134,17 +134,17 @@ class BlocksworldPolicy(LearningPolicy):
             R.get("ug_on")("Ob", "Underob"),
             ~R.get("well_placed_block")("Underob"),
         ]
-        self.add_rule("putdown", body)
+        self.add_output_action("putdown", body)
 
         # [put on table if goal block to put on is blocked]
         body = [
             R.get("ug_on")("Ob", "Underob"),
             R.get("ap_on")("Otherblock", "Underob")
         ]
-        self.add_rule("putdown", body)
+        self.add_output_action("putdown", body)
 
         # [put on table if goal is to put on table]
         body = [
             R.get("ug_on-table")("Ob"),
         ]
-        self.add_rule("putdown", body)
+        self.add_output_action("putdown", body)
