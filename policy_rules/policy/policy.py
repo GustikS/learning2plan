@@ -101,8 +101,11 @@ class Policy:
         try:
             self._add_derived_predicates()
             self._add_policy_rules()
-        except NotImplementedError:
+        except NotImplementedError as e:
             print("Domain knowledge is missing for this domain, will resort to generic policy learning.")
+            print(e)
+        except Exception as e:
+            print(e)
 
         # add a derived predicate containing just the preconditions
         for schema in self._schemata:

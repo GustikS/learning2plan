@@ -3,6 +3,7 @@ import pickle
 import warnings
 from typing import Union, Iterable
 
+import numpy as np
 from neuralogic.core import R, Rule, V
 from neuralogic.core.constructs.relation import BaseRelation, WeightedRelation
 from neuralogic.inference import EvaluationInferenceEngine
@@ -17,7 +18,7 @@ from policy_rules.util.template_settings import neuralogic_settings, store_templ
 
 class LearningPolicy(Policy):
 
-    def __init__(self, domain: Domain, init_model: NeuraLogic = None, debug=0, dim=3, num_layers=1):
+    def __init__(self, domain: Domain, init_model: NeuraLogic = None, debug=0, dim=1, num_layers=1):
         self.dim = dim
         self.num_layers = num_layers
 
@@ -104,11 +105,17 @@ class LearningPolicy(Policy):
     def add_rule(self,
                  head_or_schema_name: Union[BaseRelation, str],
                  body: list[BaseRelation],
-                 embedding_layer: int = -1):
+                 embedding_layer: int = -1,
+                 fixed_weight: Union[float, np.ndarray] = None):
 
         rule: Rule = self.get_rule(body, head_or_schema_name)
         dim = self.dim
-        if dim > 0:  # we want weights
+
+        if fixed_weight:  # assign a given fixed weight
+            if not isinstance(rule.head, WeightedRelation):
+                rule.head = rule.head[fixed_weight]
+            rule.head.fixed()
+        elif dim > 0:  # we want learnable weights
             rule.head = self.add_weight(rule.head, dim)
             for i in range(len(rule.body)):
                 rule.body[i] = self.add_weight(rule.body[i], dim)
