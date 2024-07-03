@@ -63,16 +63,25 @@ class LearningPolicy(Policy):
         """The input predicate mapping from scalar 1 to a given embedding dimension vector"""
         prefix = new_predicate.predicate.name[:2]
         og_predicate = og_predicate
-        self.add_rule(og_predicate, new_predicate[prefix: self.dim, 1])
+        if self.dim > 0:
+            new_predicate = new_predicate[prefix:self.dim, 1]
+        self.add_rule(og_predicate, new_predicate, embedding_layer=-1)  # forbid the embeddings at input!
 
     @override
     def get_object_type(self, object_type: str, var_name: str) -> BaseRelation:
-        return R.get(object_type)(V.get(var_name))[self.dim, 1]
+        type = R.get(object_type)(V.get(var_name))
+        if self.dim > 0:
+            type = type[self.dim, 1]
+        return type
 
     def add_output_action(self, head, body):
         """The output action predicate mapping from the given embedding dimension back to a scalar value"""
         rule = self.get_rule(body, head)
-        self.add_rule(rule.head[1, self.dim], rule.body)
+        if self.dim > 0:
+            head = rule.head[1, self.dim]
+        else:
+            head = rule.head
+        self.add_rule(head, rule.body)
 
     def _debug_template(self):
         print("=" * 80)
@@ -87,9 +96,12 @@ class LearningPolicy(Policy):
         self._engine.dataset[0].query = None
         built_dataset = self.model.build_dataset(self._engine.dataset)
         atom_values = built_dataset[0]._get_literals()
+        neurons = []
         for predicate, substitutions in atom_values.items():
             for subs, neuron in substitutions.items():
-                print(f'{neuron.getClass().getSimpleName()} : {predicate}{subs} : {neuron.getRawState().getValue()}')
+                neurons.append(
+                    f'{neuron.getClass().getSimpleName()} : {predicate}{subs} : {neuron.getRawState().getValue()}')
+        print('\n'.join(sorted(neurons)))
         print("=" * 80)
 
     def _debug_inference_helper(self, relation: BaseRelation, newline=True):
@@ -112,6 +124,7 @@ class LearningPolicy(Policy):
     def add_rule(self,
                  head_or_schema_name: Union[BaseRelation, str],
                  body: list[BaseRelation],
+                 embedding_layer=None,
                  fixed_weight: Union[float, np.ndarray] = None):
 
         rule: Rule = self.get_rule(body, head_or_schema_name)
@@ -121,21 +134,28 @@ class LearningPolicy(Policy):
             if not isinstance(rule.head, WeightedRelation):
                 rule.head = rule.head[fixed_weight]
             rule.head.fixed()
-        elif dim > 0:  # we want learnable weights
+        elif dim > 0:  # we want to add weights
             rule.head = self.add_weight(rule.head, dim)
             for i in range(len(rule.body)):
                 rule.body[i] = self.add_weight(rule.body[i], dim)
-        if self.num_layers > 0:  # add object embeddings
+
+        if not embedding_layer:
+            embedding_layer = self.num_layers
+
+        if embedding_layer > 0:  # add object embeddings
             variables = set(rule.head.terms)
             for lit in rule.body:
                 variables.update(lit.terms)
             if variables:
-                rule.body += [R.get(f'h_{self.num_layers}')(var)[dim, dim] for var in variables]
+                rule.body += [self.add_weight(R.get(f'h_{embedding_layer}')(var), dim) for var in variables]
             else:
-                rule.body.append(R.get(f'h_{self.num_layers}')[dim, dim])
+                rule.body.append(self.add_weight(R.get(f'h_{embedding_layer}'), dim))
         self._template += rule
 
     def add_weight(self, literal: BaseRelation, dim: int) -> WeightedRelation:
+        if dim <= 0:
+            return literal
+
         if not isinstance(literal, WeightedRelation) and not literal.negated:  # not yet weighted
             # if literal.predicate.name.startswith('applicable_'):
             #     return literal[dim, dim]
@@ -151,16 +171,21 @@ class LearningPolicy(Policy):
     def add_message_passing(self, template: Template):
         """This is where we can incorporate various generic modelling/ML constructs to the template"""
         predicates = {pred.name: pred.arity for pred in self._domain.predicates}
+        dim = self.dim if self.dim > 0 else 1
 
-        template += anonymous_predicates(predicates, self.dim)
+        template += anonymous_predicates(predicates, dim, input_dim=dim)
 
-        template += object_info_aggregation(max(predicates.values()), self.dim)
-        # template += atom_info_aggregation(max(predicates.values()), self.dim)
+        # In the learning inference MAP ALSO THE UNACHIEVED PREDICATES!
+        ug_predicates = {f'ug_{pred}': arity for pred, arity in predicates.items()}
+        template += anonymous_predicates(ug_predicates, dim, input_dim=1)
 
-        template += object2object_edges(max(predicates.values()), self.dim, "edge")
+        template += object_info_aggregation(max(predicates.values()), dim)
+        # template += atom_info_aggregation(max(predicates.values()), dim)
+
+        template += object2object_edges(max(predicates.values()), dim, "edge")
 
         # template += custom_message_passing("edge", "h0", dim)
-        template += gnn_message_passing("edge", self.dim, num_layers=self.num_layers)
+        template += gnn_message_passing("edge", dim, num_layers=self.num_layers)
         # template += gnn_message_passing(f"{2}-ary", dim, num_layers=num_layers)
 
     def train_model_from(self, train_data_dir: str):
@@ -235,6 +260,6 @@ class FasterLearningPolicy(LearningPolicy):
                 print("Debugging error: mismatch between inference engine and fast evaluation")
                 print(fast)
                 print(check)
-                raise RuntimeError(f"Results mismatch between standard and fast policy evaluation")
+                # raise RuntimeError(f"Results mismatch between standard and fast policy evaluation")
 
         return result

@@ -60,8 +60,12 @@ def main():
     parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound.")
     parser.add_argument("-t", "--template", type=str, default="", help="Policy template name.")
     parser.add_argument("-f", "--files", type=str, default="", help="Save template file(s) name.")
-    parser.add_argument("-l", "--learning", type=str, default="", choices=["", "_", "string"],
+    parser.add_argument("-l", "--learning", type=str, default="", choices=["", "_", str],
                         help="Training data subdirectory ( '_' for root subdir).")
+    parser.add_argument("-e", "--embedding", type=int, default=-1, choices=[-1, 1, int],
+                        help="Embedding dimensionality throughout the model (-1 = off, 1 = scalar)")
+    parser.add_argument("-n", "--layers", type=int, default=-1, choices=[-1, 1, int],
+                        help="Number of model layers (-1 = off, 1 = just embedding, 2+ = message-passing)")
     parser.add_argument("-s", "--seed", type=int, default=2024, help="Random seed.")
     parser.add_argument("-c", "--choice", default="best", choices=["sample", "best"],
                         help="Choose the best action or sample from the policy.")
@@ -74,6 +78,8 @@ def main():
     template_name = args.template
     save_file_name = args.files
     training_data_dir = args.learning
+    embed_dim = args.embedding
+    num_layers = args.layers
     domain_path = f"l4np/{domain_name}/classic/domain.pddl"
     test_problem_path = f"l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
     template_path = f"../datasets/lrnn/{domain_name}/classic/{template_name}"
@@ -104,7 +110,7 @@ def main():
 
     with TimerContextManager("initialising policy template") as timer:
         # no need to recreate the template with every new state, we can retain it for the whole domain
-        policy.init_template(loaded_model, dim=1, num_layers=-1) # todo make script arguments
+        policy.init_template(loaded_model, dim=embed_dim, num_layers=num_layers)
         if _DEBUG_LEVEL > 0:
             policy._debug_template()
         total_time += timer.get_time()
