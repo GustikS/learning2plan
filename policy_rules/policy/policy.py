@@ -223,7 +223,7 @@ class Policy:
         head = R.get(name)(parameters)
         return head
 
-    def get_schema_preconditions(self, schema: Schema, add_types=True) -> list[BaseRelation]:
+    def get_schema_preconditions(self, schema: Schema, add_types=True, **kwargs) -> list[BaseRelation]:
         """construct base body of a schema from its preconditions with typing"""
         if isinstance(schema, str):
             schema = self._name_to_schema[schema]
