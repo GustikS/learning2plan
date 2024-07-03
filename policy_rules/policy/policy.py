@@ -34,10 +34,9 @@ class Policy:
             template.template = init_model.source_template
             self._template = template
         else:
-            self._init_template()
+            self._init_template(**kwargs)
 
         self._engine = InferenceEngine(self._template, neuralogic_settings)
-
 
     def setup_test_problem(self, problem: Problem):
         """Set up a STATEFUL dependency on a current test problem"""
@@ -93,22 +92,27 @@ class Policy:
         for assignment in assignments:
             yield 1, assignment  # all action equally good here
 
-    def _init_template(self):
+    def _init_template(self, skip_knowledge=False):
         self._template = Template()
         self._add_predicate_copies()
-        try:
-            self._add_derived_predicates()
-            self._add_policy_rules()
-        except NotImplementedError as e:
-            print("Domain knowledge is missing for this domain, will resort to generic policy learning.")
-            print(e)
-        except Exception as e:
-            print(e)
+
+        if not skip_knowledge:
+            try:
+                self._add_derived_predicates()
+                self._add_policy_rules()
+            except NotImplementedError as e:
+                print("Domain knowledge is missing for this domain, will resort to generic policy learning.")
+                print(e)
+            except Exception as e:
+                print(e)
+            prefix = "applicable_"
+        else:
+            prefix = ""
 
         # add a derived predicate containing just the preconditions
         for schema in self._schemata:
             schema_name = schema.name
-            head = self.relation_from_schema(schema_name, name=f"applicable_{schema_name}")
+            head = self.relation_from_schema(schema_name, name=f"{prefix}{schema_name}")
             body = self.get_schema_preconditions(schema_name)
             self.add_rule(head, body)
 

@@ -64,8 +64,10 @@ def main():
                         help="Training data subdirectory ( '_' for root subdir).")
     parser.add_argument("-e", "--embedding", type=int, default=-1, choices=[-1, 1, int],
                         help="Embedding dimensionality throughout the model (-1 = off, 1 = scalar)")
-    parser.add_argument("-n", "--layers", type=int, default=-1, choices=[-1, 1, int],
+    parser.add_argument("-n", "--layers", type=int, default=1, choices=[-1, 1, int],
                         help="Number of model layers (-1 = off, 1 = just embedding, 2+ = message-passing)")
+    parser.add_argument("-k", "--skip", type=bool, default=False,
+                        help="An option to skip the domain knowledge and use just a generic ML model")
     parser.add_argument("-s", "--seed", type=int, default=2024, help="Random seed.")
     parser.add_argument("-c", "--choice", default="best", choices=["sample", "best"],
                         help="Choose the best action or sample from the policy.")
@@ -80,6 +82,7 @@ def main():
     training_data_dir = args.learning
     embed_dim = args.embedding
     num_layers = args.layers
+    skip_knowledge = args.skip
     domain_path = f"l4np/{domain_name}/classic/domain.pddl"
     test_problem_path = f"l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
     template_path = f"../datasets/lrnn/{domain_name}/classic/{template_name}"
@@ -110,7 +113,7 @@ def main():
 
     with TimerContextManager("initialising policy template") as timer:
         # no need to recreate the template with every new state, we can retain it for the whole domain
-        policy.init_template(loaded_model, dim=embed_dim, num_layers=num_layers)
+        policy.init_template(loaded_model, dim=embed_dim, num_layers=num_layers, skip_knowledge=skip_knowledge)
         if _DEBUG_LEVEL > 0:
             policy._debug_template()
         total_time += timer.get_time()

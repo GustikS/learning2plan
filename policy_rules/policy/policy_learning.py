@@ -25,11 +25,11 @@ class LearningPolicy(Policy):
                                     for schema in self._schemata
                                     if (query := self.relation_from_schema(schema))}
 
-    def init_template(self, init_model: NeuraLogic = None, dim=1, num_layers=-1):
+    def init_template(self, init_model: NeuraLogic = None, dim=1, num_layers=-1, **kwargs):
         self.dim = dim  # the general dimensionality of embeddings assumed in this model
         self.num_layers = num_layers  # the number of embedding message-passing-like layers
 
-        super().init_template(init_model)
+        super().init_template(init_model, **kwargs)
 
         if self.num_layers > 0:
             self.add_message_passing(self._template)
@@ -226,8 +226,8 @@ class FasterLearningPolicy(LearningPolicy):
     def __init__(self, domain: Domain, debug=0):
         super().__init__(domain, debug)
 
-    def init_template(self, init_model: NeuraLogic = None, dim=1, num_layers=-1):
-        super().init_template(init_model, dim=dim, num_layers=num_layers)
+    def init_template(self, init_model: NeuraLogic = None, dim=1, num_layers=-1, **kwargs):
+        super().init_template(init_model, dim=dim, num_layers=num_layers, **kwargs)
         # self.model.settings['neuralNetsPostProcessing'] = False  # for speedup
         # self.model.settings.chain_pruning = False     # if trained with pruning we should keep it for evaluation too
         self.model.settings.iso_value_compression = False
