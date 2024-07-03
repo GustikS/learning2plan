@@ -8,10 +8,10 @@ from neuralogic.logging import Formatter, Level, add_handler
 
 from modelling.planning import extract_actions, Action
 
+add_handler(sys.stdout, Level.FINE, Formatter.COLOR)
 
-# add_handler(sys.stdout, Level.FINE, Formatter.COLOR)
+from pddl import parse_domain as pddl_parse
 
-# from pddl import parse_domain as pddl_parse
 
 def get_filename(domain_name, numeric, format, path, filename):
     version = "numeric" if numeric else "classic"

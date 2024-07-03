@@ -1,17 +1,16 @@
 import os
-import pickle
 import warnings
 from typing import Union, Iterable
+from typing_extensions import override
 
 import numpy as np
 from neuralogic.core import R, Rule, V
 from neuralogic.core.constructs.relation import BaseRelation, WeightedRelation
 from neuralogic.inference import EvaluationInferenceEngine
+from neuralogic.dataset import FileDataset
 from neuralogic.nn.java import NeuraLogic
 from pymimir import Domain, Action
-from typing_extensions import override
 
-from modelling.training import build_samples
 from policy_rules.policy.policy import Policy
 from policy_rules.util.template_settings import neuralogic_settings, store_template_model, load_model_weights
 
@@ -77,13 +76,13 @@ class LearningPolicy(Policy):
     def _debug_inference(self):
         super()._debug_inference()
         print("=" * 80)
-        print("All state neuron values:")
+        print("Debugging all state neuron values:")
         self._engine.dataset[0].query = None
         built_dataset = self.model.build_dataset(self._engine.dataset)
         atom_values = built_dataset[0]._get_literals()
         for predicate, substitutions in atom_values.items():
             for subs, neuron in substitutions.items():
-                print(neuron.getClass().getSimpleName(), predicate, subs, ':', neuron.getRawState().getValue())
+                print(f'{neuron.getClass().getSimpleName()} : {predicate}{subs} : {neuron.getRawState().getValue()}')
         print("=" * 80)
 
     def _debug_inference_helper(self, relation: BaseRelation, newline=True):
@@ -106,7 +105,7 @@ class LearningPolicy(Policy):
     def add_rule(self,
                  head_or_schema_name: Union[BaseRelation, str],
                  body: list[BaseRelation],
-                 embedding_layer: int = -1,
+                 embedding_layer: int = 1,
                  fixed_weight: Union[float, np.ndarray] = None):
 
         rule: Rule = self.get_rule(body, head_or_schema_name)
@@ -121,9 +120,9 @@ class LearningPolicy(Policy):
             for i in range(len(rule.body)):
                 rule.body[i] = self.add_weight(rule.body[i], dim)
         if embedding_layer > 0:  # add object embeddings
-            variables = rule.head.terms
+            variables = set(rule.head.terms)
             for lit in rule.body:
-                variables += lit.terms
+                variables.update(lit.terms)
             if variables:
                 rule.body += [R.get(f'h_{embedding_layer}')(var)[dim, dim] for var in variables]
             else:
@@ -155,7 +154,8 @@ class LearningPolicy(Policy):
 
     def train_parameters(self, lrnn_dataset_dir: str, epochs: int = 100, save_model_path: str = None):
         try:
-            neural_samples, logic_samples = build_samples(self.model, lrnn_dataset_dir)
+            dataset = FileDataset(f"{lrnn_dataset_dir}/examples.txt", f"{lrnn_dataset_dir}/queries.txt")
+            neural_samples = self.model.build_dataset(dataset)
         except Exception as e:
             print(f"An error occured during attempt to train policy model from: {lrnn_dataset_dir}")
             print(e)
@@ -189,7 +189,8 @@ class FasterEvaluationPolicy(LearningPolicy):
         try:
             built_dataset = self.model.build_dataset(self._engine.dataset)
             self._built_state_network = built_dataset[0]
-            output = self.model(built_dataset.samples, train=False)  # todo test if we can skip this
+            # we cannot skip this extra evaluation if we want alignment with the evaluation_inference_engine
+            output = self.model(built_dataset.samples, train=False)
         except Exception:
             warnings.warn(f"Failed to build template on the state: {self._engine.dataset}")
         return super().query_actions()
@@ -198,7 +199,7 @@ class FasterEvaluationPolicy(LearningPolicy):
     def get_action_substitutions(self, action_name: str) -> (float, dict):
         atoms = self._built_state_network.get_atom(self.action_header2query[action_name])
         if atoms:
-            result =  [(a.value, a.substitutions) for a in atoms]
+            result = [(a.value, a.substitutions) for a in atoms]
         else:
             result = []
 

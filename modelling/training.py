@@ -3,10 +3,10 @@ import logging
 import pickle
 import time
 
-# import seaborn
-# from matplotlib import pyplot as plt
-# from matplotlib.pyplot import figure
-# from sklearn.metrics import confusion_matrix
+import seaborn
+from matplotlib import pyplot as plt
+from matplotlib.pyplot import figure
+from sklearn.metrics import confusion_matrix
 
 import neuralogic
 if not neuralogic.is_initialized():

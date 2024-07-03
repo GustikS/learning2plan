@@ -160,7 +160,7 @@ def main():
             print(f"[{Step=}, {goals_left=}, {timer.get_time()}s]")
             if _DEBUG_LEVEL > 1:
                 action_names = [f'{v}:{a.get_name()}' for v, a in policy_actions]
-                matrix_log.append(["Policy actions", ", ".join(action_names)])
+                matrix_log.append(["Available policy actions", ", ".join(action_names)])
 
             if args.choice == "sample":
                 actions = [a[1] for a in policy_actions]
@@ -180,7 +180,7 @@ def main():
             if _DEBUG_LEVEL > 1:
                 ilg_state = policy.get_ilg_facts(state.get_atoms())
                 ilg_state = ", ".join([str(f) for f in ilg_state])
-                matrix_log.append(["Current state", ilg_state])
+                matrix_log.append(["Current state: ", ilg_state])
             if len(matrix_log) > 0:
                 print_mat(matrix_log, rjust=False)
             if _DEBUG_LEVEL > 1:

@@ -5,7 +5,7 @@ from typing import Union
 from neuralogic.core import Template, Settings, Transformation, Aggregation
 from neuralogic.nn.java import NeuraLogic
 
-# we can setup all the learning/numeric-evaluation-related settings here
+# we can set up all the learning/numeric-evaluation-related settings here
 neuralogic_settings = Settings(
     iso_value_compression=True,
     chain_pruning=True,

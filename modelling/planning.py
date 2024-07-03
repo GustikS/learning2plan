@@ -16,10 +16,10 @@ jLiteral = jpype.JClass("cz.cvut.fel.ida.logic.Literal")
 jState = jpype.JClass("cz.cvut.fel.ida.logic.grounding.planning.State")
 jAction = jpype.JClass("cz.cvut.fel.ida.logic.grounding.planning.Action")
 
-# import pddl
-# from pddl.logic import Variable, Predicate
-# from pddl.logic.functions import NumericFunction, NumericValue
-# from pddl.logic.predicates import EqualTo
+import pddl
+from pddl.logic import Variable, Predicate
+from pddl.logic.functions import NumericFunction, NumericValue
+from pddl.logic.predicates import EqualTo
 
 
 def parse_literal(string_literal):
