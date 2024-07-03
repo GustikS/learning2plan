@@ -182,11 +182,12 @@ class LearningPolicy(Policy):
         template += object_info_aggregation(max(predicates.values()), dim)
         # template += atom_info_aggregation(max(predicates.values()), dim)
 
-        template += object2object_edges(max(predicates.values()), dim, "edge")
+        if self.num_layers > 1: # start with some message-passing
+            template += object2object_edges(max(predicates.values()), dim, "edge")
 
-        # template += custom_message_passing("edge", "h0", dim)
-        template += gnn_message_passing("edge", dim, num_layers=self.num_layers)
-        # template += gnn_message_passing(f"{2}-ary", dim, num_layers=num_layers)
+            # template += custom_message_passing("edge", "h0", dim)
+            template += gnn_message_passing("edge", dim, num_layers=self.num_layers)
+            # template += gnn_message_passing(f"{2}-ary", dim, num_layers=num_layers)
 
     def train_model_from(self, train_data_dir: str):
         if train_data_dir.endswith("/_"):

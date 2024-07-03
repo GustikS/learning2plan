@@ -92,7 +92,7 @@ class Policy:
         for assignment in assignments:
             yield 1, assignment  # all action equally good here
 
-    def _init_template(self, skip_knowledge=False):
+    def _init_template(self, skip_knowledge=False, **kwargs):
         self._template = Template()
         self._add_predicate_copies()
 
