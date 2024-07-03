@@ -20,6 +20,9 @@ import pddl
 from pddl.logic import Variable, Predicate
 from pddl.logic.functions import NumericFunction, NumericValue
 from pddl.logic.predicates import EqualTo
+from pddl import parse_domain as pddl_parse
+
+from modelling.samples import parse_domain, flatten_states, get_filename
 
 
 def parse_literal(string_literal):
@@ -140,6 +143,22 @@ class State:
 
         self.atoms = pure_atoms
         self.atoms_ILG = ilg_atoms
+
+
+def parse_pddl(domain_name, numeric=False, path="../"):
+    filename = get_filename(domain_name, numeric, "jsons", path, "domain.pddl")
+    return pddl_parse(filename)
+
+
+def parse_pddl_actions(domain_name):
+    try:
+        pddl_domain = parse_pddl(domain_name)
+        actions = extract_actions(pddl_domain)  # replace the action names with their full specifications
+    except Exception as e:
+        print("Could not parse PDDL domain actions!")
+        print(e)
+        raise e
+    return actions
 
 
 def extract_actions(pddl_domain, just_strings=True):
@@ -301,12 +320,13 @@ if __name__ == '__main__':
         # level = logging.INFO,
         format=''
     )
-    from modelling.samples import parse_domain, flatten_states
 
     domain = "blocksworld"
     # domain = "satellite"
     numeric = False
     problems, predicates, actions = parse_domain(domain, numeric=numeric, encoding="")
+    actions = parse_pddl_actions(domain)
+
     states = flatten_states(problems)
     # all successors from the json states
     successors = all_successors(states, actions)

@@ -100,8 +100,13 @@ def main():
     # possibly load an initial template from file with the same template_name if found
     loaded_model: NeuraLogic = load_stored_model(template_path) if template_name else None
 
+    policy = get_handcraft_policy(domain.name)(domain, debug=_DEBUG_LEVEL)
+
     with TimerContextManager("initialising policy template") as timer:
-        policy = get_handcraft_policy(domain.name)(domain, loaded_model, debug=_DEBUG_LEVEL)
+        # no need to recreate the template with every new state, we can retain it for the whole domain
+        policy.init_template(loaded_model, dim=1, num_layers=-1) # todo make script arguments
+        if _DEBUG_LEVEL > 0:
+            policy._debug_template()
         total_time += timer.get_time()
 
     if training_data_dir and hasattr(policy, "model"):

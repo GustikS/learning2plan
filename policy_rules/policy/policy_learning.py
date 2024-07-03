@@ -4,24 +4,35 @@ from typing import Union, Iterable
 from typing_extensions import override
 
 import numpy as np
-from neuralogic.core import R, Rule, V
+from neuralogic.core import R, Rule, V, Template
 from neuralogic.core.constructs.relation import BaseRelation, WeightedRelation
 from neuralogic.inference import EvaluationInferenceEngine
 from neuralogic.dataset import FileDataset
 from neuralogic.nn.java import NeuraLogic
 from pymimir import Domain, Action
 
+from modelling.templates import anonymous_predicates, object_info_aggregation, object2object_edges, gnn_message_passing
 from policy_rules.policy.policy import Policy
 from policy_rules.util.template_settings import neuralogic_settings, store_template_model, load_model_weights
 
 
 class LearningPolicy(Policy):
 
-    def __init__(self, domain: Domain, init_model: NeuraLogic = None, debug=0, dim=1, num_layers=1):
-        self.dim = dim
-        self.num_layers = num_layers
+    def __init__(self, domain: Domain, debug=0):
+        super().__init__(domain, debug)
 
-        super().__init__(domain, init_model, debug)
+        self.action_header2query = {query.predicate.name: query
+                                    for schema in self._schemata
+                                    if (query := self.relation_from_schema(schema))}
+
+    def init_template(self, init_model: NeuraLogic = None, dim=1, num_layers=-1):
+        self.dim = dim  # the general dimensionality of embeddings assumed in this model
+        self.num_layers = num_layers  # the number of embedding message-passing-like layers
+
+        super().init_template(init_model)
+
+        if self.num_layers > 0:
+            self.add_message_passing(self._template)
 
         # An inference engine just like in Policy, but this one returns the numeric values also
         self._engine = EvaluationInferenceEngine(self._template, neuralogic_settings)
@@ -31,10 +42,6 @@ class LearningPolicy(Policy):
             self._engine.model = init_model
         else:
             self.model = self._engine.model
-
-        self.action_header2query = {query.predicate.name: query
-                                    for schema in self._schemata
-                                    if (query := self.relation_from_schema(schema))}
 
     @override
     def get_action_substitutions(self, action_name: str) -> Iterable[tuple[float, dict]]:
@@ -56,7 +63,7 @@ class LearningPolicy(Policy):
         """The input predicate mapping from scalar 1 to a given embedding dimension vector"""
         prefix = new_predicate.predicate.name[:2]
         og_predicate = og_predicate
-        self.add_rule(og_predicate, new_predicate[prefix: self.dim, 1], embedding_layer=-1)
+        self.add_rule(og_predicate, new_predicate[prefix: self.dim, 1])
 
     @override
     def get_object_type(self, object_type: str, var_name: str) -> BaseRelation:
@@ -105,7 +112,6 @@ class LearningPolicy(Policy):
     def add_rule(self,
                  head_or_schema_name: Union[BaseRelation, str],
                  body: list[BaseRelation],
-                 embedding_layer: int = 1,
                  fixed_weight: Union[float, np.ndarray] = None):
 
         rule: Rule = self.get_rule(body, head_or_schema_name)
@@ -119,14 +125,14 @@ class LearningPolicy(Policy):
             rule.head = self.add_weight(rule.head, dim)
             for i in range(len(rule.body)):
                 rule.body[i] = self.add_weight(rule.body[i], dim)
-        if embedding_layer > 0:  # add object embeddings
+        if self.num_layers > 0:  # add object embeddings
             variables = set(rule.head.terms)
             for lit in rule.body:
                 variables.update(lit.terms)
             if variables:
-                rule.body += [R.get(f'h_{embedding_layer}')(var)[dim, dim] for var in variables]
+                rule.body += [R.get(f'h_{self.num_layers}')(var)[dim, dim] for var in variables]
             else:
-                rule.body.append(R.get(f'h_{embedding_layer}')[dim, dim])
+                rule.body.append(R.get(f'h_{self.num_layers}')[dim, dim])
         self._template += rule
 
     def add_weight(self, literal: BaseRelation, dim: int) -> WeightedRelation:
@@ -141,6 +147,21 @@ class LearningPolicy(Policy):
             if self._debug > 3:
                 print(f"{literal} is already weighted")
             return literal
+
+    def add_message_passing(self, template: Template):
+        """This is where we can incorporate various generic modelling/ML constructs to the template"""
+        predicates = {pred.name: pred.arity for pred in self._domain.predicates}
+
+        template += anonymous_predicates(predicates, self.dim)
+
+        template += object_info_aggregation(max(predicates.values()), self.dim)
+        # template += atom_info_aggregation(max(predicates.values()), self.dim)
+
+        template += object2object_edges(max(predicates.values()), self.dim, "edge")
+
+        # template += custom_message_passing("edge", "h0", dim)
+        template += gnn_message_passing("edge", self.dim, num_layers=self.num_layers)
+        # template += gnn_message_passing(f"{2}-ary", dim, num_layers=num_layers)
 
     def train_model_from(self, train_data_dir: str):
         if train_data_dir.endswith("/_"):
@@ -174,12 +195,14 @@ class LearningPolicy(Policy):
         store_template_model(self.model, save_path)
 
 
-class FasterEvaluationPolicy(LearningPolicy):
+class FasterLearningPolicy(LearningPolicy):
     """Experimental speedup version by avoiding all duplicit and redundant computation"""
 
-    def __init__(self, domain: Domain, init_model: NeuraLogic = None, debug=0):
-        super().__init__(domain, init_model, debug)
+    def __init__(self, domain: Domain, debug=0):
+        super().__init__(domain, debug)
 
+    def init_template(self, init_model: NeuraLogic = None, dim=1, num_layers=-1):
+        super().init_template(init_model, dim=dim, num_layers=num_layers)
         # self.model.settings['neuralNetsPostProcessing'] = False  # for speedup
         # self.model.settings.chain_pruning = False     # if trained with pruning we should keep it for evaluation too
         self.model.settings.iso_value_compression = False

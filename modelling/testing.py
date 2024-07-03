@@ -9,10 +9,11 @@ if not neuralogic.is_initialized():
 from neuralogic.core import R
 from neuralogic.dataset import Dataset, Sample
 
-from modelling.planning import State
-from modelling.samples import flatten_states, parse_domain
+from modelling.samples import parse_domain
 from modelling.templates import build_template
-from modelling.training import prepare_model, store_template, train
+from modelling.training import train
+
+from modelling.planning import State, parse_pddl_actions
 
 
 def load_model(save_file, model=None):
@@ -36,6 +37,7 @@ def load_model(save_file, model=None):
 def get_domain_setup(domain_name):
     """get some adhoc init state from the jsons, without the labeled queries"""
     problems, predicates, actions = parse_domain(domain_name, problem_limit=1)
+    actions = parse_pddl_actions(domain_name)
     for states, goal_state in problems.values():
         for state in states:
             break

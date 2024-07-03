@@ -3,14 +3,9 @@ import logging
 import os
 import sys
 
-import neuralogic
 from neuralogic.logging import Formatter, Level, add_handler
 
-from modelling.planning import extract_actions, Action
-
 add_handler(sys.stdout, Level.FINE, Formatter.COLOR)
-
-from pddl import parse_domain as pddl_parse
 
 
 def get_filename(domain_name, numeric, format, path, filename):
@@ -21,10 +16,8 @@ def get_filename(domain_name, numeric, format, path, filename):
 
 
 def parse_domain(domain, numeric=False, encoding="ILG", problem_limit=-1):
-    json_data, pddl_domain = load_file(domain, numeric=numeric)
+    json_data = load_file(domain, numeric=numeric)
     problems, predicates, actions = parse_json(json_data, encoding=encoding, problem_limit=problem_limit)
-    if pddl_domain is not None:
-        actions = extract_actions(pddl_domain)  # replace the action names with their full specifications
     return problems, predicates, actions
 
 
@@ -36,17 +29,7 @@ def load_file(domain_name, numeric=False, path="../"):
     with open(json_file_path, 'r') as f:
         json_data = json.loads(f.read())
 
-    try:
-        domain = parse_pddl(domain_name, numeric, path)
-    except:
-        domain = None
-
-    return json_data, domain
-
-
-def parse_pddl(domain_name, numeric=False, path="../"):
-    filename = get_filename(domain_name, numeric, "jsons", path, "domain.pddl")
-    return pddl_parse(filename)
+    return json_data
 
 
 # TODO transform all the flags here into a class hierarchy of possible state encodings (reusing the existing classes...)
@@ -55,7 +38,7 @@ def parse_json(json_data, problem_limit=-1, state_limit=-1, merge_static=True,
     logging.log(logging.INFO, "parsing domain")
     actions = json_data['schemata']  # to work with these I'd also need their preconditions...
 
-    actions = [Action(name, [f'X{i}' for i in range(arity)], None, []) for name, arity in actions.items()]
+    # actions = [Action(name, [f'X{i}' for i in range(arity)], None, []) for name, arity in actions.items()]
 
     functions = encode_functions(json_data['functions'], logic_numbers)
     predicates = encode_predicates(json_data['predicates'], encoding)
@@ -100,8 +83,8 @@ def encode_query(h, optimal_action, all_actions, regression=False):
         queries = []
         items = optimal_action[1:-1].split(" ")
         queries.append(f'1 {items[0]}({",".join(items[1:])})')  # the target action with a positive label 1
-        for action in all_actions:
-            queries.append(f'0 {action.name}({",".join(action.parameters)})')  # other actions with label 0
+        for action, arity in all_actions.items():
+            queries.append(f'0 {action}({",".join([f"X{i}" for i in range(arity)])})')  # other actions with label 0
             # Note that this will include the same action with label 0 as well, but these will get aggregated via MAX (by default) in the backend
         return queries
 

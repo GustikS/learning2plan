@@ -17,7 +17,7 @@ Schema = Union[str, ActionSchema]
 
 
 class Policy:
-    def __init__(self, domain: Domain, init_model: NeuraLogic = None, debug=0):
+    def __init__(self, domain: Domain, debug=0):
         self._domain = domain
         self._debug = debug
 
@@ -28,7 +28,7 @@ class Policy:
         }
         self._prev_state = None
 
-        # no need to recreate the template with every new state, we can retain it for the whole domain
+    def init_template(self, init_model: NeuraLogic = None, **kwargs):
         if init_model:
             template = Template()
             template.template = init_model.source_template
@@ -38,8 +38,6 @@ class Policy:
 
         self._engine = InferenceEngine(self._template, neuralogic_settings)
 
-        if debug > 1:
-            self._debug_template()
 
     def setup_test_problem(self, problem: Problem):
         """Set up a STATEFUL dependency on a current test problem"""
