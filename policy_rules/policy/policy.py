@@ -113,8 +113,11 @@ class Policy:
         for schema in self._schemata:
             schema_name = schema.name
             head = self.relation_from_schema(schema_name, name=f"{prefix}{schema_name}")
-            body = self.get_schema_preconditions(schema_name)
-            self.add_rule(head, body)
+            body = self.get_schema_preconditions(schema_name, **kwargs)
+            if skip_knowledge:
+                self.add_output_action(head,body)
+            else:
+                self.add_rule(head, body)
 
     def print_state(self, state: list[Atom]):
         # may be extended and replaced
@@ -220,7 +223,7 @@ class Policy:
         head = R.get(name)(parameters)
         return head
 
-    def get_schema_preconditions(self, schema: Schema) -> list[BaseRelation]:
+    def get_schema_preconditions(self, schema: Schema, add_types=True) -> list[BaseRelation]:
         """construct base body of a schema from its preconditions with typing"""
         if isinstance(schema, str):
             schema = self._name_to_schema[schema]
@@ -229,13 +232,14 @@ class Policy:
         body = []
         param_remap = {p.name: p.name.replace("?", "").upper() for p in schema.parameters}
 
-        ## add variables and their types
-        for param in schema.parameters:
-            assert param.is_variable()
-            remap = param_remap[param.name]
-            object_type = param.type.name
-            atom = self.get_object_type(object_type, remap)
-            body.append(atom)
+        if add_types:
+            ## add variables and their types
+            for param in schema.parameters:
+                assert param.is_variable()
+                remap = param_remap[param.name]
+                object_type = param.type.name
+                atom = self.get_object_type(object_type, remap)
+                body.append(atom)
 
         ## add preconditions
         for p in schema.precondition:

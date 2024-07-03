@@ -182,7 +182,7 @@ class LearningPolicy(Policy):
         template += object_info_aggregation(max(predicates.values()), dim)
         # template += atom_info_aggregation(max(predicates.values()), dim)
 
-        if self.num_layers > 1: # start with some message-passing
+        if self.num_layers > 1:  # start with some message-passing
             template += object2object_edges(max(predicates.values()), dim, "edge")
 
             # template += custom_message_passing("edge", "h0", dim)
@@ -203,11 +203,20 @@ class LearningPolicy(Policy):
         try:
             dataset = FileDataset(f"{lrnn_dataset_dir}/examples.txt", f"{lrnn_dataset_dir}/queries.txt")
             neural_samples = self.model.build_dataset(dataset)
+            print("Neural samples successfully built (the template is working correctly)")
+            print("Starting training...")
+            results = self.model(neural_samples, train=True, epochs=epochs)
+            print("...finished training")
+            total_error = 0
+            if self._debug > 1:
+                for i in range(len(neural_samples)):
+                    result = results[0][i]
+                    print(f'{result[0]} <-{result[1]} for {neural_samples.samples[i].java_sample.query}')
+                    total_error += result[2]
         except Exception as e:
             print(f"An error occured during attempt to train policy model from: {lrnn_dataset_dir}")
             print(e)
-        results = self.model(neural_samples, train=True, epochs=epochs)
-        print(results)
+        print("-" * 80)
         if save_model_path:
             store_template_model(self.model, save_model_path)
 

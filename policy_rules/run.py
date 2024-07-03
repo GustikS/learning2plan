@@ -54,7 +54,7 @@ def goal_repr(goal: list[pymimir.Literal]):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--domain", type=str, default="ferry")
+    parser.add_argument("-d", "--domain", type=str, default="blocksworld")
     parser.add_argument("-p", "--problem", type=str, default="0_01", help="Of the form 'x_yy'")
     parser.add_argument("-v", "--verbose", type=int, default=0)
     parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound.")
@@ -62,7 +62,7 @@ def main():
     parser.add_argument("-f", "--files", type=str, default="", help="Save template file(s) name.")
     parser.add_argument("-l", "--learning", type=str, default="", choices=["", "_", str],
                         help="Training data subdirectory ( '_' for root subdir).")
-    parser.add_argument("-e", "--embedding", type=int, default=-1, choices=[-1, 1, int],
+    parser.add_argument("-e", "--embedding", type=int, default=3, choices=[-1, 1, int],
                         help="Embedding dimensionality throughout the model (-1 = off, 1 = scalar)")
     parser.add_argument("-n", "--layers", type=int, default=1, choices=[-1, 1, int],
                         help="Number of model layers (-1 = off, 1 = just embedding, 2+ = message-passing)")
@@ -95,8 +95,8 @@ def main():
 
     # TODO(DZC): cycle checking
 
-    if _DEBUG_LEVEL > 4:
-        add_handler(sys.stdout, Level.ALL, Formatter.COLOR)
+    if _DEBUG_LEVEL > 3:
+        add_handler(sys.stdout, Level.INFO, Formatter.COLOR)
     else:
         add_handler(sys.stdout, Level.OFF, Formatter.COLOR)
 
@@ -113,7 +113,11 @@ def main():
 
     with TimerContextManager("initialising policy template") as timer:
         # no need to recreate the template with every new state, we can retain it for the whole domain
-        policy.init_template(loaded_model, dim=embed_dim, num_layers=num_layers, skip_knowledge=skip_knowledge)
+        policy.init_template(loaded_model,
+                             dim=embed_dim, num_layers=num_layers,
+                             skip_knowledge=skip_knowledge,
+                             add_types=not training_data_dir  # don't use typing in training at the moment
+                             )
         if _DEBUG_LEVEL > 0:
             policy._debug_template()
         total_time += timer.get_time()
