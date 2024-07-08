@@ -6,7 +6,7 @@ from ..policy import Policy
 from ..policy_learning import LearningPolicy, FasterLearningPolicy
 
 
-class SatellitePolicy(LearningPolicy):
+class SatellitePolicy(Policy):
     def print_state(self, state: list[Atom]):
         object_names = sorted([o.name for o in self._problem.objects])
         directions = 0
