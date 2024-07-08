@@ -3,9 +3,10 @@ from pymimir import Atom
 from typing_extensions import override
 
 from ..policy import Policy
+from ..policy_learning import LearningPolicy
 
 
-class SatellitePolicy(Policy):
+class SatellitePolicy(LearningPolicy):
     def print_state(self, state: list[Atom]):
         object_names = sorted([o.name for o in self._problem.objects])
         directions = 0
@@ -75,7 +76,7 @@ class SatellitePolicy(Policy):
             R.supports("I", "M"),
             R.on_board("I", "S"),
         ]
-        self._template += head <= body
+        self.add_rule(head, body)
 
         # "S" is dummy in the following since neuralogic does not have nullary predicates
 
@@ -84,23 +85,23 @@ class SatellitePolicy(Policy):
             R.ug_have_image("D", "M"),
             R.satellite("S"),
         ]
-        self._template += head <= body
+        self.add_rule(head, body)
 
         head = R.exists_calibrate("S")
         body = [R.calibrate("S_other", "I", "D"), R.satellite("S")]
-        self._template += head <= body
+        self.add_rule(head, body)
 
         head = R.exists_take_image("S")
         body = [R.take_image("S_other", "D", "I", "M"), R.satellite("S")]
-        self._template += head <= body
+        self.add_rule(head, body)
 
         head = R.exists_switch_on("S")
         body = [R.switch_on("I", "S_other"), R.satellite("S")]
-        self._template += head <= body
+        self.add_rule(head, body)
 
         head = R.exists_towards_ug_have_image("S")
         body = [R.turn_towards_ug_have_image("S_other", "D_new", "D_prev"), R.satellite("S")]
-        self._template += head <= body
+        self.add_rule(head, body)
 
     @override
     def _add_policy_rules(self):
@@ -126,7 +127,7 @@ class SatellitePolicy(Policy):
         ]
         head = R.turn_towards_ug_have_image("S", "D_new", "D_prev")
         self.add_rule(head, body)
-        self.add_rule("turn_to", [head, ~R.exists_take_image("S")])
+        self.add_output_action("turn_to", [head, ~R.exists_take_image("S")])
 
         # turn towards calibration direction if instrument is not turned on
         body = [
@@ -140,7 +141,7 @@ class SatellitePolicy(Policy):
             ~R.exists_take_image("S"),
             ~R.exists_switch_on("S"),
         ]
-        self.add_rule("turn_to", body)
+        self.add_output_action("turn_to", body)
 
         # for pointing goals
         body = [
@@ -152,7 +153,7 @@ class SatellitePolicy(Policy):
             ~R.exists_take_image("S"),
             ~R.exists_switch_on("S"),
         ]
-        self.add_rule("turn_to", body)
+        self.add_output_action("turn_to", body)
 
         """ switch_on(?i - instrument ?s - satellite) """
         # switch on any instrument that may contribute towards the goal
@@ -162,7 +163,7 @@ class SatellitePolicy(Policy):
             ~R.power_on("I"),
             ~R.calibrated("I"),
         ]
-        self.add_rule("switch_on", body)
+        self.add_output_action("switch_on", body)
 
         """ switch_off(?i - instrument ?s - satellite) """
         # switch off any instrument that is not needed, and another instrument is needed
@@ -179,11 +180,11 @@ class SatellitePolicy(Policy):
             R.instrument_config("S", "I", "M"),
             ~R.calibrated("I"),
         ]
-        self.add_rule("calibrate", body)
+        self.add_output_action("calibrate", body)
 
         """ take_image(?s - satellite ?d - direction ?i - instrument ?m - mode) """
         body = [
             R.ug_have_image("D", "M"),
             R.instrument_config("S", "I", "M"),
         ]
-        self.add_rule("take_image", body)
+        self.add_output_action("take_image", body)

@@ -4,9 +4,10 @@ from typing_extensions import override
 from util.printing import print_mat
 
 from ..policy import Policy
+from ..policy_learning import LearningPolicy, FasterLearningPolicy
 
 
-class MiconicPolicy(Policy):
+class MiconicPolicy(FasterLearningPolicy):
     def print_state(self, state: list[Atom]):
         object_names = sorted([o.name for o in self._problem.objects])
         floors = 0
@@ -60,34 +61,34 @@ class MiconicPolicy(Policy):
     def _add_policy_rules(self):
         """ board(?f - floor ?p - passenger) """
         body = []
-        self.add_rule("board", body)
+        self.add_output_action("board", body)
 
 
         """ depart(?f - floor ?p - passenger) """
         body = [
             R.get("ug_served")("P"),
         ]
-        self.add_rule("depart", body)
+        self.add_output_action("depart", body)
 
 
         """ up(?f1 - floor ?f2 - floor) """
         # [cannot board anymore and go to a passenger not at goal]
         body = [
-            ~R.get("board")("F1", "P1"),
             R.get("ug_served")("P2"),
+            ~R.get("board")("F1", "P1"),
             R.get("origin")("P2", "F2"),
             R.get("destin")("P2", "F3"),
         ]
-        self.add_rule("up", body)
+        self.add_output_action("up", body)
 
         # [cannot board anymore and go to a boarded passenger's goal location]
         body = [
-            ~R.get("board")("F1", "P1"),
             R.get("ug_served")("P2"),
+            ~R.get("board")("F1", "P1"),
             R.get("boarded")("P2"),
             R.get("destin")("P2", "F2"),
         ]
-        self.add_rule("up", body)
+        self.add_output_action("up", body)
 
 
         """ down(?f1 - floor ?f2 - floor) """  # exact same rules as up
@@ -97,7 +98,7 @@ class MiconicPolicy(Policy):
             R.get("origin")("P2", "F2"),
             R.get("destin")("P2", "F3"),
         ]
-        self.add_rule("down", body)
+        self.add_output_action("down", body)
 
         body = [
             ~R.get("board")("F1", "P1"),
@@ -105,4 +106,4 @@ class MiconicPolicy(Policy):
             R.get("boarded")("P2"),
             R.get("destin")("P2", "F2"),
         ]
-        self.add_rule("down", body)
+        self.add_output_action("down", body)

@@ -69,6 +69,7 @@ class LearningPolicy(Policy):
 
     @override
     def get_object_type(self, object_type: str, var_name: str) -> BaseRelation:
+        """Object typing also starts from the input scalar dimension"""
         type = R.get(object_type)(V.get(var_name))
         if self.dim > 0:
             type = type[self.dim, 1]
@@ -126,6 +127,7 @@ class LearningPolicy(Policy):
                  body: list[BaseRelation],
                  embedding_layer=None,
                  fixed_weight: Union[float, np.ndarray] = None):
+        """Extending a given rule with weights and embeddings"""
 
         rule: Rule = self.get_rule(body, head_or_schema_name)
         dim = self.dim
@@ -194,12 +196,12 @@ class LearningPolicy(Policy):
             train_data_dir = train_data_dir[:-2]
         assert os.path.isdir(train_data_dir), print(f"No LRNN training data available at {train_data_dir}")
         try:
-            self.train_parameters(train_data_dir)
+            self._train_parameters(train_data_dir)
         except Exception as e:
             print(f"Invalid training setup from: {train_data_dir}")
             print(e)
 
-    def train_parameters(self, lrnn_dataset_dir: str, epochs: int = 100, save_model_path: str = None):
+    def _train_parameters(self, lrnn_dataset_dir: str, epochs: int = 100, save_model_path: str = None):
         try:
             dataset = FileDataset(f"{lrnn_dataset_dir}/examples.txt", f"{lrnn_dataset_dir}/queries.txt")
             neural_samples = self.model.build_dataset(dataset)
@@ -231,7 +233,7 @@ class LearningPolicy(Policy):
 
 
 class FasterLearningPolicy(LearningPolicy):
-    """Experimental speedup version by avoiding all duplicit and redundant computation"""
+    """Experimental speedup version by avoiding all duplicit and redundant computation of the inference engine"""
 
     def __init__(self, domain: Domain, debug=0):
         super().__init__(domain, debug)
@@ -245,6 +247,7 @@ class FasterLearningPolicy(LearningPolicy):
     @override
     def query_actions(self) -> list[(float, Action)]:
         try:
+            self._engine.dataset.samples[0].query = None    # remove any query if present - we ask all queries at once!
             built_dataset = self.model.build_dataset(self._engine.dataset)
             self._built_state_network = built_dataset[0]
             # we cannot skip this extra evaluation if we want alignment with the evaluation_inference_engine
