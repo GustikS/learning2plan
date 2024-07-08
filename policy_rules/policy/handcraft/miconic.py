@@ -75,7 +75,7 @@ class MiconicPolicy(FasterLearningPolicy):
         # [cannot board anymore and go to a passenger not at goal]
         body = [
             R.get("ug_served")("P2"),
-            ~R.get("board")("F1", "P1"),
+            ~R.get("board")("F1", "P1"),    # todo gustav: if the negated atom is first it messes up dimensionality initialization (to be repaired)
             R.get("origin")("P2", "F2"),
             R.get("destin")("P2", "F3"),
         ]
@@ -93,16 +93,16 @@ class MiconicPolicy(FasterLearningPolicy):
 
         """ down(?f1 - floor ?f2 - floor) """  # exact same rules as up
         body = [
-            ~R.get("board")("F1", "P"),
             R.get("ug_served")("P2"),
+            ~R.get("board")("F1", "P"),
             R.get("origin")("P2", "F2"),
             R.get("destin")("P2", "F3"),
         ]
         self.add_output_action("down", body)
 
         body = [
-            ~R.get("board")("F1", "P1"),
             R.get("ug_served")("P2"),
+            ~R.get("board")("F1", "P1"),
             R.get("boarded")("P2"),
             R.get("destin")("P2", "F2"),
         ]

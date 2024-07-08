@@ -3,7 +3,7 @@ from pymimir import Atom
 from typing_extensions import override
 
 from ..policy import Policy
-from ..policy_learning import LearningPolicy
+from ..policy_learning import LearningPolicy, FasterLearningPolicy
 
 
 class SatellitePolicy(LearningPolicy):
@@ -79,28 +79,47 @@ class SatellitePolicy(LearningPolicy):
         self.add_rule(head, body)
 
         # "S" is dummy in the following since neuralogic does not have nullary predicates
+        # todo Gustav: it does have nullary predicates - R.nullary , also you can write dummy variables as "_"
+            #  - see modifications/simplifications bellow, hopefully it is what you meant
 
-        head = R.exists_ug_have_image("S")
+        # head = R.exists_ug_have_image("S")
+        head = R.exists_ug_have_image
         body = [
             R.ug_have_image("D", "M"),
-            R.satellite("S"),
+            # R.satellite("S"),
         ]
         self.add_rule(head, body)
 
-        head = R.exists_calibrate("S")
-        body = [R.calibrate("S_other", "I", "D"), R.satellite("S")]
+        # head = R.exists_calibrate("S")
+        head = R.exists_calibrate
+        body = [
+            R.calibrate("S_other", "I", "D"),
+            # R.satellite("S")
+        ]
         self.add_rule(head, body)
 
-        head = R.exists_take_image("S")
-        body = [R.take_image("S_other", "D", "I", "M"), R.satellite("S")]
+        # head = R.exists_take_image("S")
+        head = R.exists_take_image
+        body = [
+            R.take_image("S_other", "D", "I", "M"),
+            # R.satellite("S")
+        ]
         self.add_rule(head, body)
 
-        head = R.exists_switch_on("S")
-        body = [R.switch_on("I", "S_other"), R.satellite("S")]
+        # head = R.exists_switch_on("S")
+        head = R.exists_switch_on
+        body = [
+            R.switch_on("I", "S_other"),
+            # R.satellite("S")
+        ]
         self.add_rule(head, body)
 
-        head = R.exists_towards_ug_have_image("S")
-        body = [R.turn_towards_ug_have_image("S_other", "D_new", "D_prev"), R.satellite("S")]
+        # head = R.exists_towards_ug_have_image("S")
+        head = R.exists_towards_ug_have_image
+        body = [
+            R.turn_towards_ug_have_image("S_other", "D_new", "D_prev"),
+            # R.satellite("S")
+        ]
         self.add_rule(head, body)
 
     @override
@@ -114,6 +133,7 @@ class SatellitePolicy(LearningPolicy):
 
         """ turn_to(?s - satellite ?d_new - direction ?d_prev - direction) """
         # Ensure turn_to is always last priority (LP)
+        # - todo gustav: you can perhaps use some very low weight for that
 
         # turn towards unachieved have_image goals
         body = [
@@ -121,9 +141,12 @@ class SatellitePolicy(LearningPolicy):
             R.instrument_config("S", "I", "M"),
             R.calibrated("I"),
             # (LP)
-            ~R.exists_calibrate("S"),
-            ~R.exists_take_image("S"),
-            ~R.exists_switch_on("S"),
+            # ~R.exists_calibrate("S"),
+            # ~R.exists_take_image("S"),
+            # ~R.exists_switch_on("S"),
+            ~R.exists_calibrate,
+            ~R.exists_take_image,
+            ~R.exists_switch_on,
         ]
         head = R.turn_towards_ug_have_image("S", "D_new", "D_prev")
         self.add_rule(head, body)
@@ -137,9 +160,12 @@ class SatellitePolicy(LearningPolicy):
             R.calibration_target("I", "D_new"),
             ~R.exists_towards_ug_have_image("S"),
             # (LP)
-            ~R.exists_calibrate("S"),
-            ~R.exists_take_image("S"),
-            ~R.exists_switch_on("S"),
+            # ~R.exists_calibrate("S"),
+            # ~R.exists_take_image("S"),
+            # ~R.exists_switch_on("S"),
+            ~R.exists_calibrate,
+            ~R.exists_take_image,
+            ~R.exists_switch_on,
         ]
         self.add_output_action("turn_to", body)
 
@@ -149,9 +175,12 @@ class SatellitePolicy(LearningPolicy):
             ~R.exists_ug_have_image("S"),
             ~R.exists_towards_ug_have_image("S"),
             # (LP)
-            ~R.exists_calibrate("S"),
-            ~R.exists_take_image("S"),
-            ~R.exists_switch_on("S"),
+            # ~R.exists_calibrate("S"),
+            # ~R.exists_take_image("S"),
+            # ~R.exists_switch_on("S"),
+            ~R.exists_calibrate,
+            ~R.exists_take_image,
+            ~R.exists_switch_on,
         ]
         self.add_output_action("turn_to", body)
 
