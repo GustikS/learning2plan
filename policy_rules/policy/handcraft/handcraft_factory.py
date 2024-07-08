@@ -1,3 +1,4 @@
+from .satellite_nullary import SatellitePolicyNullary
 from ..policy import Policy
 from .blocksworld import BlocksworldPolicy
 from .ferry import FerryPolicy
