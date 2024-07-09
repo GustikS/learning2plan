@@ -2,7 +2,7 @@ Bootstrap: docker
 From: ubuntu:22.04
 
 %files
-    policy_rules/requirements.txt
+    requirements.txt
 
 %post
     apt-get update -y
@@ -32,4 +32,4 @@ From: ubuntu:22.04
     rm -rf /var/lib/apt/lists/*
 
     ## python modules
-    pip install -r policy_rules/requirements.txt
+    pip install -r requirements.txt

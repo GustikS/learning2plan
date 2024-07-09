@@ -1,19 +1,21 @@
 import os
 import warnings
-from typing import Union, Iterable
-from typing_extensions import override
+from typing import Iterable, Union
 
 import numpy as np
-from neuralogic.core import R, Rule, V, Template
+from neuralogic.core import R, Rule, Template, V
 from neuralogic.core.constructs.relation import BaseRelation, WeightedRelation
-from neuralogic.inference import EvaluationInferenceEngine
 from neuralogic.dataset import FileDataset
+from neuralogic.inference import EvaluationInferenceEngine
 from neuralogic.nn.java import NeuraLogic
-from pymimir import Domain, Action
+from pymimir import Action, Domain
+from typing_extensions import override
 
-from modelling.templates import anonymous_predicates, object_info_aggregation, object2object_edges, gnn_message_passing
+from modelling.templates import (anonymous_predicates, gnn_message_passing, object2object_edges,
+                                 object_info_aggregation)
 from policy_rules.policy.policy import Policy
-from policy_rules.util.template_settings import neuralogic_settings, store_template_model, load_model_weights
+from policy_rules.util.template_settings import (load_model_weights, neuralogic_settings,
+                                                 store_template_model)
 
 
 class LearningPolicy(Policy):

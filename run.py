@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import os
 import random
 import sys
 
@@ -17,12 +18,15 @@ from neuralogic.logging import Formatter, Level, add_handler
 from termcolor import colored
 
 if not neuralogic.is_initialized():
-    neuralogic.initialize(jar_path="../jar/NeuraLogic.jar", debug_mode=False)  # custom momentary backend upgrades
+    file_directory = os.path.dirname(os.path.abspath(__file__))
+    jar_path = f"{file_directory}/jar/NeuraLogic.jar"
+    # custom momentary backend upgrades
+    neuralogic.initialize(jar_path=jar_path, debug_mode=False)
 
-from policy.handcraft.handcraft_factory import get_handcraft_policy
-from util.printing import print_mat
-from util.template_settings import load_stored_model
-from util.timer import TimerContextManager
+from policy_rules.policy.handcraft.handcraft_factory import get_handcraft_policy
+from policy_rules.util.printing import print_mat
+from policy_rules.util.template_settings import load_stored_model
+from policy_rules.util.timer import TimerContextManager
 
 
 def goal_count(state: pymimir.State, goal: list[pymimir.Literal]) -> int:
@@ -83,8 +87,8 @@ def main():
     embed_dim = args.embedding
     num_layers = args.layers
     skip_knowledge = args.skip
-    domain_path = f"l4np/{domain_name}/classic/domain.pddl"
-    test_problem_path = f"l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
+    domain_path = f"policy_rules/l4np/{domain_name}/classic/domain.pddl"
+    test_problem_path = f"policy_rules/l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
     template_path = f"../datasets/lrnn/{domain_name}/classic/{template_name}"
     template_saving_path = f"../datasets/lrnn/{domain_name}/classic/{save_file_name}"
     training_data_path = f"../datasets/lrnn/{domain_name}/classic/{training_data_dir}"
