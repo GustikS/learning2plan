@@ -164,7 +164,11 @@ class LearningPolicy(Policy):
         if not isinstance(literal, WeightedRelation) and not literal.negated:  # not yet weighted
             # if literal.predicate.name.startswith('applicable_'):
             #     return literal[dim, dim]
-            if literal.predicate.name[:3] in ['ap_', 'ag_', 'ug_']:  # scalar inputs
+            if literal.predicate.name[:3] in ['ap_', 'ag_', 'ug_']:  # scalar input atoms
+                return literal[dim, 1]
+            if literal.predicate.name in self.action_header2query.keys():   # scalar output actions
+                return literal[dim, 1]
+            if literal.predicate.name.startswith("h_") and literal.predicate.arity == 0:    # scalar special guards
                 return literal[dim, 1]
             else:
                 return literal[dim, dim]

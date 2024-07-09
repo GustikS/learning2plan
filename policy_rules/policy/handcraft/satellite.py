@@ -78,6 +78,7 @@ class SatellitePolicy(Policy):
         self.add_rule(head, body)
 
         # "S" is dummy in the following since neuralogic does not have nullary predicates
+        # It does have nullary predicates - please see the nullary version also for tricks with negation
 
         head = R.exists_ug_have_image("S")
         body = [

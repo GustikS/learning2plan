@@ -6,7 +6,7 @@ from ..policy import Policy
 from ..policy_learning import LearningPolicy, FasterLearningPolicy
 
 
-class SatellitePolicyNullary(Policy):
+class SatellitePolicyNullary(FasterLearningPolicy):
     def print_state(self, state: list[Atom]):
         object_names = sorted([o.name for o in self._problem.objects])
         directions = 0
@@ -80,19 +80,19 @@ class SatellitePolicyNullary(Policy):
         self.add_rule(head, body)
 
         self.add_rule(R.derivable_ug_have_image, R.ug_have_image("A", "B"))
-        self.add_rule(R.guard_ug_have_image, ~R.derivable_ug_have_image, guard_level=1, embedding_layer=-1)
+        self.add_rule(R.guard_ug_have_image, ~R.derivable_ug_have_image, guard_level=3, embedding_layer=-1)
 
         self.add_rule(R.derivable_calibrate, R.calibrate("A", "B", "C"))
-        self.add_rule(R.guard_calibrate, ~R.derivable_calibrate, guard_level=4, embedding_layer=-1)
+        self.add_rule(R.guard_calibrate, ~R.derivable_calibrate, guard_level=6, embedding_layer=-1)
 
         self.add_rule(R.derivable_take_image, R.take_image("A", "B", "C", "D"))
-        self.add_rule(R.guard_take_image, ~R.derivable_take_image, guard_level=4, embedding_layer=-1)
+        self.add_rule(R.guard_take_image, ~R.derivable_take_image, guard_level=6, embedding_layer=-1)
 
         self.add_rule(R.derivable_switch_on, R.switch_on("A", "B"))
-        self.add_rule(R.guard_switch_on, ~R.derivable_switch_on, guard_level=4, embedding_layer=-1)
+        self.add_rule(R.guard_switch_on, ~R.derivable_switch_on, guard_level=6, embedding_layer=-1)
 
         self.add_rule(R.derivable_towards_ug_have_image, R.turn_towards_ug_have_image("A", "B", "C"))
-        self.add_rule(R.guard_towards_ug_have_image, ~R.derivable_towards_ug_have_image, guard_level=4, embedding_layer=-1)
+        self.add_rule(R.guard_towards_ug_have_image, ~R.derivable_towards_ug_have_image, guard_level=9, embedding_layer=-1)
 
     @override
     def _add_policy_rules(self):
@@ -194,8 +194,8 @@ class SatellitePolicyNullary(Policy):
         self.add_rule(head, body)
 
         # "S" is dummy in the following since neuralogic does not have nullary predicates
-        # todo Gustav: it does have nullary predicates - R.nullary , also you can write dummy variables as "_"
-        #  - see modifications/simplifications bellow, hopefully it is what you meant
+        # todo Gustav: it does have nullary predicates - R.nullary
+        #  - see modifications/simplifications above, hopefully it is what you meant
         #  - but please be aware that using the "exists..." is a very brittle thing to do
         #       - it will not stop the derivation, if the "exists..." has not been proved YET!
         #           - hence it requires quite some thinking about the derivation order...
