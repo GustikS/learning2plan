@@ -8,20 +8,20 @@ from neuralogic.nn.java import NeuraLogic
 
 sys.path.append("..")  # just a quick fix for the tests to pass... to be removed
 
-import numpy as np
-from termcolor import colored
 from pathlib import Path
 
 import neuralogic
+import numpy as np
 import pymimir
 from neuralogic.logging import Formatter, Level, add_handler
+from termcolor import colored
 
 if not neuralogic.is_initialized():
     neuralogic.initialize(jar_path="../jar/NeuraLogic.jar", debug_mode=False)  # custom momentary backend upgrades
 
 from policy.handcraft.handcraft_factory import get_handcraft_policy
-from util.template_settings import load_stored_model
 from util.printing import print_mat
+from util.template_settings import load_stored_model
 from util.timer import TimerContextManager
 
 
@@ -102,7 +102,7 @@ def main():
 
     total_time = 0
 
-    with TimerContextManager("parsing PDDL domain file") as timer:
+    with TimerContextManager(f"parsing PDDL domain file {str(domain_path)}") as timer:
         domain = pymimir.DomainParser(str(domain_path)).parse()
         total_time += timer.get_time()
 
@@ -131,7 +131,7 @@ def main():
         policy.store_policy(template_saving_path)
 
     if problem_name:
-        with TimerContextManager("parsing + loading the test Problem") as timer:
+        with TimerContextManager(f"parsing + loading PDDL problem file {str(test_problem_path)}") as timer:
             problem = pymimir.ProblemParser(str(test_problem_path)).parse(domain)
             state = problem.create_state(problem.initial)
             goal = problem.goal
