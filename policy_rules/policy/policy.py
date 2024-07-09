@@ -28,6 +28,8 @@ class Policy:
         }
         self._prev_state = None
 
+        self.guards_levels = -1
+
     def init_template(self, init_model: NeuraLogic = None, **kwargs):
         if init_model:
             template = Template()
@@ -84,7 +86,9 @@ class Policy:
         """Set up a STATEFUL dependency on a current test State"""
         ilg_atoms = self.get_ilg_facts(state)
         lrnn_atoms = [R.get(atom.predicate)([C.get(obj) for obj in atom.objects]) for atom in ilg_atoms]
-        self._engine.set_knowledge(lrnn_atoms + self.get_object_information())
+        if self.guards_levels > -1:
+            base_atom = [R.h_0] # if we want to use the inference hierarchy, starting in the sample...
+        self._engine.set_knowledge(lrnn_atoms + self.get_object_information() + base_atom)
 
     def solve(self, state: list[Atom]) -> list[(float, Action)]:
         """given a State from the currently assumed Problem, return possible actions from policy rules"""
@@ -179,6 +183,20 @@ class Policy:
             og_predicate = R.get(predicate.name)(variables)
             self.add_input_predicate(og_predicate, new_predicate)
 
+    def add_guard_hierarchy(self, to: int):
+        if self.guards_levels < 0:
+            # self._template += R.get(f'h_{0}')() <= R.special.true
+            self.guards_levels = 0
+        for i in range(self.guards_levels, to):
+            self._template += R.get(f'h_{i + 1}')() <= R.get(f'h_{i}')()
+        self.guards_levels = to
+
+    def get_guard_atom(self, guard_level):
+        if self.guards_levels < guard_level:
+            self.add_guard_hierarchy(guard_level)
+        if guard_level > 0:
+            return R.get(f'h_{guard_level}')
+
     def add_input_predicate(self, og_predicate, new_predicate):
         self.add_rule(og_predicate, new_predicate)
 
@@ -196,10 +214,13 @@ class Policy:
             # self._template += R.get(obj.type.base.name)(C.get(obj.name))
         return object_types
 
-    def add_rule(self, head_or_schema_name: Union[BaseRelation, str], body: list[BaseRelation]):
-        self._template += self.get_rule(body, head_or_schema_name)
+    def add_rule(self, head_or_schema_name: Union[BaseRelation, str], body: list[BaseRelation], **kwargs):
+        self._template += self.get_rule(body, head_or_schema_name, **kwargs)
 
-    def get_rule(self, body: Union[list | BaseRelation], head_or_schema_name: Union[str | BaseRelation]):
+    def get_rule(self,
+                 body: Union[list | BaseRelation],
+                 head_or_schema_name: Union[str | BaseRelation],
+                 guard_level: int = -1, **kwargs):
         assert isinstance(body, Union[list | BaseRelation])
         if isinstance(head_or_schema_name, BaseRelation):
             head = head_or_schema_name
@@ -210,6 +231,12 @@ class Policy:
             head = self.relation_from_schema(schema_name)
             body = body
             body += [self.relation_from_schema(schema_name, name=f"applicable_{schema_name}")]
+        if guard_level > -1:
+            atom = self.get_guard_atom(guard_level)
+            if atom:
+                if not isinstance(body, list):
+                    body = [body]
+                body.append(atom)
         return head <= body
 
     def relation_from_schema(self, schema: Schema, name=None) -> BaseRelation:

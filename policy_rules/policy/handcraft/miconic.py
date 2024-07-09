@@ -8,7 +8,7 @@ from ..policy import Policy
 from ..policy_learning import FasterLearningPolicy, LearningPolicy
 
 
-class MiconicPolicy(Policy):
+class MiconicPolicy(FasterLearningPolicy):
     def print_state(self, state: list[Atom]):
         object_names = sorted([o.name for o in self._problem.objects])
         floors = 0

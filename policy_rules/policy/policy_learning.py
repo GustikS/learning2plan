@@ -127,11 +127,12 @@ class LearningPolicy(Policy):
     def add_rule(self,
                  head_or_schema_name: Union[BaseRelation, str],
                  body: list[BaseRelation],
+                 guard_level: int = -1,  # = only call the rule after N inference steps
                  embedding_layer=None,
                  fixed_weight: Union[float, np.ndarray] = None):
         """Extending a given rule with weights and embeddings"""
 
-        rule: Rule = self.get_rule(body, head_or_schema_name)
+        rule: Rule = self.get_rule(body, head_or_schema_name, guard_level=guard_level)
         dim = self.dim
 
         if fixed_weight:  # assign a given fixed weight
@@ -249,13 +250,14 @@ class FasterLearningPolicy(LearningPolicy):
     @override
     def query_actions(self) -> list[(float, Action)]:
         try:
-            self._engine.dataset.samples[0].query = None    # remove any query if present - we ask all queries at once!
+            self._engine.dataset.samples[0].query = None  # remove any query if present - we ask all queries at once!
             built_dataset = self.model.build_dataset(self._engine.dataset)
             self._built_state_network = built_dataset[0]
             # we cannot skip this extra evaluation if we want alignment with the evaluation_inference_engine
             output = self.model(built_dataset.samples, train=False)
-        except Exception:
+        except Exception as e:
             warnings.warn(f"Failed to build template on the state: {self._engine.dataset}")
+            warnings.warn(e)
         return super().query_actions()
 
     @override

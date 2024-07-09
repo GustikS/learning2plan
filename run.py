@@ -4,12 +4,10 @@ import argparse
 import os
 import random
 import sys
+from pathlib import Path
+# sys.path.append("..")  # just a quick fix for the tests to pass... to be removed
 
 from neuralogic.nn.java import NeuraLogic
-
-sys.path.append("..")  # just a quick fix for the tests to pass... to be removed
-
-from pathlib import Path
 
 import neuralogic
 import numpy as np

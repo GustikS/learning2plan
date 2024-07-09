@@ -1,4 +1,4 @@
-from neuralogic.core import R
+from neuralogic.core import R, V
 from pymimir import Atom
 from typing_extensions import override
 
@@ -61,8 +61,8 @@ class SatellitePolicyNullary(Policy):
     def _debug_inference(self):
         print("Inference for current state:")
         self._debug_inference_helper(R.instrument_config("S", "I", "M"), newline=True)
-        self._debug_inference_helper(R.exists_ug_have_image, newline=True)
-        self._debug_inference_helper(R.exists_calibrate, newline=True)
+        self._debug_inference_helper(R.guard_ug_have_image, newline=True)
+        self._debug_inference_helper(R.guard_calibrate, newline=True)
         self._debug_inference_helper(R.exists_take_image, newline=True)
         self._debug_inference_helper(R.exists_switch_on, newline=True)
         print("-" * 80)
@@ -71,6 +71,7 @@ class SatellitePolicyNullary(Policy):
 
     @override
     def _add_derived_predicates(self):
+        """This is a new version that should be easier to debug/maintain"""
         head = R.instrument_config("S", "I", "M")
         body = [
             R.supports("I", "M"),
@@ -78,49 +79,20 @@ class SatellitePolicyNullary(Policy):
         ]
         self.add_rule(head, body)
 
-        # "S" is dummy in the following since neuralogic does not have nullary predicates
-        # todo Gustav: it does have nullary predicates - R.nullary , also you can write dummy variables as "_"
-        #  - see modifications/simplifications bellow, hopefully it is what you meant
+        self.add_rule(R.derivable_ug_have_image, R.ug_have_image("A", "B"))
+        self.add_rule(R.guard_ug_have_image, ~R.derivable_ug_have_image, guard_level=1, embedding_layer=-1)
 
-        # head = R.exists_ug_have_image("S")
-        head = R.exists_ug_have_image
-        body = [
-            R.ug_have_image("D", "M"),
-            # R.satellite("S"),
-        ]
-        self.add_rule(head, body)
+        self.add_rule(R.derivable_calibrate, R.calibrate("A", "B", "C"))
+        self.add_rule(R.guard_calibrate, ~R.derivable_calibrate, guard_level=4, embedding_layer=-1)
 
-        # head = R.exists_calibrate("S")
-        head = R.exists_calibrate
-        body = [
-            R.calibrate("S_other", "I", "D"),
-            # R.satellite("S")
-        ]
-        self.add_rule(head, body)
+        self.add_rule(R.derivable_take_image, R.take_image("A", "B", "C", "D"))
+        self.add_rule(R.guard_take_image, ~R.derivable_take_image, guard_level=4, embedding_layer=-1)
 
-        # head = R.exists_take_image("S")
-        head = R.exists_take_image
-        body = [
-            R.take_image("S_other", "D", "I", "M"),
-            # R.satellite("S")
-        ]
-        self.add_rule(head, body)
+        self.add_rule(R.derivable_switch_on, R.switch_on("A", "B"))
+        self.add_rule(R.guard_switch_on, ~R.derivable_switch_on, guard_level=4, embedding_layer=-1)
 
-        # head = R.exists_switch_on("S")
-        head = R.exists_switch_on
-        body = [
-            R.switch_on("I", "S_other"),
-            # R.satellite("S")
-        ]
-        self.add_rule(head, body)
-
-        # head = R.exists_towards_ug_have_image("S")
-        head = R.exists_towards_ug_have_image
-        body = [
-            R.turn_towards_ug_have_image("S_other", "D_new", "D_prev"),
-            # R.satellite("S")
-        ]
-        self.add_rule(head, body)
+        self.add_rule(R.derivable_towards_ug_have_image, R.turn_towards_ug_have_image("A", "B", "C"))
+        self.add_rule(R.guard_towards_ug_have_image, ~R.derivable_towards_ug_have_image, guard_level=4, embedding_layer=-1)
 
     @override
     def _add_policy_rules(self):
@@ -141,19 +113,15 @@ class SatellitePolicyNullary(Policy):
             R.instrument_config("S", "I", "M"),
             R.calibrated("I"),
             # (LP)
-            # ~R.exists_calibrate("S"),
-            # ~R.exists_take_image("S"),
-            # ~R.exists_switch_on("S"),
-            ~R.exists_calibrate,
-            ~R.exists_take_image,
-            ~R.exists_switch_on,
+            R.guard_calibrate,
+            R.guard_take_image,
+            R.guard_switch_on,
         ]
         head = R.turn_towards_ug_have_image("S", "D_new", "D_prev")
         self.add_rule(head, body)
         self.add_output_action("turn_to", [
             head,
-            # ~R.exists_take_image("S")
-            ~R.exists_take_image
+            R.guard_take_image
         ])
 
         # turn towards calibration direction if instrument is not turned on
@@ -162,32 +130,23 @@ class SatellitePolicyNullary(Policy):
             R.instrument_config("S", "I", "M"),
             ~R.calibrated("I"),
             R.calibration_target("I", "D_new"),
-            # ~R.exists_towards_ug_have_image("S"),
-            ~R.exists_towards_ug_have_image,
+            R.guard_towards_ug_have_image,
             # (LP)
-            # ~R.exists_calibrate("S"),
-            # ~R.exists_take_image("S"),
-            # ~R.exists_switch_on("S"),
-            ~R.exists_calibrate,
-            ~R.exists_take_image,
-            ~R.exists_switch_on,
+            R.guard_calibrate,
+            R.guard_take_image,
+            R.guard_switch_on,
         ]
         self.add_output_action("turn_to", body)
 
         # for pointing goals
         body = [
             R.ug_pointing("S", "D_new"),
-            # ~R.exists_ug_have_image("S"),
-            ~R.exists_ug_have_image,
-            # ~R.exists_towards_ug_have_image("S"),
-            ~R.exists_towards_ug_have_image,
+            R.guard_ug_have_image,
+            R.guard_towards_ug_have_image,
             # (LP)
-            # ~R.exists_calibrate("S"),
-            # ~R.exists_take_image("S"),
-            # ~R.exists_switch_on("S"),
-            ~R.exists_calibrate,
-            ~R.exists_take_image,
-            ~R.exists_switch_on,
+            R.guard_calibrate,
+            R.guard_take_image,
+            R.guard_switch_on,
         ]
         self.add_output_action("turn_to", body)
 
@@ -224,3 +183,61 @@ class SatellitePolicyNullary(Policy):
             R.instrument_config("S", "I", "M"),
         ]
         self.add_output_action("take_image", body)
+
+
+    def _add_derived_predicates_orig(self):
+        head = R.instrument_config("S", "I", "M")
+        body = [
+            R.supports("I", "M"),
+            R.on_board("I", "S"),
+        ]
+        self.add_rule(head, body)
+
+        # "S" is dummy in the following since neuralogic does not have nullary predicates
+        # todo Gustav: it does have nullary predicates - R.nullary , also you can write dummy variables as "_"
+        #  - see modifications/simplifications bellow, hopefully it is what you meant
+        #  - but please be aware that using the "exists..." is a very brittle thing to do
+        #       - it will not stop the derivation, if the "exists..." has not been proved YET!
+        #           - hence it requires quite some thinking about the derivation order...
+        #               - you might use some "guards" for that purpose, e.g. guard_switch <= applicable_switch_on(_,_)
+        #                   - and then use turn_on(...) <= guard_switch & !exists_switch_on
+
+        # head = R.exists_ug_have_image("S")
+        head = R.exists_ug_have_image
+        body = [
+            R.ug_have_image("D", "M"),
+            # R.satellite("S"),
+        ]
+        self.add_rule(head, body, is_guard=True)
+
+        # head = R.exists_calibrate("S")
+        head = R.exists_calibrate
+        body = [
+            R.calibrate("S_other", "I", "D"),
+            # R.satellite("S")
+        ]
+        self.add_rule(head, body, is_guard=True)
+
+        # head = R.exists_take_image("S")
+        head = R.exists_take_image
+        body = [
+            R.take_image("S_other", "D", "I", "M"),
+            # R.satellite("S")
+        ]
+        self.add_rule(head, body, is_guard=True)
+
+        # head = R.exists_switch_on("S")
+        head = R.exists_switch_on
+        body = [
+            R.switch_on("I", "S_other"),
+            # R.satellite("S")
+        ]
+        self.add_rule(head, body, is_guard=True)
+
+        # head = R.exists_towards_ug_have_image("S")
+        head = R.exists_towards_ug_have_image
+        body = [
+            R.turn_towards_ug_have_image("S_other", "D_new", "D_prev"),
+            # R.satellite("S")
+        ]
+        self.add_rule(head, body, is_guard=True)
