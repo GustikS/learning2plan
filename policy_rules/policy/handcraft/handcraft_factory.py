@@ -11,7 +11,8 @@ def get_handcraft_policy(domain: str) -> Policy:
         "blocksworld": BlocksworldPolicy,
         "ferry": FerryPolicy,
         "miconic": MiconicPolicy,
-        "satellite": SatellitePolicy,
+        # "satellite": SatellitePolicy,
+        "satellite": SatellitePolicyNullary,
     }
     if domain not in domains:
         raise NotImplementedError
