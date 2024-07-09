@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import os
 import random
 import sys
 
@@ -8,21 +9,25 @@ from neuralogic.nn.java import NeuraLogic
 
 sys.path.append("..")  # just a quick fix for the tests to pass... to be removed
 
-import numpy as np
-from termcolor import colored
 from pathlib import Path
 
 import neuralogic
+import numpy as np
 import pymimir
 from neuralogic.logging import Formatter, Level, add_handler
+from termcolor import colored
+
+CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 
 if not neuralogic.is_initialized():
-    neuralogic.initialize(jar_path="../jar/NeuraLogic.jar", debug_mode=False)  # custom momentary backend upgrades
+    jar_path = f"{CUR_DIR}/jar/NeuraLogic.jar"
+    # custom momentary backend upgrades
+    neuralogic.initialize(jar_path=jar_path, debug_mode=False)
 
-from policy.handcraft.handcraft_factory import get_handcraft_policy
-from util.template_settings import load_stored_model
-from util.printing import print_mat
-from util.timer import TimerContextManager
+from policy_rules.policy.handcraft.handcraft_factory import get_handcraft_policy
+from policy_rules.util.printing import print_mat
+from policy_rules.util.template_settings import load_stored_model
+from policy_rules.util.timer import TimerContextManager
 
 
 def goal_count(state: pymimir.State, goal: list[pymimir.Literal]) -> int:
@@ -83,11 +88,11 @@ def main():
     embed_dim = args.embedding
     num_layers = args.layers
     skip_knowledge = args.skip
-    domain_path = f"l4np/{domain_name}/classic/domain.pddl"
-    test_problem_path = f"l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
-    template_path = f"../datasets/lrnn/{domain_name}/classic/{template_name}"
-    template_saving_path = f"../datasets/lrnn/{domain_name}/classic/{save_file_name}"
-    training_data_path = f"../datasets/lrnn/{domain_name}/classic/{training_data_dir}"
+    domain_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/domain.pddl"
+    test_problem_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
+    template_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{template_name}"
+    template_saving_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{save_file_name}"
+    training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{training_data_dir}"
     _DEBUG_LEVEL = args.verbose
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
     assert Path(training_data_path).exists() or Path(test_problem_path).exists(), \
@@ -102,7 +107,7 @@ def main():
 
     total_time = 0
 
-    with TimerContextManager("parsing PDDL domain file") as timer:
+    with TimerContextManager(f"parsing PDDL domain file {str(domain_path)}") as timer:
         domain = pymimir.DomainParser(str(domain_path)).parse()
         total_time += timer.get_time()
 
@@ -131,7 +136,7 @@ def main():
         policy.store_policy(template_saving_path)
 
     if problem_name:
-        with TimerContextManager("parsing + loading the test Problem") as timer:
+        with TimerContextManager(f"parsing + loading PDDL problem file {str(test_problem_path)}") as timer:
             problem = pymimir.ProblemParser(str(test_problem_path)).parse(domain)
             state = problem.create_state(problem.initial)
             goal = problem.goal
