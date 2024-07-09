@@ -17,9 +17,10 @@ import pymimir
 from neuralogic.logging import Formatter, Level, add_handler
 from termcolor import colored
 
+CUR_DIR = os.path.dirname(os.path.abspath(__file__))
+
 if not neuralogic.is_initialized():
-    file_directory = os.path.dirname(os.path.abspath(__file__))
-    jar_path = f"{file_directory}/jar/NeuraLogic.jar"
+    jar_path = f"{CUR_DIR}/jar/NeuraLogic.jar"
     # custom momentary backend upgrades
     neuralogic.initialize(jar_path=jar_path, debug_mode=False)
 
@@ -87,11 +88,11 @@ def main():
     embed_dim = args.embedding
     num_layers = args.layers
     skip_knowledge = args.skip
-    domain_path = f"policy_rules/l4np/{domain_name}/classic/domain.pddl"
-    test_problem_path = f"policy_rules/l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
-    template_path = f"../datasets/lrnn/{domain_name}/classic/{template_name}"
-    template_saving_path = f"../datasets/lrnn/{domain_name}/classic/{save_file_name}"
-    training_data_path = f"../datasets/lrnn/{domain_name}/classic/{training_data_dir}"
+    domain_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/domain.pddl"
+    test_problem_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
+    template_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{template_name}"
+    template_saving_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{save_file_name}"
+    training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{training_data_dir}"
     _DEBUG_LEVEL = args.verbose
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
     assert Path(training_data_path).exists() or Path(test_problem_path).exists(), \
