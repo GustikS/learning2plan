@@ -57,17 +57,19 @@ def goal_repr(goal: list[pymimir.Literal]):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--domain", type=str, default="satellite")
+    parser.add_argument("-d", "--domain", type=str, default="blocksworld")
     parser.add_argument("-p", "--problem", type=str, default="0_02", help="Of the form 'x_yy'")
     parser.add_argument("-v", "--verbose", type=int, default=0)
     parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound.")
     parser.add_argument("-t", "--template", type=str, default="", help="Policy template name.")
     parser.add_argument("-f", "--files", type=str, default="", help="Save template file(s) name.")
-    parser.add_argument("-l", "--learning", type=str, default="", choices=["", "_", str],
+    parser.add_argument("-l", "--learning", type=str, default="",
                         help="Training data subdirectory ( '_' for root subdir).")
-    parser.add_argument("-e", "--embedding", type=int, default=3, choices=[-1, 1, int],
+    parser.add_argument("-lim", "--limit", type=int, default=-1,
+                        help="Training data samples cutoff limit")
+    parser.add_argument("-e", "--embedding", type=int, default=3,
                         help="Embedding dimensionality throughout the model (-1 = off, 1 = scalar)")
-    parser.add_argument("-n", "--layers", type=int, default=1, choices=[-1, 1, int],
+    parser.add_argument("-n", "--layers", type=int, default=1,
                         help="Number of model layers (-1 = off, 1 = just embedding, 2+ = message-passing)")
     parser.add_argument("-k", "--skip", type=bool, default=False,
                         help="An option to skip the domain knowledge and use just a generic ML model")
@@ -83,6 +85,7 @@ def main():
     template_name = args.template
     save_file_name = args.files
     training_data_dir = args.learning
+    samples_limit = args.limit
     embed_dim = args.embedding
     num_layers = args.layers
     skip_knowledge = args.skip
@@ -101,7 +104,7 @@ def main():
     if _DEBUG_LEVEL > 3:
         add_handler(sys.stdout, Level.INFO, Formatter.COLOR)
     else:
-        add_handler(sys.stdout, Level.OFF, Formatter.COLOR)
+        add_handler(sys.stdout, Level.WARNING, Formatter.COLOR)
 
     total_time = 0
 
@@ -127,7 +130,7 @@ def main():
 
     if training_data_dir and hasattr(policy, "model"):
         with TimerContextManager("training the policy template") as timer:
-            policy.train_model_from(training_data_path)
+            policy.train_model_from(training_data_path, samples_limit)
             total_time += timer.get_time()
 
     if save_file_name:

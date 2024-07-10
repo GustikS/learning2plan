@@ -166,9 +166,9 @@ class LearningPolicy(Policy):
             #     return literal[dim, dim]
             if literal.predicate.name[:3] in ['ap_', 'ag_', 'ug_']:  # scalar input atoms
                 return literal[dim, 1]
-            if literal.predicate.name in self.action_header2query.keys():   # scalar output actions
+            if literal.predicate.name in self.action_header2query.keys():  # scalar output actions
                 return literal[dim, 1]
-            if literal.predicate.name.startswith("h_") and literal.predicate.arity == 0:    # scalar special guards
+            if literal.predicate.name.startswith("h_") and literal.predicate.arity == 0:  # scalar special guards
                 return literal[dim, 1]
             else:
                 return literal[dim, dim]
@@ -198,18 +198,23 @@ class LearningPolicy(Policy):
             template += gnn_message_passing("edge", dim, num_layers=self.num_layers)
             # template += gnn_message_passing(f"{2}-ary", dim, num_layers=num_layers)
 
-    def train_model_from(self, train_data_dir: str):
+    def train_model_from(self, train_data_dir: str, samples_limit: int = -1):
         if train_data_dir.endswith("/_"):
             train_data_dir = train_data_dir[:-2]
         assert os.path.isdir(train_data_dir), print(f"No LRNN training data available at {train_data_dir}")
         try:
-            self._train_parameters(train_data_dir)
+            self._train_parameters(train_data_dir, samples_limit=samples_limit)
         except Exception as e:
             print(f"Invalid training setup from: {train_data_dir}")
             print(e)
 
-    def _train_parameters(self, lrnn_dataset_dir: str, epochs: int = 100, save_model_path: str = None):
+    def _train_parameters(self, lrnn_dataset_dir: str,
+                          epochs: int = 100,
+                          save_model_path: str = None,
+                          samples_limit: int = -1):
         try:
+            if samples_limit > 0:
+                neuralogic_settings["appLimitSamples"] = samples_limit
             dataset = FileDataset(f"{lrnn_dataset_dir}/examples.txt", f"{lrnn_dataset_dir}/queries.txt")
             neural_samples = self.model.build_dataset(dataset)
             print("Neural samples successfully built (the template is working correctly)")
@@ -261,7 +266,8 @@ class FasterLearningPolicy(LearningPolicy):
             output = self.model(built_dataset.samples, train=False)
         except Exception as e:
             warnings.warn(f"Failed to build template on the state: {self._engine.dataset}")
-            warnings.warn(e)
+            warnings.warn(str(e))
+            raise e
         return super().query_actions()
 
     @override

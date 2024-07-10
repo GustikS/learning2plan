@@ -87,8 +87,9 @@ class Policy:
         ilg_atoms = self.get_ilg_facts(state)
         lrnn_atoms = [R.get(atom.predicate)([C.get(obj) for obj in atom.objects]) for atom in ilg_atoms]
         if self.guards_levels > -1:
-            base_atom = [R.h_0] # if we want to use the inference hierarchy, starting in the sample...
-        self._engine.set_knowledge(lrnn_atoms + self.get_object_information() + base_atom)
+            lrnn_atoms.append(R.h_0) # if we want to use the inference hierarchy, starting in the sample...
+
+        self._engine.set_knowledge(lrnn_atoms + self.get_object_information())
 
     def solve(self, state: list[Atom]) -> list[(float, Action)]:
         """given a State from the currently assumed Problem, return possible actions from policy rules"""
