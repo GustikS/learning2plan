@@ -6,24 +6,24 @@ import pymimir
 from tqdm import tqdm
 
 DOMAINS = [
-    # "blocksworld",
+    "blocksworld",
     # "childsnack",
     # "ferry",
     # # "floortile",
     # "miconic",
     # "rovers",
     # "satellite",
-    # # "sokoban",
-    "spanner",
-    "transport",
+    # "sokoban",
+    # "spanner",
+    # "transport",
 ]
-
 
 MAX_TOTAL_STATES_PER_PROBLEM = 10000
 MAX_TOTAL_STATES_PER_DOMAIN = 25500
 
 
 def get_static_predicates(domain: pymimir.Domain):
+    # todo G->D: what is this supposed to do? Taking effect predicates as static seems wrong... it causes states in the jsons...
     predicates = {}
     for schema in domain.action_schemas:
         for effect in schema.effect:
@@ -43,7 +43,8 @@ def main():
 
         domain_pddl = f"ipc23lt/{domain_name}/domain.pddl"
         domain = pymimir.DomainParser(str(domain_pddl)).parse()
-        static_predicates = get_static_predicates(domain)
+        # static_predicates = get_static_predicates(domain) #
+        static_predicates = []
 
         data = {
             "predicates": {pred.name: pred.arity for pred in domain.predicates},
@@ -68,7 +69,8 @@ def main():
             problem = pymimir.ProblemParser(str(problem_pddl)).parse(domain)
 
             successor_generator = pymimir.GroundedSuccessorGenerator(problem)
-            state_space = pymimir.StateSpace.new(problem, successor_generator, max_expanded=MAX_TOTAL_STATES_PER_PROBLEM)
+            state_space = pymimir.StateSpace.new(problem, successor_generator,
+                                                 max_expanded=MAX_TOTAL_STATES_PER_PROBLEM)
             if state_space is None:
                 # print('Too many states. Break.')
                 # break
@@ -94,8 +96,8 @@ def main():
                 "states": [],
             }
 
-            best_h = float("inf")
-            best_actions = []
+            # best_h = float("inf")
+            # best_actions = []   # todo G->D: are the states ordered in decreasing distance manner? Otherwise the best_h check seems suspicious? Check - this indeed seems wrong...
             for state in state_space.get_states():
                 if n_states >= MAX_TOTAL_STATES_PER_DOMAIN:
                     break
@@ -103,24 +105,30 @@ def main():
                     continue
                 this_h = state_space.get_distance_to_goal_state(state)
                 applicable_actions = successor_generator.get_applicable_actions(state)
+                action_values = {}
                 for action in applicable_actions:
                     next_state = action.apply(state)
                     h = state_space.get_distance_to_goal_state(next_state)
+                    action_values[action.get_name()] = h
                     # if h == 0:
                     #     assert state_space.is_goal_state(next_state)
-                    if h < best_h:
-                        best_h = h
-                        best_actions = [action]
-                    elif h == best_h:
-                        best_actions.append(action)
+                    # if h < best_h:
+                    #     best_h = h
+                    #     best_actions = [action]
+                    # elif h == best_h:
+                    #     best_actions.append(action)
+                best_h = min(action_values.values())
+                best_actions = [key for key, value in action_values.items() if value == best_h]
                 n_states += 1
                 pbar.set_description(f"{domain_name} {problem_name} {n_states}")
 
                 state_data = {
-                    "facts": [atom.get_name() for atom in state.get_atoms() if atom.predicate.name not in static_predicates],
+                    "facts": [atom.get_name() for atom in state.get_atoms() if
+                              atom.predicate.name not in static_predicates],
                     "fluents": {},
                     "h": this_h,
-                    "optimal_actions": [action.get_name() for action in best_actions],
+                    "optimal_actions": best_actions,
+                    "action_values": action_values
                 }
                 problem_data["states"].append(state_data)
             data["problems"].append(problem_data)
@@ -131,6 +139,7 @@ def main():
         with open(json_path, "w") as f:
             import json
             json.dump(data, f, indent=2)
+
 
 if __name__ == "__main__":
     main()
