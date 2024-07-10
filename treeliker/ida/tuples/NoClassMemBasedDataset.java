@@ -1,4 +1,4 @@
-package ida.tuples.common;
+package ida.tuples;
 
 import ida.ilp.treeLiker.Dataset;
 import ida.ilp.treeLiker.Example;

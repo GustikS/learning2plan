@@ -1,4 +1,4 @@
-package ida.tuples.common;
+package ida.tuples;
 
 import ida.ilp.basic.Clause;
 import ida.ilp.basic.Literal;
@@ -33,7 +33,7 @@ public class PreprocessedInput {
 
         detectGlobalConstants(literalDefinitions);
         Set<PredicateDefinition> modifiedTemplate = preprocessData(literalDefinitions);
-        preprocessTemplate(modifiedTemplate);
+        buildConnectedComponents(modifiedTemplate);
     }
 
     public List<Clause> getOriginalData() {
@@ -62,7 +62,7 @@ public class PreprocessedInput {
 
     private Set<PredicateDefinition> preprocessData(Set<PredicateDefinition> template) {
         Set<PredicateDefinition> modifiedTemplate = new LinkedHashSet<PredicateDefinition>();
-        template = processDefinitions(template);
+        template = preprocessDefinitions(template);
 
         for (Clause clause : originalData) {
             Clause reachableExample = Preprocessor.reachableLiterals(template, globalConstants, clause);
@@ -112,7 +112,7 @@ public class PreprocessedInput {
         return modifiedTemplate;
     }
 
-    private Set<PredicateDefinition> processDefinitions(Set<PredicateDefinition> definitions) {
+    private Set<PredicateDefinition> preprocessDefinitions(Set<PredicateDefinition> definitions) {
         Set<PredicateDefinition> retVal = new HashSet<PredicateDefinition>();
 
         for (PredicateDefinition def : definitions) {
@@ -131,7 +131,7 @@ public class PreprocessedInput {
         return retVal;
     }
 
-    private void preprocessTemplate(Set<PredicateDefinition> modifiedTemplate) {
+    private void buildConnectedComponents(Set<PredicateDefinition> modifiedTemplate) {
         List<PredicateDefinition> outputOnlyLiteralDefinitions = new ArrayList<PredicateDefinition>();
         Set<PredicateDefinition> remainingLiteralDefinitions = new LinkedHashSet<PredicateDefinition>();
         for (PredicateDefinition def : modifiedTemplate) {

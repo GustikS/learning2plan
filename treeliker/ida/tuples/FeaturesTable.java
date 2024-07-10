@@ -1,16 +1,16 @@
-package ida.tuples.planning;
+package ida.tuples;
 
 import ida.ilp.basic.Clause;
 import ida.ilp.treeLiker.Table;
 
 import java.util.*;
 
-public class FeatureData {
+public class FeaturesTable {
 
     public final List<Clause> features;
     public final int[][] table;
 
-    public FeatureData(Table<Integer, String> propTable) {
+    public FeaturesTable(Table<Integer, String> propTable) {
         Set<String> stringFeatures = propTable.filteredAttributes();
         int noExamples = propTable.getAttributeVector(stringFeatures.iterator().next()).size();
 
@@ -35,18 +35,20 @@ public class FeatureData {
 
     @Override
     public String toString() {
-        return "FeatureData {\n" +
-                "\tfeatures:" + features.toString() + '\n' +
-                "\ttable=" + tableToString() + '\n' +
-                '}';
+        return "FeaturesTable{\n" +
+                printFeatures() + '\n' +
+                Arrays.deepToString(table) + "}\n";
     }
 
-    private String tableToString() {
+    private String printFeatures() {
         StringBuilder sb = new StringBuilder();
-        for (int[] row : table) {
-            sb.append(Arrays.toString(row));
+        sb.append('[');
+        for (Clause feature : features) {
+            sb.append(feature);
             sb.append("; ");
         }
+        sb.append(']');
         return sb.toString();
     }
+
 }

@@ -1,13 +1,10 @@
-package ida.tuples.planning;
+package ida.tuples;
 
 import ida.ilp.basic.Clause;
 import ida.ilp.basic.Literal;
 import ida.ilp.treeLiker.*;
 import ida.ilp.treeLiker.aggregables.GroundingCountingAggregablesBuilder;
 import ida.ilp.treeLiker.aggregables.VoidAggregablesBuilder;
-import ida.tuples.common.GraphTemplateBuilder;
-import ida.tuples.common.PreprocessedInput;
-import ida.tuples.common.TuplesSettings;
 import ida.utils.collections.IntegerSet;
 
 import java.util.ArrayList;
@@ -15,15 +12,75 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Wrapper class for all TUPLES-related calls to TreeLiker.
+ */
 public class TreeLikerGateway {
 
+    /**
+     * Construct treeliker features for the dataset using TuplesSettings.TEMPLATE_DEPTH parameter.
+     *
+     * @param dataset symbolic examples
+     * @return constructed features along with a table of their evaluations
+     */
+    public static FeaturesTable buildTreeLikerTable(List<Clause> dataset) {
+        return buildTreeLikerTable(dataset, TuplesSettings.TEMPLATE_DEPTH);
+    }
 
-    public FeatureData runTreeLiker(List<Clause> dataset, int featureDepth) {
+    /**
+     * Construct treeliker features for the dataset.
+     *
+     * @param dataset symbolic examples
+     * @param featureDepth max depth of the constructed features
+     * @return constructed features along with a table of their evaluations
+     */
+    public static FeaturesTable buildTreeLikerTable(List<Clause> dataset, int featureDepth) {
+        TreeLikerGateway gateway = new TreeLikerGateway();
+        return gateway.buildTable(dataset, featureDepth);
+    }
+
+    /**
+     * Construct treeliker features for the dataset using the provided template.
+     *
+     * @param dataset symbolic examples
+     * @param template language bias
+     * @return constructed features along with a table of their evaluations
+     */
+    public static FeaturesTable buildTreeLikerTable(List<Clause> dataset, String template) {
+        TreeLikerGateway gateway = new TreeLikerGateway();
+        return gateway.buildTable(dataset, template);
+    }
+
+    /**
+     * Construct treeliker features for the dataset using TuplesSettings.TEMPLATE_DEPTH parameter.
+     *
+     * @param dataset symbolic examples
+     * @return constructed features along with a table of their evaluations
+     */
+    public FeaturesTable buildTable(List<Clause> dataset) {
+        return buildTable(dataset, TuplesSettings.TEMPLATE_DEPTH);
+    }
+
+    /**
+     * Construct treeliker features for the dataset.
+     *
+     * @param dataset symbolic examples
+     * @param featureDepth max depth of the constructed features
+     * @return constructed features along with a table of their evaluations
+     */
+    public FeaturesTable buildTable(List<Clause> dataset, int featureDepth) {
         PreprocessedInput preprocessed = preprocess(dataset, featureDepth);
         return runTreeLiker(preprocessed);
     }
 
-    public FeatureData runTreeLiker(List<Clause> dataset, String template) {
+    /**
+     * Construct treeliker features for the dataset using the provided template.
+     *
+     * @param dataset symbolic examples
+     * @param template language bias
+     * @return constructed features along with a table of their evaluations
+     */
+    public FeaturesTable buildTable(List<Clause> dataset, String template) {
         PreprocessedInput preprocessed = new PreprocessedInput(template, dataset);
         return runTreeLiker(preprocessed);
     }
@@ -34,7 +91,7 @@ public class TreeLikerGateway {
         return new PreprocessedInput(stringTemplate, dataset);
     }
 
-    private FeatureData runTreeLiker(PreprocessedInput preprocessed) {
+    private FeaturesTable runTreeLiker(PreprocessedInput preprocessed) {
         Set<Block> features = constructFeatures(preprocessed);
         return evaluateFeatures(features, preprocessed.getGlobalConstants(), preprocessed.getDataset());
     }
@@ -56,7 +113,7 @@ public class TreeLikerGateway {
         return features;
     }
 
-    private FeatureData evaluateFeatures(Set<Block> features, List<PredicateDefinition> globalConstants, Dataset dataset) {
+    private FeaturesTable evaluateFeatures(Set<Block> features, List<PredicateDefinition> globalConstants, Dataset dataset) {
         Table<Integer, String> table = new Table<>();
 
         List<Block> nonConstantAttributes = new ArrayList<Block>();
@@ -85,7 +142,7 @@ public class TreeLikerGateway {
         }
 
         table.addAll(hifi.constructTable(nonConstantAttributes));
-        return new FeatureData(table);
+        return new FeaturesTable(table);
     }
 
     private void addGlobalConstants(Example example, int exampleIndex, Table<Integer, String> t, List<PredicateDefinition> globalConstants) {

@@ -1,4 +1,4 @@
-package ida.tuples.common;
+package ida.tuples;
 
 import ida.ilp.basic.Clause;
 import ida.ilp.basic.Literal;

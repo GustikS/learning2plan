@@ -1,13 +1,7 @@
 package ida.tuples;
 
 import ida.ilp.basic.Clause;
-import ida.ilp.treeLiker.Block;
-import ida.ilp.treeLiker.PredicateDefinition;
 import ida.ilp.treeLiker.Settings;
-import ida.tuples.common.GraphTemplateBuilder;
-import ida.tuples.common.PreprocessedInput;
-import ida.tuples.planning.FeatureData;
-import ida.tuples.planning.TreeLikerGateway;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +36,7 @@ public class TuplesMain {
 
         System.out.println(input);
 
-        FeatureData featureData = new TreeLikerGateway().runTreeLiker(dataset, 1);
+        FeaturesTable featureData = new TreeLikerGateway().runTreeLiker(dataset, 1);
         System.out.println(featureData);
     }
 

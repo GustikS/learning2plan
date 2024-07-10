@@ -1,4 +1,4 @@
-package ida.tuples.common;
+package ida.tuples;
 
 public class TuplesSettings {
 
