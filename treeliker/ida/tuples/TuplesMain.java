@@ -9,8 +9,8 @@ import java.util.List;
 public class TuplesMain {
 
     private final String[] data = {
-            "_vert(1), _vert(2), _vert(3), _vert(4), bond(1, 2), bond(2, 1), bond(2, 3), bond(3, 2), bond(2, 4), bond(4, 2), bond_2(1, 2), bond_2(2, 1), bond_2(2, 3), bond_2(3, 2), bond_2(2, 4), bond_2(4, 2), red(1), blue(2), red(3), red(4)",
-            "_vert(1), _vert(2), _vert(3), bond(1, 2), bond(2, 1), bond(1, 3), bond(3, 1), bond(2, 3), bond(3, 2), bond_2(1, 2), bond_2(2, 1), bond_2(1, 3), bond_2(3, 1), bond_2(2, 3), bond_2(3, 2), red(1), blue(2), green(3)"
+            "_vert(1), _vert(2), _vert(3), _vert(4), bond(1, 2), bond(2, 1), bond(2, 3), bond(3, 2), bond(2, 4), bond(4, 2), red(1), blue(2), red(3), red(4)",
+            "_vert(1), _vert(2), _vert(3), bond(1, 2), bond(2, 1), bond(1, 3), bond(3, 1), bond(2, 3), bond(3, 2), red(1), blue(2), green(3)"
     };
 
     private List<Clause> parseDataset() {
@@ -36,8 +36,12 @@ public class TuplesMain {
 
         System.out.println(input);
 
-        FeaturesTable featureData = new TreeLikerGateway().runTreeLiker(dataset, 1);
+        FeaturesTable featureData = TreeLikerGateway.buildTreeLikerTable(dataset, 1);
         System.out.println(featureData);
+
+        TuplesSettings.COUNT_GROUNDINGS = false;
+        FeaturesTable featuresTable = new TreeLikerGateway().buildTableForExplanations(dataset);
+        System.out.println(featuresTable);
     }
 
 
