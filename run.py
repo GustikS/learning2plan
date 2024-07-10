@@ -71,7 +71,7 @@ def main():
                         help="Embedding dimensionality throughout the model (-1 = off, 1 = scalar)")
     parser.add_argument("-n", "--layers", type=int, default=1,
                         help="Number of model layers (-1 = off, 1 = just embedding, 2+ = message-passing)")
-    parser.add_argument("-k", "--skip", type=bool, default=False,
+    parser.add_argument("-k", "--skip", type=bool, default=False, action=argparse.BooleanOptionalAction,
                         help="An option to skip the domain knowledge and use just a generic ML model")
     parser.add_argument("-s", "--seed", type=int, default=2024, help="Random seed.")
     parser.add_argument("-c", "--choice", default="best", choices=["sample", "best"],
@@ -103,8 +103,10 @@ def main():
 
     if _DEBUG_LEVEL > 3:
         add_handler(sys.stdout, Level.INFO, Formatter.COLOR)
-    else:
+    if _DEBUG_LEVEL > 2:
         add_handler(sys.stdout, Level.WARNING, Formatter.COLOR)
+    else:
+        add_handler(sys.stdout, Level.SEVERE, Formatter.COLOR)
 
     total_time = 0
 

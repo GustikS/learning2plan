@@ -214,12 +214,14 @@ class LearningPolicy(Policy):
                           samples_limit: int = -1):
         try:
             if samples_limit > 0:
+                neuralogic_settings["stratification"] = False
                 neuralogic_settings["appLimitSamples"] = samples_limit
             dataset = FileDataset(f"{lrnn_dataset_dir}/examples.txt", f"{lrnn_dataset_dir}/queries.txt")
             neural_samples = self.model.build_dataset(dataset)
             print("Neural samples successfully built (the template is working correctly)")
             print("Starting training...")
             results = self.model(neural_samples, train=True, epochs=epochs)
+            neuralogic_settings["aggregateConflictingQueries"] = False
             print("...finished training")
             total_error = 0
             if self._debug > 1:
