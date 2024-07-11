@@ -8,6 +8,7 @@ from neuralogic.core.constructs.relation import BaseRelation, WeightedRelation
 from neuralogic.dataset import FileDataset
 from neuralogic.inference import EvaluationInferenceEngine
 from neuralogic.nn.java import NeuraLogic
+from neuralogic.nn.loss import MSE, CrossEntropy
 from pymimir import Action, Domain
 from typing_extensions import override
 
@@ -198,9 +199,13 @@ class LearningPolicy(Policy):
             template += gnn_message_passing("edge", dim, num_layers=self.num_layers)
             # template += gnn_message_passing(f"{2}-ary", dim, num_layers=num_layers)
 
-    def train_model_from(self, train_data_dir: str, samples_limit: int = -1):
-        if train_data_dir.endswith("/_"):
-            train_data_dir = train_data_dir[:-2]
+    def train_model_from(self, train_data_dir: str, samples_limit: int = -1,
+                         state_regression=False, action_regression=False):
+        if state_regression or action_regression:
+            neuralogic_settings.error_function = MSE()
+        else:
+            neuralogic_settings.error_function = CrossEntropy(with_logits=True)
+
         try:
             self._train_parameters(train_data_dir, samples_limit=samples_limit)
         except Exception as e:
@@ -216,9 +221,9 @@ class LearningPolicy(Policy):
                 neuralogic_settings["stratification"] = False
                 neuralogic_settings["appLimitSamples"] = samples_limit
             dataset = FileDataset(f"{lrnn_dataset_dir}/examples.txt", f"{lrnn_dataset_dir}/queries.txt")
-            print("Starting building the samples...")
+            print(f"Starting building the samples with a limit to the first {samples_limit}")
             neural_samples = self.model.build_dataset(dataset)
-            print("Neural samples successfully built (the template is working correctly)")
+            print("Neural samples successfully built (the template logic is working correctly)")
             print("Starting training the parameters...")
             results = self.model(neural_samples, train=True, epochs=epochs)
             print("...finished training")

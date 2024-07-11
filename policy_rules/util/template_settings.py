@@ -2,6 +2,7 @@ import os
 import pickle
 from typing import Union
 
+import neuralogic
 from neuralogic.core import Template, Settings, Transformation, Aggregation
 from neuralogic.nn.java import NeuraLogic
 
@@ -15,6 +16,7 @@ neuralogic_settings = Settings(
     epochs=100,
 )
 # neuralogic_settings["inferOutputFcns"] = False
+neuralogic_settings["oneQueryPerExample"] = False
 
 
 def load_stored_model(template_path: str) -> Union[NeuraLogic | Template]:

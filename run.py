@@ -13,7 +13,6 @@ import neuralogic
 import numpy as np
 import pymimir
 from neuralogic.logging import Formatter, Level, add_handler
-from neuralogic.nn.loss import MSE, CrossEntropy
 from termcolor import colored
 
 from modelling.samples import prepare_training_data
@@ -23,7 +22,10 @@ CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 if not neuralogic.is_initialized():
     jar_path = f"{CUR_DIR}/jar/NeuraLogic.jar"
     # custom momentary backend upgrades
-    neuralogic.initialize(jar_path=jar_path, debug_mode=False)
+    neuralogic.initialize(jar_path=jar_path,
+                          debug_mode=False,  # for java backend debugging
+                          max_memory_size=4  # in GB (increase for full miconic)
+                          )
 
 from policy_rules.policy.handcraft.handcraft_factory import get_handcraft_policy
 from policy_rules.util.printing import print_mat
@@ -91,7 +93,7 @@ def main():
     problem_name = args.problem
     template_name = args.template
     save_file_name = args.save_file
-    training_data_dir = args.train_dir
+    training_data_subdir = args.train_dir if args.train_dir != "_" else ""
     samples_limit = args.limit
     state_regression = args.state_regression
     action_regression = args.action_regression
@@ -102,7 +104,7 @@ def main():
     test_problem_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
     template_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{template_name}"
     template_saving_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{save_file_name}"
-    training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{training_data_dir}"
+    training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{training_data_subdir}"
     _DEBUG_LEVEL = args.verbose
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
     assert Path(training_data_path).exists() or Path(test_problem_path).exists(), \
@@ -133,27 +135,26 @@ def main():
         policy.init_template(loaded_model,
                              dim=embed_dim, num_layers=num_layers,
                              skip_knowledge=skip_knowledge,
-                             add_types=not training_data_dir  # don't use typing in training at the moment
+                             add_types=not args.train_dir  # don't use typing in training at the moment todo
                              )
         if _DEBUG_LEVEL > 0:
             policy._debug_template()
         total_time += timer.get_time()
 
-    if training_data_dir and hasattr(policy, "model"):  # should training be performed
-        if state_regression or action_regression:
-            neuralogic_settings.error_function = MSE()
-        else:
-            neuralogic_settings.error_function = CrossEntropy(with_logits=True)
-
+    # training should be performed if there are training data and the policy has learnable parameters/model
+    if args.train_dir and hasattr(policy, "model"):
         if os.path.isdir(training_data_path):
             print(f"Loading EXISTING LRNN training data from {training_data_path}")
         else:
             print(f"No LRNN training data available at {training_data_path}")
-            print("Will generate new LRNN training dataset there from respective JSON domain file w.r.t. current flags...")
-            prepare_training_data(domain.name, training_data_dir, state_regression, action_regression, cur_dir=CUR_DIR)
-
+            print(
+                "Generating new LRNN training dataset there from respective domain's JSON file w.r.t. current flags...")
+            with TimerContextManager("creating LRNN training dataset from JSON") as timer:
+                prepare_training_data(domain.name, training_data_subdir, cur_dir=CUR_DIR,
+                                      state_regression=state_regression, action_regression=action_regression)
+                total_time += timer.get_time()
         with TimerContextManager("training the policy template") as timer:
-            policy.train_model_from(training_data_path, samples_limit)
+            policy.train_model_from(training_data_path, samples_limit, state_regression, action_regression)
             total_time += timer.get_time()
 
     if save_file_name:
