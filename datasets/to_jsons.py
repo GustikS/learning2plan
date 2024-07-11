@@ -7,15 +7,15 @@ from tqdm import tqdm
 
 DOMAINS = [
     "blocksworld",
-    # "childsnack",
-    # "ferry",
-    # # "floortile",
-    # "miconic",
-    # "rovers",
-    # "satellite",
-    # "sokoban",
-    # "spanner",
-    # "transport",
+    "childsnack",
+    "ferry",
+    # "floortile",
+    "miconic",
+    "rovers",
+    "satellite",
+    "sokoban",
+    "spanner",
+    "transport",
 ]
 
 MAX_TOTAL_STATES_PER_PROBLEM = 10000
@@ -117,8 +117,11 @@ def main():
                     #     best_actions = [action]
                     # elif h == best_h:
                     #     best_actions.append(action)
-                best_h = min(action_values.values())
-                best_actions = [key for key, value in action_values.items() if value == best_h]
+                if action_values:
+                    best_h = min(action_values.values())
+                    best_actions = [key for key, value in action_values.items() if value == best_h]
+                else:
+                    best_actions = []
                 n_states += 1
                 pbar.set_description(f"{domain_name} {problem_name} {n_states}")
 

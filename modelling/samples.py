@@ -5,7 +5,7 @@ import sys
 
 from neuralogic.logging import Formatter, Level, add_handler
 
-add_handler(sys.stdout, Level.FINE, Formatter.COLOR)
+# add_handler(sys.stdout, Level.FINE, Formatter.COLOR)
 
 
 def get_filename(domain_name, numeric, format, path, filename):
@@ -16,25 +16,31 @@ def get_filename(domain_name, numeric, format, path, filename):
 
 
 def parse_domain(domain, numeric=False, encoding="ILG", problem_limit=-1):
-    json_data = load_file(domain, numeric=numeric)
+    json_data = load_json_file(domain, numeric=numeric)
     problems, predicates, actions = parse_json(json_data, encoding=encoding, problem_limit=problem_limit)
     return problems, predicates, actions
 
 
-def load_file(domain_name, numeric=False, path="../"):
+def load_json_file(domain_name, numeric=False, path="../", filename="state_space_data.json"):
     logging.log(logging.INFO, "loading domain")
 
-    json_file_path = get_filename(domain_name, numeric, "jsons", path, "data.json")
+    json_file_path = get_filename(domain_name, numeric, "jsons", path, filename)
 
-    with open(json_file_path, 'r') as f:
-        json_data = json.loads(f.read())
+    try:
+        with open(json_file_path, 'r') as f:
+            json_data = json.loads(f.read())
+    except FileNotFoundError as e:
+        logging.warning(f"No JSON file for the domain {domain_name} found at {json_file_path}")
+        logging.warning("Use the 'to_jsons.py' script to generate the json file with training data first")
+        raise e
 
     return json_data
 
 
 # TODO transform all the flags here into a class hierarchy of possible state encodings (reusing the existing classes...)
 def parse_json(json_data, problem_limit=-1, state_limit=-1, merge_static=True,
-               encoding="ILG", logic_numbers=False, add_objects=False):
+               encoding="ILG", logic_numbers=False, add_objects=False,
+               state_regression=False, action_regression=False):
     logging.log(logging.INFO, "parsing domain")
     actions = json_data['schemata']  # to work with these I'd also need their preconditions...
 
@@ -69,24 +75,42 @@ def parse_json(json_data, problem_limit=-1, state_limit=-1, merge_static=True,
             if add_objects:
                 updated_facts += object_names
 
-            states[tuple(updated_facts)] = encode_query(h, state["optimal_action"], actions)
+            states[tuple(updated_facts)] = encode_query(state, actions, state_regression, action_regression)
 
         problems[file] = states, boolean_goals
 
     return problems, predicates, actions
 
 
-def encode_query(h, optimal_action, all_actions, regression=False):
-    if regression:
-        return [f'{h} distance']
-    else:  # the action classification (or custom loss) mode
-        queries = []
-        items = optimal_action[1:-1].split(" ")
-        queries.append(f'1 {items[0]}({",".join(items[1:])})')  # the target action with a positive label 1
+def encode_query(state, all_actions, state_regression=True, action_regression=False):
+    """action_regression=None makes lifted queries"""
+    queries = []
+    if state_regression:
+        h = state["h"]
+        if h is None:
+            h = -1
+        queries.append(f'{h} distance')
+
+    if action_regression is not None:
+        if action_regression:
+            for action, value in state["action_values"].items():
+                queries.append(f'{value} {action}')  # the target action(s) with a regression label
+        else:  # action classification
+            for action, value in state["action_values"].items():
+                if action in state["optimal_actions"]:
+                    value = 1
+                else:
+                    value = 0
+                queries.append(f'{value} {action}')  # the target action(s) with a regression label
+
+    else:  # make lifted queries instead of negative actions - this is a special thing only...
+        for optimal_action in state["optimal_actions"]:
+            queries.append(f'{1} {optimal_action}')  # the target action(s) with a positive label 1
         for action, arity in all_actions.items():
             queries.append(f'0 {action}({",".join([f"X{i}" for i in range(arity)])})')  # other actions with label 0
             # Note that this will include the same action with label 0 as well, but these will get aggregated via MAX (by default) in the backend
-        return queries
+
+    return queries
 
 
 def add_goal_info(facts, boolean_goals, is_numeric_problem, encoding="ILG"):
@@ -180,9 +204,9 @@ def flatten_states(problems):
     return flat_states
 
 
-def export_problems(problems, domain, numeric, examples_file="examples", queries_file="queries"):
+def export_problems(problems, domain, numeric, subdir="", cur_dir=".", examples_file="examples", queries_file="queries"):
     logging.log(logging.INFO, "exporting problems")
-    domain_path = get_filename(domain, numeric, "lrnn", "../", "")
+    domain_path = get_filename(domain, numeric, "lrnn", cur_dir, subdir)
     os.makedirs(domain_path, exist_ok=True)
 
     with open(f'{domain_path}/{examples_file}.txt', 'w') as e, open(f'{domain_path}/{queries_file}.txt', 'w') as q:
@@ -196,14 +220,22 @@ def export_problems(problems, domain, numeric, examples_file="examples", queries
     return domain_path
 
 
+def prepare_training_data(domain, target_subdir, state_regression, action_regression, cur_dir="."):
+    json_data = load_json_file(domain, numeric=False, path=cur_dir, filename="state_space_data.json")
+    problems, predicates, actions = parse_json(json_data, encoding="ILG",
+                                               state_regression=state_regression,
+                                               action_regression=action_regression)
+    export_problems(problems, domain, numeric=False, subdir=target_subdir, cur_dir=cur_dir)
+
+
 if __name__ == "__main__":
-    # domain = "blocksworld"
+    domain = "blocksworld"
     # domain = "satellite"
     # domain = "ferry"
     # domain = "rovers"
-    domain = "transport"
+    # domain = "transport"
 
     numeric = False
 
-    problems, predicates, actions = parse_domain(domain, numeric=numeric, encoding="")
+    problems, predicates, actions = parse_domain(domain, numeric=numeric)
     export_problems(problems, domain, numeric=numeric)

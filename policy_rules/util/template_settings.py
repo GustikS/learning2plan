@@ -12,8 +12,9 @@ neuralogic_settings = Settings(
     rule_transformation=Transformation.TANH,  # change to RELU for better training
     rule_aggregation=Aggregation.SUM,  # change to avg for better generalization
     relation_transformation=Transformation.SIGMOID,  # change to RELU for better training - check label match
-    epochs=100
+    epochs=100,
 )
+# neuralogic_settings["inferOutputFcns"] = False
 
 
 def load_stored_model(template_path: str) -> Union[NeuraLogic | Template]:

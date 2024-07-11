@@ -201,7 +201,6 @@ class LearningPolicy(Policy):
     def train_model_from(self, train_data_dir: str, samples_limit: int = -1):
         if train_data_dir.endswith("/_"):
             train_data_dir = train_data_dir[:-2]
-        assert os.path.isdir(train_data_dir), print(f"No LRNN training data available at {train_data_dir}")
         try:
             self._train_parameters(train_data_dir, samples_limit=samples_limit)
         except Exception as e:
@@ -217,11 +216,11 @@ class LearningPolicy(Policy):
                 neuralogic_settings["stratification"] = False
                 neuralogic_settings["appLimitSamples"] = samples_limit
             dataset = FileDataset(f"{lrnn_dataset_dir}/examples.txt", f"{lrnn_dataset_dir}/queries.txt")
+            print("Starting building the samples...")
             neural_samples = self.model.build_dataset(dataset)
             print("Neural samples successfully built (the template is working correctly)")
-            print("Starting training...")
+            print("Starting training the parameters...")
             results = self.model(neural_samples, train=True, epochs=epochs)
-            neuralogic_settings["aggregateConflictingQueries"] = False
             print("...finished training")
             total_error = 0
             if self._debug > 1:
@@ -232,6 +231,7 @@ class LearningPolicy(Policy):
         except Exception as e:
             print(f"An error occured during attempt to train policy model from: {lrnn_dataset_dir}")
             print(e)
+        neuralogic_settings["aggregateConflictingQueries"] = False
         print("-" * 80)
         if save_model_path:
             store_template_model(self.model, save_model_path)

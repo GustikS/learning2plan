@@ -13,7 +13,10 @@ import neuralogic
 import numpy as np
 import pymimir
 from neuralogic.logging import Formatter, Level, add_handler
+from neuralogic.nn.loss import MSE, CrossEntropy
 from termcolor import colored
+
+from modelling.samples import prepare_training_data
 
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -24,7 +27,7 @@ if not neuralogic.is_initialized():
 
 from policy_rules.policy.handcraft.handcraft_factory import get_handcraft_policy
 from policy_rules.util.printing import print_mat
-from policy_rules.util.template_settings import load_stored_model
+from policy_rules.util.template_settings import load_stored_model, neuralogic_settings
 from policy_rules.util.timer import TimerContextManager
 
 
@@ -60,13 +63,17 @@ def main():
     parser.add_argument("-d", "--domain", type=str, default="blocksworld")
     parser.add_argument("-p", "--problem", type=str, default="0_02", help="Of the form 'x_yy'")
     parser.add_argument("-v", "--verbose", type=int, default=0)
-    parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound.")
-    parser.add_argument("-t", "--template", type=str, default="", help="Policy template name.")
-    parser.add_argument("-f", "--files", type=str, default="", help="Save template file(s) name.")
-    parser.add_argument("-l", "--learning", type=str, default="",
-                        help="Training data subdirectory ( '_' for root subdir).")
+    parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound")
+    parser.add_argument("-t", "--template", type=str, default="", help="Stored policy template name")
+    parser.add_argument("-save", "--save_file", type=str, default="", help="Filename to save the template")
+    parser.add_argument("-train", "--train_dir", type=str, default="",
+                        help="LRNN training data subdirectory ( '_' for root subdir of the domain).")
     parser.add_argument("-lim", "--limit", type=int, default=-1,
-                        help="Training data samples cutoff limit")
+                        help="Training data samples cutoff limit (good for quicker debugging)")
+    parser.add_argument("-sr", "--state_regression", type=bool, default=False,
+                        help="Include state h distance labels for (classic) state regression training")
+    parser.add_argument("-ar", "--action_regression", type=bool, default=False, choices=[True, False, None],
+                        help="Switch between regression/classification labels for output actions in training")
     parser.add_argument("-e", "--embedding", type=int, default=3,
                         help="Embedding dimensionality throughout the model (-1 = off, 1 = scalar)")
     parser.add_argument("-n", "--layers", type=int, default=1,
@@ -83,9 +90,11 @@ def main():
     domain_name = args.domain
     problem_name = args.problem
     template_name = args.template
-    save_file_name = args.files
-    training_data_dir = args.learning
+    save_file_name = args.save_file
+    training_data_dir = args.train_dir
     samples_limit = args.limit
+    state_regression = args.state_regression
+    action_regression = args.action_regression
     embed_dim = args.embedding
     num_layers = args.layers
     skip_knowledge = args.skip
@@ -106,7 +115,7 @@ def main():
     if _DEBUG_LEVEL > 2:
         add_handler(sys.stdout, Level.WARNING, Formatter.COLOR)
     else:
-        add_handler(sys.stdout, Level.SEVERE, Formatter.COLOR)
+        add_handler(sys.stdout, Level.OFF, Formatter.COLOR)
 
     total_time = 0
 
@@ -130,7 +139,19 @@ def main():
             policy._debug_template()
         total_time += timer.get_time()
 
-    if training_data_dir and hasattr(policy, "model"):
+    if training_data_dir and hasattr(policy, "model"):  # should training be performed
+        if state_regression or action_regression:
+            neuralogic_settings.error_function = MSE()
+        else:
+            neuralogic_settings.error_function = CrossEntropy(with_logits=True)
+
+        if os.path.isdir(training_data_path):
+            print(f"Loading EXISTING LRNN training data from {training_data_path}")
+        else:
+            print(f"No LRNN training data available at {training_data_path}")
+            print("Will generate new LRNN training dataset there from respective JSON domain file w.r.t. current flags...")
+            prepare_training_data(domain.name, training_data_dir, state_regression, action_regression, cur_dir=CUR_DIR)
+
         with TimerContextManager("training the policy template") as timer:
             policy.train_model_from(training_data_path, samples_limit)
             total_time += timer.get_time()
