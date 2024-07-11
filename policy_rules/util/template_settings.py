@@ -17,6 +17,7 @@ neuralogic_settings = Settings(
 )
 # neuralogic_settings["inferOutputFcns"] = False
 neuralogic_settings["oneQueryPerExample"] = False
+neuralogic_settings["preprocessTemplateInference"] = False
 
 
 def load_stored_model(template_path: str) -> Union[NeuraLogic | Template]:

@@ -40,11 +40,11 @@ class Policy:
 
         self._engine = InferenceEngine(self._template, neuralogic_settings)
 
-    def _init_template(self, skip_knowledge=False, **kwargs):
+    def _init_template(self, include_knowledge=True, **kwargs):
         self._template = Template()
         self._add_predicate_copies()
 
-        if not skip_knowledge:
+        if include_knowledge:
             try:
                 self._add_derived_predicates()
                 self._add_policy_rules()
@@ -62,10 +62,13 @@ class Policy:
             schema_name = schema.name
             head = self.relation_from_schema(schema_name, name=f"{prefix}{schema_name}")
             body = self.get_schema_preconditions(schema_name, **kwargs)
-            if skip_knowledge:
-                self.add_output_action(head, body)
-            else:
+            if include_knowledge:
                 self.add_rule(head, body)
+            else:
+                self.add_output_action(head, body)
+
+        if self.guards_levels > -1:
+            self._template += R.get("g_0")  # if we want to use the inference hierarchy, starting in the sample...
 
     def setup_test_problem(self, problem: Problem):
         """Set up a STATEFUL dependency on a current test problem"""
@@ -86,9 +89,6 @@ class Policy:
         """Set up a STATEFUL dependency on a current test State"""
         ilg_atoms = self.get_ilg_facts(state)
         lrnn_atoms = [R.get(atom.predicate)([C.get(obj) for obj in atom.objects]) for atom in ilg_atoms]
-        if self.guards_levels > -1:
-            lrnn_atoms.append(R.h_0) # if we want to use the inference hierarchy, starting in the sample...
-
         self._engine.set_knowledge(lrnn_atoms + self.get_object_information())
 
     def solve(self, state: list[Atom]) -> list[(float, Action)]:
@@ -189,14 +189,14 @@ class Policy:
             # self._template += R.get(f'h_{0}')() <= R.special.true
             self.guards_levels = 0
         for i in range(self.guards_levels, to):
-            self._template += R.get(f'h_{i + 1}')() <= R.get(f'h_{i}')()
+            self._template += R.get(f'g_{i + 1}')() <= R.get(f'g_{i}')()
         self.guards_levels = to
 
     def get_guard_atom(self, guard_level):
         if self.guards_levels < guard_level:
             self.add_guard_hierarchy(guard_level)
         if guard_level > 0:
-            return R.get(f'h_{guard_level}')
+            return R.get(f'g_{guard_level}')
 
     def add_input_predicate(self, og_predicate, new_predicate):
         self.add_rule(og_predicate, new_predicate)

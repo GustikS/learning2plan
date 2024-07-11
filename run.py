@@ -80,7 +80,7 @@ def main():
                         help="Embedding dimensionality throughout the model (-1 = off, 1 = scalar)")
     parser.add_argument("-n", "--layers", type=int, default=1,
                         help="Number of model layers (-1 = off, 1 = just embedding, 2+ = message-passing)")
-    parser.add_argument("-k", "--skip", type=bool, default=False, action=argparse.BooleanOptionalAction,
+    parser.add_argument("-k", "--knowledge", type=bool, default=True, action=argparse.BooleanOptionalAction,
                         help="An option to skip the domain knowledge and use just a generic ML model")
     parser.add_argument("-s", "--seed", type=int, default=2024, help="Random seed.")
     parser.add_argument("-c", "--choice", default="best", choices=["sample", "best"],
@@ -99,7 +99,7 @@ def main():
     action_regression = args.action_regression
     embed_dim = args.embedding
     num_layers = args.layers
-    skip_knowledge = args.skip
+    include_knowledge = args.knowledge
     domain_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/domain.pddl"
     test_problem_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
     template_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{template_name}"
@@ -113,7 +113,7 @@ def main():
     # TODO(DZC): cycle checking
 
     if _DEBUG_LEVEL > 3:
-        add_handler(sys.stdout, Level.INFO, Formatter.COLOR)
+        add_handler(sys.stdout, Level.FINE, Formatter.COLOR)
     if _DEBUG_LEVEL > 2:
         add_handler(sys.stdout, Level.WARNING, Formatter.COLOR)
     else:
@@ -134,7 +134,7 @@ def main():
         # no need to recreate the template with every new state, we can retain it for the whole domain
         policy.init_template(loaded_model,
                              dim=embed_dim, num_layers=num_layers,
-                             skip_knowledge=skip_knowledge,
+                             include_knowledge=include_knowledge,
                              add_types=not args.train_dir  # don't use typing in training at the moment todo
                              )
         if _DEBUG_LEVEL > 0:
