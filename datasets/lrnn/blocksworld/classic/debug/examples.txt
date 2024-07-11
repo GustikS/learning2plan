@@ -1,0 +1,3 @@
+s403 :- ap_on-table(b1), ap_on(b4, b2), ap_holding(b3), ap_on-table(b2), ap_clear(b4), ap_clear(b1), ug_on-table(b4), ug_on(b1, b3), ug_on(b3, b4), ug_on(b2, b1), ug_clear(b2).
+s122 :- ag_on-table(b4), ap_on-table(b1), ap_holding(b3), ap_clear(b4), ap_clear(b2), ap_on(b2, b1), ug_on(b3, b2), ug_on-table(b2), ug_on(b1, b4), ug_clear(b3), ug_clear(b1).
+s374 :- ag_clear(b2), ap_on-table(b3), ap_clear(b4), ap_on-table(b2), ap_on(b4, b3), ap_holding(b1), ug_on(b1, b3), ug_on-table(b4), ug_on(b2, b1), ug_on(b3, b4).
