@@ -2,11 +2,11 @@ import pprint
 
 from torch_geometric.nn import SAGEConv
 
-from expressiveness.encoding import Object2ObjectGraph
+from encodings.expressiveness.encoding import Object2ObjectGraph
 
-from expressiveness.hashing import DistanceHashing
-from learning.modelsTorch import get_compatible_model
-from parsing import get_datasets
+from encodings.expressiveness.hashing import DistanceHashing
+from encodings.learning.modelsTorch import get_compatible_model
+from encodings.parsing import get_datasets
 
 # %% choose a dataset source
 

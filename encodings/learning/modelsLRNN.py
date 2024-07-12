@@ -1,16 +1,14 @@
 from typing import List
 
 import neuralogic
-from neuralogic.core import Relation, R, V, Template, Settings, Transformation, Aggregation, Rule
+from neuralogic.core import R, V, Template, Settings, Transformation, Aggregation, Rule
 from neuralogic.dataset import Dataset
 from neuralogic.nn import get_evaluator
 from neuralogic.nn.loss import MSE
 from neuralogic.nn.module import GCNConv
 from neuralogic.optim import Adam, SGD
-from typing_extensions import deprecated
 
-from logic import LogicLanguage
-from planning import PlanningDataset
+from encodings.planning import PlanningDataset
 
 neuralogic.manual_seed(1)
 
@@ -89,7 +87,7 @@ class LRNN:
         if actions is not None:
             self.load_actions_template(self.template, actions)
             self.contains_actions = True
-        self.template.draw(filename="./template_img.png")
+        self.template.draw(filename="template_img.png")
         self.model = self.template.build(self.settings)
 
     def get_aggregation(self, aggr):

@@ -2,23 +2,15 @@ import heapq
 from abc import ABC, abstractmethod
 
 import jpype
-import neuralogic
-from collections import deque
-from queue import PriorityQueue
 
-from neuralogic.nn.module import GCNConv as GCNrel
 from neuralogic.nn.module import SAGEConv as SAGErel
-from neuralogic.nn.module import GATv2Conv as GATrel
-from neuralogic.nn.module import GINConv as GINrel
-from torch_geometric.nn import GCNConv
 
-from expressiveness.encoding import Object2ObjectGraph, Sample
-from learning.modelsLRNN import LRNN, get_trained_model_lrnn
-from learning.modelsTorch import get_trained_model_torch
-from parsing import get_datasets
-from planning import PlanningDataset, PlanningInstance, PlanningState, GroundAction
-from solving.backend import Backend
-from solving.scoring import Scorer, TorchScorer, LRNNScorer
+from encodings.expressiveness.encoding import Object2ObjectGraph
+from encodings.learning.modelsLRNN import get_trained_model_lrnn
+from encodings.parsing import get_datasets
+from encodings.planning import PlanningInstance, PlanningState, GroundAction
+from encodings.solving.backend import Backend
+from encodings.solving.scoring import Scorer, LRNNScorer
 
 
 class Search(ABC):

@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import List
 
-from learning.modelsLRNN import LRNN, get_relational_dataset, get_predictions_LRNN
-from learning.modelsTorch import get_compatible_model, get_tensor_dataset, get_predictions_torch
-from planning import PlanningState, Action
+from encodings.learning.modelsLRNN import get_relational_dataset, get_predictions_LRNN
+from encodings.learning.modelsTorch import get_tensor_dataset, get_predictions_torch
+from encodings.planning import PlanningState, Action
 
-from neuralogic.core import R, V
+from neuralogic.core import R
 
 
 class Scorer(ABC):

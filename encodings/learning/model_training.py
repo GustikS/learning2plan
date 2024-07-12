@@ -1,15 +1,11 @@
-from expressiveness.encoding import Object2ObjectGraph, Object2AtomGraph, Atom2AtomGraph
-from learning.modelsLRNN import get_trained_model_lrnn
-from learning.modelsTorch import get_trained_model_torch
-from parsing import get_datasets
+from encodings.expressiveness.encoding import Object2ObjectGraph
+from encodings.learning.modelsLRNN import get_trained_model_lrnn
+from encodings.learning.modelsTorch import get_trained_model_torch
+from encodings.parsing import get_datasets
 
-
-from neuralogic.nn.module import GCNConv as GCNrel
 from neuralogic.nn.module import SAGEConv as SAGErel
-from neuralogic.nn.module import GATv2Conv as GATrel
-from neuralogic.nn.module import GINConv as GINrel
 
-from torch_geometric.nn import GCNConv, SAGEConv
+from torch_geometric.nn import SAGEConv
 
 def train(dataset, encoding=Object2ObjectGraph, framework="lrnn", epochs=100):
     if framework == "lrnn":

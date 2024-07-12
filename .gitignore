@@ -1,2 +1,4 @@
 datasets/lrnn/
+datasets/jsons/
 *.sif
+/target/

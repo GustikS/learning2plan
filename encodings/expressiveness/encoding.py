@@ -1,6 +1,5 @@
-import copy
 from abc import abstractmethod, ABC
-from typing import Union, Tuple
+from typing import Union
 
 import torch
 from matplotlib import pyplot as plt
@@ -8,10 +7,10 @@ from neuralogic.core.constructs.relation import BaseRelation
 from torch_geometric.data import Data, HeteroData
 from torch_geometric.utils import to_networkx
 import networkx as nx
-from neuralogic.core import Relation, R
+from neuralogic.core import R
 
-from logic import Atom, Predicate, Object
-from planning import PlanningState
+from encodings.logic import Atom, Predicate, Object
+from encodings.planning import PlanningState
 
 
 def one_hot_index(index, length) -> [float]:
