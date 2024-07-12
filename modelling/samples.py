@@ -5,6 +5,7 @@ import sys
 
 from neuralogic.logging import Formatter, Level, add_handler
 
+
 # add_handler(sys.stdout, Level.FINE, Formatter.COLOR)
 
 
@@ -38,13 +39,15 @@ def load_json_file(domain_name, numeric=False, path="../", filename="state_space
 
 
 # TODO transform all the flags here into a class hierarchy of possible state encodings (reusing the existing classes...)
-def parse_json(json_data, problem_limit=-1, state_limit=-1, merge_static=True,
+def parse_json(json_data, problem_limit=-1, state_limit=-1, samples_limit=-1, merge_static=True,
                encoding="ILG", logic_numbers=False, add_objects=False,
                state_regression=False, action_regression=False):
     logging.log(logging.INFO, "parsing domain")
     actions = json_data['schemata']  # to work with these I'd also need their preconditions...
 
     # actions = [Action(name, [f'X{i}' for i in range(arity)], None, []) for name, arity in actions.items()]
+    if problem_limit:
+        json_data['problems'] = json_data['problems'][:problem_limit]
 
     functions = encode_functions(json_data['functions'], logic_numbers)
     predicates = encode_predicates(json_data['predicates'], encoding)
@@ -52,7 +55,7 @@ def parse_json(json_data, problem_limit=-1, state_limit=-1, merge_static=True,
     is_numeric = len(functions) > 0
 
     problems = {}
-    for problem in json_data['problems'][:problem_limit]:
+    for problem in json_data['problems']:
         file = problem['problem_pddl']
 
         object_names = encode_objects(problem['objects'])
@@ -62,7 +65,14 @@ def parse_json(json_data, problem_limit=-1, state_limit=-1, merge_static=True,
         numeric_goals = encode_fluents(problem['numeric_goals'], logic_numbers)  # just fluents or some constraints?
 
         states = {}
-        for state in problem['states'][:state_limit]:
+        if state_limit:
+            problem['states'] = problem['states'][:state_limit]
+
+        for state in problem['states']:
+            if samples_limit == 0:
+                break
+            samples_limit -= 1
+
             h = state["h"]
             if h is None:
                 continue  # skip states which we do not know the optimal cost to go
@@ -204,7 +214,8 @@ def flatten_states(problems):
     return flat_states
 
 
-def export_problems(problems, domain, numeric, subdir="", cur_dir=".", examples_file="examples", queries_file="queries"):
+def export_problems(problems, domain, numeric, subdir="", cur_dir=".", examples_file="examples",
+                    queries_file="queries"):
     logging.log(logging.INFO, "exporting problems")
     domain_path = get_filename(domain, numeric, "lrnn", cur_dir, subdir)
     os.makedirs(domain_path, exist_ok=True)
@@ -220,11 +231,13 @@ def export_problems(problems, domain, numeric, subdir="", cur_dir=".", examples_
     return domain_path
 
 
-def prepare_training_data(domain, target_subdir, state_regression, action_regression, cur_dir="."):
+def prepare_training_data(domain, target_subdir, state_regression, action_regression, cur_dir=".", samples_limit=-1):
     json_data = load_json_file(domain, numeric=False, path=cur_dir, filename="state_space_data.json")
     problems, predicates, actions = parse_json(json_data, encoding="ILG",
                                                state_regression=state_regression,
-                                               action_regression=action_regression)
+                                               action_regression=action_regression,
+                                               samples_limit=samples_limit)
+    print(f"Exporting LRNN training data to {target_subdir} with an example limit of {samples_limit}")
     export_problems(problems, domain, numeric=False, subdir=target_subdir, cur_dir=cur_dir)
 
 

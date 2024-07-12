@@ -28,7 +28,8 @@ class LearningPolicy(Policy):
                                     for schema in self._schemata
                                     if (query := self.relation_from_schema(schema))}
 
-    def init_template(self, init_model: NeuraLogic = None, dim=1, num_layers=-1, **kwargs):
+    def init_template(self, init_model: NeuraLogic = None, dim=1, num_layers=-1,
+                      state_regression=False, action_regression=False, **kwargs):
         self.dim = dim  # the general dimensionality of embeddings assumed in this model
         self.num_layers = num_layers  # the number of embedding message-passing-like layers
 
@@ -36,6 +37,12 @@ class LearningPolicy(Policy):
 
         if self.num_layers > 0:
             self.add_message_passing(self._template)
+
+        if state_regression:  # add also an output head for the regression target
+            self.add_rule(R.distance[1,], R.get(f'h_{self.num_layers}')('X')[1, self.dim], embedding_layer=-1)
+
+        if state_regression or action_regression:
+            neuralogic_settings.error_function
 
         # An inference engine just like in Policy, but this one returns the numeric values also
         self._engine = EvaluationInferenceEngine(self._template, neuralogic_settings)
@@ -171,6 +178,8 @@ class LearningPolicy(Policy):
                 return literal[dim, 1]
             if literal.predicate.name.startswith("g_") and literal.predicate.arity == 0:  # scalar special guards
                 return literal[dim, 1]
+            if literal.predicate.name == "satellite":
+                return literal[dim, 1]  # a hot patch for Dillon's dummy satellite(S) predicate
             else:
                 return literal[dim, dim]
         else:
@@ -203,8 +212,12 @@ class LearningPolicy(Policy):
                          state_regression=False, action_regression=False):
         if state_regression or action_regression:
             neuralogic_settings.error_function = MSE()
+            # neuralogic_settings['trainOnlineResultsType'] =
         else:
-            neuralogic_settings.error_function = CrossEntropy(with_logits=True)
+            neuralogic_settings.error_function = CrossEntropy(with_logits=False)
+
+        self.model = self._template.build(neuralogic_settings)
+        self._engine.model = self.model
 
         try:
             self._train_parameters(train_data_dir, samples_limit=samples_limit)
@@ -215,7 +228,8 @@ class LearningPolicy(Policy):
     def _train_parameters(self, lrnn_dataset_dir: str,
                           epochs: int = 100,
                           save_model_path: str = None,
-                          samples_limit: int = -1):
+                          samples_limit: int = -1,
+                          report_progress=True):
         try:
             if samples_limit > 0:
                 neuralogic_settings["stratification"] = False
@@ -225,14 +239,21 @@ class LearningPolicy(Policy):
             neural_samples = self.model.build_dataset(dataset)
             print("Neural samples successfully built (the template logic is working correctly)")
             print("Starting training the parameters...")
-            results = self.model(neural_samples, train=True, epochs=epochs)
+            if report_progress and self._debug > 1:
+                for i in range(epochs):
+                    results, total_len = self.model(neural_samples, True, epochs=1)
+                    print(f'training epoch {i} error: {sum(result[2] for result in results)} over {total_len} samples')
+            else:
+                results = self.model(neural_samples, train=True, epochs=epochs)
+                results = results[0]
             print("...finished training")
             total_error = 0
             if self._debug > 1:
+                results = self.model(neural_samples, train=False)  # evaluate again due to missing sample outputs
                 for i in range(len(neural_samples)):
-                    result = results[0][i]
-                    print(f'{result[0]} <-{result[1]} for {neural_samples.samples[i].java_sample.query}')
-                    total_error += result[2]
+                    result = results[i]
+                    sample = neural_samples.samples[i]
+                    print(f'target: {sample.target} <- predicted: {result} for sample: {sample.java_sample.query.ID}')
         except Exception as e:
             print(f"An error occured during attempt to train policy model from: {lrnn_dataset_dir}")
             print(e)

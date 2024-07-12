@@ -3,9 +3,10 @@ from pymimir import Atom
 from typing_extensions import override
 
 from ..policy import Policy
+from ..policy_learning import LearningPolicy    # better this supervised (slow) version due to the unstable negation
 
 
-class SatellitePolicy(Policy):
+class SatellitePolicy(LearningPolicy):
     def print_state(self, state: list[Atom]):
         object_names = sorted([o.name for o in self._problem.objects])
         directions = 0

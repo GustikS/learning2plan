@@ -72,13 +72,13 @@ def main():
                         help="LRNN training data subdirectory ( '_' for root subdir of the domain).")
     parser.add_argument("-lim", "--limit", type=int, default=-1,
                         help="Training data samples cutoff limit (good for quicker debugging)")
-    parser.add_argument("-sr", "--state_regression", type=bool, default=False,
+    parser.add_argument("-sr", "--state_regression", type=bool, default=False, action=argparse.BooleanOptionalAction,
                         help="Include state h distance labels for (classic) state regression training")
-    parser.add_argument("-ar", "--action_regression", type=bool, default=False, choices=[True, False, None],
+    parser.add_argument("-ar", "--action_regression", type=bool, default=False, action=argparse.BooleanOptionalAction,
                         help="Switch between regression/classification labels for output actions in training")
     parser.add_argument("-e", "--embedding", type=int, default=3,
                         help="Embedding dimensionality throughout the model (-1 = off, 1 = scalar)")
-    parser.add_argument("-n", "--layers", type=int, default=1,
+    parser.add_argument("-num", "--layers", type=int, default=1,
                         help="Number of model layers (-1 = off, 1 = just embedding, 2+ = message-passing)")
     parser.add_argument("-k", "--knowledge", type=bool, default=True, action=argparse.BooleanOptionalAction,
                         help="An option to skip the domain knowledge and use just a generic ML model")
@@ -135,13 +135,14 @@ def main():
         policy.init_template(loaded_model,
                              dim=embed_dim, num_layers=num_layers,
                              include_knowledge=include_knowledge,
-                             add_types=not args.train_dir  # don't use typing in training at the moment todo
+                             add_types=not args.train_dir,  # don't use typing in training at the moment todo,
+                             state_regression=state_regression, action_regression=action_regression
                              )
         if _DEBUG_LEVEL > 0:
             policy._debug_template()
         total_time += timer.get_time()
 
-    # training should be performed if there are training data and the policy has learnable parameters/model
+    # training should be performed if there are training data AND the policy has learnable parameters/model
     if args.train_dir and hasattr(policy, "model"):
         if os.path.isdir(training_data_path):
             print(f"Loading EXISTING LRNN training data from {training_data_path}")
@@ -151,7 +152,9 @@ def main():
                 "Generating new LRNN training dataset there from respective domain's JSON file w.r.t. current flags...")
             with TimerContextManager("creating LRNN training dataset from JSON") as timer:
                 prepare_training_data(domain.name, training_data_subdir, cur_dir=CUR_DIR,
-                                      state_regression=state_regression, action_regression=action_regression)
+                                      state_regression=state_regression, action_regression=action_regression,
+                                      samples_limit=samples_limit)
+                samples_limit = -1  # if generation of a new limited dataset is requested, we further train in full on it
                 total_time += timer.get_time()
         with TimerContextManager("training the policy template") as timer:
             policy.train_model_from(training_data_path, samples_limit, state_regression, action_regression)
@@ -217,7 +220,8 @@ def main():
                 p = np.exp(p) / div  # softmax
                 action = np.random.choice(actions, p=p)
             else:
-                sorted_actions = sorted(policy_actions, key=lambda item: item[0], reverse=True)
+                # if action classification we take the highest, if action regression we take the lowest
+                sorted_actions = sorted(policy_actions, key=lambda item: item[0], reverse=not action_regression)
                 action = sorted_actions[0][1]  # select the best action
 
             if _DEBUG_LEVEL > 0:

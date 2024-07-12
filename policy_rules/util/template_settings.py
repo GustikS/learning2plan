@@ -11,10 +11,11 @@ neuralogic_settings = Settings(
     iso_value_compression=True,
     chain_pruning=True,
     rule_transformation=Transformation.TANH,  # change to RELU for better training
-    rule_aggregation=Aggregation.SUM,  # change to avg for better generalization
-    relation_transformation=Transformation.SIGMOID,  # change to RELU for better training - check label match
+    rule_aggregation=Aggregation.AVG,  # change to avg for better generalization
+    relation_transformation=Transformation.TANH,  # change to RELU for better training - check label match
     epochs=100,
 )
+
 # neuralogic_settings["inferOutputFcns"] = False
 neuralogic_settings["oneQueryPerExample"] = False
 neuralogic_settings["preprocessTemplateInference"] = False
