@@ -209,7 +209,7 @@ class LearningPolicy(Policy):
             template += gnn_message_passing("edge", dim, num_layers=self.num_layers-1)
             # template += gnn_message_passing(f"{2}-ary", dim, num_layers=num_layers)
 
-    def train_model_from(self, train_data_dir: str, samples_limit: int = -1,
+    def train_model_from(self, train_data_dir: str, samples_limit: int = -1, num_epochs:int = 100,
                          state_regression=False, action_regression=False):
         if state_regression or action_regression:
             neuralogic_settings.error_function = MSE()
@@ -221,7 +221,7 @@ class LearningPolicy(Policy):
         self._engine.model = self.model
 
         try:
-            self._train_parameters(train_data_dir, samples_limit=samples_limit)
+            self._train_parameters(train_data_dir, samples_limit=samples_limit, epochs=num_epochs)
         except Exception as e:
             print(f"Invalid training setup from: {train_data_dir}")
             print(e)

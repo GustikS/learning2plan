@@ -67,7 +67,7 @@ def main():
     parser.add_argument("-v", "--verbose", type=int, default=0)
     parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound")
     parser.add_argument("-t", "--template", type=str, default="", help="Stored policy template name")
-    parser.add_argument("-save", "--save_file", type=str, default="", help="Filename to save the template")
+    parser.add_argument("-save", "--save_to", type=str, default="", help="Filename to save the template")
     parser.add_argument("-train", "--train_dir", type=str, default="",
                         help="LRNN training data subdirectory ( '_' for root subdir of the domain).")
     parser.add_argument("-lim", "--limit", type=int, default=-1,
@@ -80,6 +80,8 @@ def main():
                         help="Embedding dimensionality throughout the model (-1 = off, 1 = scalar)")
     parser.add_argument("-num", "--layers", type=int, default=1,
                         help="Number of model layers (-1 = off, 1 = just embedding, 2+ = message-passing)")
+    parser.add_argument("-ep", "--epochs", type=int, default=100,
+                        help="Number of model training epochs")
     parser.add_argument("-k", "--knowledge", type=bool, default=True, action=argparse.BooleanOptionalAction,
                         help="An option to skip the domain knowledge and use just a generic ML model")
     parser.add_argument("-s", "--seed", type=int, default=2024, help="Random seed.")
@@ -92,13 +94,14 @@ def main():
     domain_name = args.domain
     problem_name = args.problem
     template_name = args.template
-    save_file_name = args.save_file
+    save_file_name = args.save_to
     training_data_subdir = args.train_dir if args.train_dir != "_" else ""
     samples_limit = args.limit
     state_regression = args.state_regression
     action_regression = args.action_regression
     embed_dim = args.embedding
     num_layers = args.layers
+    num_epochs = args.epochs
     include_knowledge = args.knowledge
     domain_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/domain.pddl"
     test_problem_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
@@ -157,7 +160,7 @@ def main():
                 samples_limit = -1  # if generation of a new limited dataset is requested, we further train in full on it
                 total_time += timer.get_time()
         with TimerContextManager("training the policy template") as timer:
-            policy.train_model_from(training_data_path, samples_limit, state_regression, action_regression)
+            policy.train_model_from(training_data_path, samples_limit, num_epochs, state_regression, action_regression)
             total_time += timer.get_time()
 
     if save_file_name:
