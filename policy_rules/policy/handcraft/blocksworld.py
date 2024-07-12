@@ -79,6 +79,8 @@ class BlocksworldPolicy(FasterLearningPolicy):
 
     def _debug_inference(self):
         print("Inference for current state:")
+        if self._debug > 2:  # this can be used for precise/complete debugging of the (neural) inference for each state
+            super()._debug_inference()
         self._debug_inference_helper(R.well_placed_block("Ob"))
         print("-" * 80)
         self._debug_inference_actions()

@@ -101,6 +101,7 @@ class LearningPolicy(Policy):
         print("=" * 80)
 
     def _debug_inference(self):
+        """this can be used for precise/complete debugging of the (neural) inference for each state"""
         super()._debug_inference()
         print("=" * 80)
         print("Debugging all state neuron values:")
@@ -183,8 +184,8 @@ class LearningPolicy(Policy):
             else:
                 return literal[dim, dim]
         else:
-            if self._debug > 3:
-                print(f"{literal} is already weighted")
+            if self._debug > 4:
+                print(f"attempting to weight atom {literal} that is already weighted")
             return literal
 
     def add_message_passing(self, template: Template):
@@ -205,7 +206,7 @@ class LearningPolicy(Policy):
             template += object2object_edges(max(predicates.values()), dim, "edge")
 
             # template += custom_message_passing("edge", "h0", dim)
-            template += gnn_message_passing("edge", dim, num_layers=self.num_layers)
+            template += gnn_message_passing("edge", dim, num_layers=self.num_layers-1)
             # template += gnn_message_passing(f"{2}-ary", dim, num_layers=num_layers)
 
     def train_model_from(self, train_data_dir: str, samples_limit: int = -1,
