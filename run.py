@@ -5,17 +5,20 @@ import os
 import random
 import sys
 from pathlib import Path
-# sys.path.append("..")  # just a quick fix for the tests to pass... to be removed
-
-from neuralogic.nn.java import NeuraLogic
 
 import neuralogic
 import numpy as np
 import pymimir
 from neuralogic.logging import Formatter, Level, add_handler
+from neuralogic.nn.java import NeuraLogic
 from termcolor import colored
 
 from modelling.samples import prepare_training_data
+
+# sys.path.append("..")  # just a quick fix for the tests to pass... to be removed
+
+
+
 
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -85,7 +88,8 @@ def main():
     parser.add_argument("-k", "--knowledge", type=bool, default=True, action=argparse.BooleanOptionalAction,
                         help="An option to skip the domain knowledge and use just a generic ML model")
     parser.add_argument("-s", "--seed", type=int, default=2024, help="Random seed.")
-    parser.add_argument("-c", "--choice", default="best", choices=["sample", "best"],
+    # DZC 14/07/2024: changed default from best to sample to avoid cycles caused by initialised weights
+    parser.add_argument("-c", "--choice", default="sample", choices=["sample", "best"],
                         help="Choose the best action or sample from the policy.")
     args = parser.parse_args()
     random.seed(args.seed)

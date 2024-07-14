@@ -3,3 +3,4 @@ datasets/jsons/
 *.sif
 /target/
 */__pycache__/
+__pycache__/
