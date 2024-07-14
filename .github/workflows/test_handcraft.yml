@@ -32,5 +32,4 @@ jobs:
 
       - name: Run tests
         run: |
-          cd policy_rules
           pytest -s tests/test_policies.py --domain ${{ matrix.domain }}
