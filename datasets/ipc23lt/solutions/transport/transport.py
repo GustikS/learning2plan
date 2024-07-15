@@ -1,10 +1,11 @@
 # Import the PDDLReader and PDDLWriter classes
-from unified_planning.io import PDDLReader
-from unified_planning.shortcuts import SequentialSimulator
-from unified_planning.plans import SequentialPlan, ActionInstance
-from unified_planning.model.walkers import StateEvaluator
-from queue import Queue
 import os
+from queue import Queue
+
+from unified_planning.io import PDDLReader
+from unified_planning.model.walkers import StateEvaluator
+from unified_planning.plans import ActionInstance, SequentialPlan
+from unified_planning.shortcuts import SequentialSimulator
 
 
 def apply_plan(pddl_problem, plan) -> bool:
@@ -28,7 +29,7 @@ def generalize_plan(pddl_problem) -> SequentialPlan:
     plan = list()
     # print(pddl_problem.user_types)  # [size, location, locatable, vehicle - locatable, package - locatable]
     utypes = pddl_problem.user_types
-    actions = pddl_problem.actions  # drive, pick-up, drop
+    actions = pddl_problem.actions  # drive, pickup, drop
     # print(actions)
 
     # 0. get all vehicles, packages, and locations
@@ -131,7 +132,7 @@ def generalize_plan(pddl_problem) -> SequentialPlan:
                 plan.append(drive)
                 vehicle_at = next_loc
 
-            # 2. pick-up the package in the origin
+            # 2. pickup the package in the origin
             pick_up = ActionInstance(
                 actions[1],
                 tuple([vehicle, vehicle_at, package_obj, v_cap_pre, v_cap]),

@@ -4,6 +4,10 @@ After installing the `./requirements.txt` dependencies, you should be able to `p
 
 All the core functionality of the workflow is exposed to the arguments of the run script.
 
+## Benchmark warnings
+
+No hyphens allowed in predicates or action schemata in PDDL and plan files! I have either replaced them with underscores or removed them entirely for some domains but have not checked this thoroughly.
+
 ## Workflow instructions
 
 Firstly, you need to create the training datasets from pymimir by running `datasets/to_jsons.py` 

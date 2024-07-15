@@ -1,5 +1,5 @@
-(pick-up v2 l1 p1)
-(pick-up v2 l1 p2)
+(pickup v2 l1 p1)
+(pickup v2 l1 p2)
 (drive v2 l1 l2)
 (drive v2 l2 l3)
 (drop v2 l3 p2)
