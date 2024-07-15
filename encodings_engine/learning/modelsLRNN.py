@@ -8,7 +8,7 @@ from neuralogic.nn.loss import MSE
 from neuralogic.nn.module import GCNConv
 from neuralogic.optim import Adam, SGD
 
-from encodings.planning import PlanningDataset
+from encodings_engine.planning import PlanningDataset
 
 neuralogic.manual_seed(1)
 

@@ -206,10 +206,10 @@ class LearningPolicy(Policy):
             template += object2object_edges(max(predicates.values()), dim, "edge")
 
             # template += custom_message_passing("edge", "h0", dim)
-            template += gnn_message_passing("edge", dim, num_layers=self.num_layers-1)
+            template += gnn_message_passing("edge", dim, num_layers=self.num_layers - 1)
             # template += gnn_message_passing(f"{2}-ary", dim, num_layers=num_layers)
 
-    def train_model_from(self, train_data_dir: str, samples_limit: int = -1, num_epochs:int = 100,
+    def train_model_from(self, train_data_dir: str, samples_limit: int = -1, num_epochs: int = 100,
                          state_regression=False, action_regression=False):
         if state_regression or action_regression:
             neuralogic_settings.error_function = MSE()
@@ -239,6 +239,9 @@ class LearningPolicy(Policy):
             print(f"Starting building the samples with a limit to the first {samples_limit}")
             neural_samples = self.model.build_dataset(dataset)
             print("Neural samples successfully built (the template logic is working correctly)")
+            if self._debug > 1:
+                self._debug_neural_samples(neural_samples)
+
             print("Starting training the parameters...")
             if report_progress and self._debug > 1:
                 for i in range(epochs):
@@ -262,6 +265,33 @@ class LearningPolicy(Policy):
         print("-" * 80)
         if save_model_path:
             store_template_model(self.model, save_model_path)
+
+    def _debug_neural_samples(self, neural_samples):
+        """Check that there are no problems and show some statistics"""
+        state2actions = {}
+        for sample in neural_samples:
+            state_net = sample.java_sample.query.evidence.getId()  # a shared neural net for the given State
+            actions = state2actions.get(state_net, [])
+            actions.append((sample, sample.target, sample.java_sample.query.neuron))
+            state2actions[state_net] = actions
+        num_reachable_negative = 0
+        num_multiple = 0
+        for state, actions in state2actions.items():
+            reachable = [action for action in actions if action[2]]
+            if not reachable:
+                raise Exception(f"State {state.getId()} has no reachable actions at all!")
+            if len(reachable) > 1:
+                num_multiple += 1
+            reachable_positive = [action for action in reachable if action[1]]
+            if not reachable_positive:
+                raise Exception(f"State {state.getId()} has no reachable positive (optimal) actions!")
+            reachable_negative = [action for action in reachable if not action[1]]
+            if reachable_negative:
+                num_reachable_negative += 1
+        print(f"There are {len(neural_samples)} learning queries across {len(state2actions)} unique states")
+        print(f"{float(num_multiple) / len(state2actions) * 100} % of states have more than 1 action derived")
+        print(f"Only {float(num_reachable_negative) / len(state2actions) * 100} % of states "
+              f"have some negative action derived, and hence can be improved with learning")
 
     def reset_parameters(self):
         self.model.reset_parameters()

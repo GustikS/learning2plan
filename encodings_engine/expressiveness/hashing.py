@@ -3,9 +3,9 @@ from math import comb
 
 import torch
 
-from encodings.learning.modelsLRNN import get_predictions_LRNN, get_relational_dataset
-from encodings.learning.modelsTorch import get_tensor_dataset, get_predictions_torch, MyException
-from encodings.planning import PlanningState
+from encodings_engine.learning.modelsLRNN import get_predictions_LRNN, get_relational_dataset
+from encodings_engine.learning.modelsTorch import get_tensor_dataset, get_predictions_torch, MyException
+from encodings_engine.planning import PlanningState
 
 
 class DistanceHashing:

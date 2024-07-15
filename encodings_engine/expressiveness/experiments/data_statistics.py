@@ -1,6 +1,6 @@
 from os import listdir
 
-from encodings.parsing import get_datasets
+from encodings_engine.parsing import get_datasets
 
 folder = "../datasets/rosta"
 

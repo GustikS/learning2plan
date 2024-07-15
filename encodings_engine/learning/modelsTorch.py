@@ -11,8 +11,8 @@ from torch_geometric.nn import GCNConv, SAGEConv, GINConv, global_mean_pool, RGC
     to_hetero, HGTConv, HANConv, FiLMConv, RGATConv, GINEConv, NNConv, PDNConv
 from torch_geometric.nn import Linear as Linear_pyg
 
-from encodings.expressiveness.encoding import Bipartite, Hetero
-from encodings.planning import PlanningDataset
+from encodings_engine.expressiveness.encoding import Bipartite, Hetero
+from encodings_engine.planning import PlanningDataset
 
 torch.manual_seed(1)
 
