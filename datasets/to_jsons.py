@@ -7,14 +7,14 @@ from tqdm import tqdm
 
 DOMAINS = [
     "blocksworld",
-    "childsnack",
+    # "childsnack",
     "ferry",
     # "floortile",
     "miconic",
-    "rovers",
+    # "rovers",
     "satellite",
-    "sokoban",
-    "spanner",
+    # "sokoban",
+    # "spanner",
     "transport",
 ]
 
@@ -24,6 +24,7 @@ MAX_TOTAL_STATES_PER_DOMAIN = 25500
 
 def get_static_predicates(domain: pymimir.Domain):
     # todo G->D: what is this supposed to do? Taking effect predicates as static seems wrong... it causes states in the jsons...
+    # DZC 15/07/2024: True, this should be the *non*static predicates. Let me know if this is a bottleneck and I will fix it.
     predicates = {}
     for schema in domain.action_schemas:
         for effect in schema.effect:
@@ -96,8 +97,8 @@ def main():
                 "states": [],
             }
 
-            # best_h = float("inf")
-            # best_actions = []   # todo G->D: are the states ordered in decreasing distance manner? Otherwise the best_h check seems suspicious? Check - this indeed seems wrong...
+            # # todo G->D: are the states ordered in decreasing distance manner? Otherwise the best_h check seems suspicious? Check - this indeed seems wrong...
+            # DZC 15/07/2024: Nice catch! The best_h and best_actions initialisation should have been within the loop. I have removed the parts you commented out
             for state in state_space.get_states():
                 if n_states >= MAX_TOTAL_STATES_PER_DOMAIN:
                     break
@@ -110,13 +111,6 @@ def main():
                     next_state = action.apply(state)
                     h = state_space.get_distance_to_goal_state(next_state)
                     action_values[action.get_name()] = h
-                    # if h == 0:
-                    #     assert state_space.is_goal_state(next_state)
-                    # if h < best_h:
-                    #     best_h = h
-                    #     best_actions = [action]
-                    # elif h == best_h:
-                    #     best_actions.append(action)
                 if action_values:
                     best_h = min(action_values.values())
                     best_actions = [key for key, value in action_values.items() if value == best_h]

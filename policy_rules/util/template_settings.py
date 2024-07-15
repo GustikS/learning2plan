@@ -3,7 +3,7 @@ import pickle
 from typing import Union
 
 import neuralogic
-from neuralogic.core import Template, Settings, Transformation, Aggregation
+from neuralogic.core import Aggregation, Settings, Template, Transformation
 from neuralogic.nn.java import NeuraLogic
 
 # we can set up all the learning/numeric-evaluation-related settings here

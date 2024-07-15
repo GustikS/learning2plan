@@ -14,6 +14,8 @@ from neuralogic.nn.java import NeuraLogic
 from termcolor import colored
 
 from modelling.samples import prepare_training_data
+from policy_rules.policy.policy import Policy
+from policy_rules.policy.policy_learning import LearningPolicy
 
 # sys.path.append("..")  # just a quick fix for the tests to pass... to be removed
 
@@ -135,7 +137,7 @@ def main():
     # possibly load an initial template from file with the same template_name if found
     loaded_model: NeuraLogic = load_stored_model(template_path) if template_name else None
 
-    policy = get_handcraft_policy(domain.name)(domain, debug=_DEBUG_LEVEL)
+    policy: LearningPolicy = get_handcraft_policy(domain.name)(domain, debug=_DEBUG_LEVEL)
 
     with TimerContextManager("initialising policy template") as timer:
         # no need to recreate the template with every new state, we can retain it for the whole domain
@@ -201,8 +203,7 @@ def main():
             if goals_left == 0:
                 break
 
-            # returns list[tuple[float, Action]]
-            policy_actions = policy.solve(state.get_atoms())
+            policy_actions: list[tuple[float, pymimir.Action]] = policy.solve(state.get_atoms())
 
             if len(policy_actions) == 0:
                 if _DEBUG_LEVEL > 1:

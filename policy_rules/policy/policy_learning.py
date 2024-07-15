@@ -1,4 +1,5 @@
 import os
+import time
 import warnings
 from typing import Iterable, Union
 
@@ -183,6 +184,7 @@ class LearningPolicy(Policy):
             if literal.predicate.name.startswith("g_") and literal.predicate.arity == 0:  # scalar special guards
                 return literal[dim, 1]
             if literal.predicate.name == "satellite":
+                # DZC 15/07/2024: I ended up using your nullary code, so not sure if this is needed anymore
                 return literal[dim, 1]  # a hot patch for Dillon's dummy satellite(S) predicate
             else:
                 return literal[dim, dim]
@@ -243,10 +245,14 @@ class LearningPolicy(Policy):
             neural_samples = self.model.build_dataset(dataset)
             print("Neural samples successfully built (the template logic is working correctly)")
             print("Starting training the parameters...")
-            if report_progress and self._debug > 1:
+            # if report_progress and self._debug > 1:
+            # DZC 15/07/2024: I think it's worth always reporting progress
+            if report_progress:
                 for i in range(epochs):
+                    t = time.time()
                     results, total_len = self.model(neural_samples, True, epochs=1)
-                    print(f'training epoch {i} error: {sum(result[2] for result in results)} over {total_len} samples')
+                    t = time.time() - t
+                    print(f'training epoch {i} error: {sum(result[2] for result in results)} over {total_len} samples, time: {t}s')
             else:
                 results = self.model(neural_samples, train=True, epochs=epochs)
                 results = results[0]
