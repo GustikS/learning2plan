@@ -32,7 +32,7 @@
         )
     )
 
-    (:action pick-up
+    (:action pickup
         :parameters (?v - vehicle ?l - location ?p - package)
         :precondition (and
             (at ?v ?l)

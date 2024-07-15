@@ -4,14 +4,22 @@ After installing the `./requirements.txt` dependencies, you should be able to `p
 
 All the core functionality of the workflow is exposed to the arguments of the run script.
 
+## Benchmark notes
+
+No hyphens allowed in predicates or action schemata in PDDL and plan files! I have either replaced them with underscores or removed them entirely for some domains but have not checked this thoroughly. The reason for this is to ensure consistency in the code and to minimise bugs.
+
 ## Workflow instructions
 
+### Dataset
 Firstly, you need to create the training datasets from pymimir by running `datasets/to_jsons.py` 
 which exports them to respective domain JSON files `datasets/jsons/DOMAIN` . 
 This preprocessing action is separate and not part of the main `run.py` workflow, as it takes quite some time.
 
+    cd datasets; python3 to_jsons.py; cd ..
+
+### Main workflow
 The main workflow start by selecting from the given domains with
- - `--domain` there are currently 4 complete domains with handcrafted policies, and a few more with training data (only)
+ - `--domain` there are currently 5 complete domains (`blocksworld`, `ferry`, `miconic`, `satellite`, `transport`) with handcrafted policies, and a few more with training data (only)
 
 The dataset folder also contains `datasets/lrnn/*` subdirs that get automatically extracted out of 
 these json files as part of the main workflow, depending on the requested format settings, particularly:
@@ -30,8 +38,8 @@ A similar workflow follows for the **templates**, which represent the core logic
 the default logic provided programmatically for each domain in `policy_rules/policy/handcraft`, or they can be loaded from drive with
  - `--template`  which will be searched for in the root subdir of each domain (`lrnn/*/classic/template_xyz.txt`)
 
-If not found, it will be created following the programmatic logic (w.r.t. the current setup), and possible exported to
-- `--save_to` location in both serialized (model + weights) and readable (`*/template.txt`) manner
+If not found, it will be created following the programmatic logic (w.r.t. the current setup), and possibly exported to
+- `--save_file` location in both serialized (model + weights) and readable (`*/template.txt`) manner
 
 There are two main part to each policy template - the handcrafted domain knowledge and the generic learning/modelling construct(s).
 The handcrated logic (from `policy_rules/policy/handcraft`) can optionally be skipped with
@@ -45,6 +53,7 @@ is compressed to
 
 The training then starts automatically as long as there is some `--train_dir` provided (existing or to be created).
  - simply skip the argument to skip training
+ - DZC 15/07/2024: training is also done if `--save_file` is specified
 
 The training workflow then consists of
  1. building the given training samples with the given template, yielding dynamically structured neural networks
@@ -52,14 +61,31 @@ The training workflow then consists of
  2. training the (shared) parameters of these networks against the data labels
     - for the given `--epochs` number of steps
 
-Once the training phase is finished, possibly storing the trained template/model to `--save_to`, 
+Once the training phase is finished, possibly storing the trained template/model to `--save_file`, 
 the evaluation phase begins automatically, driven by
  - `--problem` - the problem from the given domain to test the current policy on
  - `--bound` - the number of actions/steps taken greedily through the state space
 
 Finally, one can choose various levels of verbosity with
- - `--verbose` from [1-4] to inspect the different parts of the workflow right from the console
+ - `--verbose` from [1-6] to inspect the different parts of the workflow right from the console
 
+### Examples
+#### Run just Ferry handcrafted policy
+
+    python3 run.py -d ferry -p 0_30
+
+#### Train and save Ferry policy
+
+    python3 run.py -d ferry --embedding 8 --layers 2 --save_file ferry.model
+
+#### Load and run Ferry policy
+
+    python3 run.py -d ferry --embedding 8 --layers 2 --load_file ferry.model -p 0_30
+
+#### Save visualisation of Ferry template to file
+We use a low embedding to prevent a lot of numbers being seen
+
+    python3 run.py -d ferry --embedding 3 --layers 2 --visualise ferry_template.png
 
 ## Apptainer instructions
 

@@ -48,7 +48,7 @@ def main():
             skipped_from_log += 1
             continue
         
-        cmd = f"apptainer run {CONTAINER} python3 run.py -d {domain} -p {problem} -s {repeat}"
+        cmd = f"apptainer run {CONTAINER} python3 run.py -d {domain} -p {problem} -s {repeat} -b 2000"
 
         slurm_vars = ','.join([
             f"CMD={cmd}",

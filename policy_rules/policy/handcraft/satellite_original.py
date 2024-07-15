@@ -3,7 +3,8 @@ from pymimir import Atom
 from typing_extensions import override
 
 from ..policy import Policy
-from ..policy_learning import LearningPolicy    # better this supervised (slow) version due to the unstable negation
+from ..policy_learning import \
+    LearningPolicy  # better this supervised (slow) version due to the unstable negation
 
 
 class SatellitePolicy(LearningPolicy):
@@ -100,8 +101,8 @@ class SatellitePolicy(LearningPolicy):
         body = [R.switch_on("I", "S_other"), R.satellite("S")]
         self.add_rule(head, body)
 
-        head = R.exists_towards_ug_have_image("S")
-        body = [R.turn_towards_ug_have_image("S_other", "D_new", "D_prev"), R.satellite("S")]
+        head = R.exists_turn_to_ug_have_image("S")
+        body = [R.turn_to_ug_have_image("S_other", "D_new", "D_prev"), R.satellite("S")]
         self.add_rule(head, body)
 
     @override
@@ -126,9 +127,9 @@ class SatellitePolicy(LearningPolicy):
             ~R.exists_take_image("S"),
             ~R.exists_switch_on("S"),
         ]
-        head = R.turn_towards_ug_have_image("S", "D_new", "D_prev")
+        head = R.turn_to_ug_have_image("S", "D_new", "D_prev")
         self.add_rule(head, body)
-        self.add_output_action("turn_to", [head, ~R.exists_take_image("S")])
+        self.add_output_action("turn_to", [head])
 
         # turn towards calibration direction if instrument is not turned on
         body = [
@@ -136,7 +137,7 @@ class SatellitePolicy(LearningPolicy):
             R.instrument_config("S", "I", "M"),
             ~R.calibrated("I"),
             R.calibration_target("I", "D_new"),
-            ~R.exists_towards_ug_have_image("S"),
+            ~R.exists_turn_to_ug_have_image("S"),
             # (LP)
             ~R.exists_calibrate("S"),
             ~R.exists_take_image("S"),
@@ -148,7 +149,7 @@ class SatellitePolicy(LearningPolicy):
         body = [
             R.ug_pointing("S", "D_new"),
             ~R.exists_ug_have_image("S"),
-            ~R.exists_towards_ug_have_image("S"),
+            ~R.exists_turn_to_ug_have_image("S"),
             # (LP)
             ~R.exists_calibrate("S"),
             ~R.exists_take_image("S"),

@@ -2,3 +2,6 @@ datasets/lrnn/
 datasets/jsons/
 *.sif
 /target/
+*/__pycache__/
+__pycache__/
+*.png

@@ -14,7 +14,7 @@ for i in range (1, 31):
 
 def test_domain(domain):
     for problem in PROBLEMS:
-        cmd = ["python3", "run.py", "-d", domain, "-p", problem, "-b", "1000"]
+        cmd = ["python3", "run.py", "-d", domain, "-p", problem, "-c", "sample", "-b", "10000"]
         cmd_str = " ".join(cmd)
         logging.critical(cmd_str)
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
