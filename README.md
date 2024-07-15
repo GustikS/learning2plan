@@ -39,7 +39,7 @@ the default logic provided programmatically for each domain in `policy_rules/pol
  - `--template`  which will be searched for in the root subdir of each domain (`lrnn/*/classic/template_xyz.txt`)
 
 If not found, it will be created following the programmatic logic (w.r.t. the current setup), and possibly exported to
-- `--save_to` location in both serialized (model + weights) and readable (`*/template.txt`) manner
+- `--save_file` location in both serialized (model + weights) and readable (`*/template.txt`) manner
 
 There are two main part to each policy template - the handcrafted domain knowledge and the generic learning/modelling construct(s).
 The handcrated logic (from `policy_rules/policy/handcraft`) can optionally be skipped with
@@ -60,7 +60,7 @@ The training workflow then consists of
  2. training the (shared) parameters of these networks against the data labels
     - for the given `--epochs` number of steps
 
-Once the training phase is finished, possibly storing the trained template/model to `--save_to`, 
+Once the training phase is finished, possibly storing the trained template/model to `--save_file`, 
 the evaluation phase begins automatically, driven by
  - `--problem` - the problem from the given domain to test the current policy on
  - `--bound` - the number of actions/steps taken greedily through the state space
@@ -69,13 +69,22 @@ Finally, one can choose various levels of verbosity with
  - `--verbose` from [1-6] to inspect the different parts of the workflow right from the console
 
 ### Examples
-Run just blocksworld handcrafted policy
+#### Run just Ferry handcrafted policy
 
-    python3 run.py -d blocksworld -p 0_30
+    python3 run.py -d ferry -p 0_30
 
-Train blocksworld policy
+#### Train and save Ferry policy
 
-    python3 run.py -d blocksworld --train_dir models/ --embedding 32 --layers 2
+    python3 run.py -d ferry --embedding 8 --layers 2 --save_file ferry.model
+
+#### Load and run Ferry policy
+
+    python3 run.py -d ferry --embedding 8 --layers 2 --load_file ferry.model -p 0_30
+
+#### Save visualisation of Ferry template to file
+We use a low embedding to prevent a lot of numbers being seen
+
+    python3 run.py -d ferry --embedding 3 --layers 2 --visualise ferry_template.png
 
 ## Apptainer instructions
 

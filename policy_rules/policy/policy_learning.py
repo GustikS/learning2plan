@@ -18,6 +18,7 @@ from modelling.templates import (anonymous_predicates, gnn_message_passing, obje
 from policy_rules.policy.policy import Policy
 from policy_rules.util.template_settings import (load_model_weights, neuralogic_settings,
                                                  store_template_model)
+from policy_rules.util.timer import TimerContextManager
 
 
 class LearningPolicy(Policy):
@@ -215,14 +216,20 @@ class LearningPolicy(Policy):
             # template += gnn_message_passing(f"{2}-ary", dim, num_layers=num_layers)
 
     def train_model_from(self, train_data_dir: str, samples_limit: int = -1, num_epochs:int = 100,
-                         state_regression=False, action_regression=False):
+                         state_regression=False, action_regression=False, save_drawing=None):
         if state_regression or action_regression:
             neuralogic_settings.error_function = MSE()
             # neuralogic_settings['trainOnlineResultsType'] =
         else:
             neuralogic_settings.error_function = CrossEntropy(with_logits=False)
 
-        self.model = self._template.build(neuralogic_settings)
+        with TimerContextManager("building template"):
+            self.model = self._template.build(neuralogic_settings)
+
+        if save_drawing is not None:
+            self.model.draw(filename=save_drawing)
+            print("Saved template visualisation to", save_drawing)
+
         self._engine.model = self.model
 
         try:
@@ -269,8 +276,10 @@ class LearningPolicy(Policy):
             print(e)
         neuralogic_settings["aggregateConflictingQueries"] = False
         print("-" * 80)
-        if save_model_path:
-            store_template_model(self.model, save_model_path)
+
+        # DZC 15/07/2024: This seems redundant as store_policy is called after training in run.py so I commented it out
+        # if save_model_path:
+        #     store_template_model(self.model, save_model_path)
 
     def reset_parameters(self):
         self.model.reset_parameters()
