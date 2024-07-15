@@ -4,6 +4,7 @@ from .ferry import FerryPolicy
 from .miconic import MiconicPolicy
 from .satellite_nullary import SatellitePolicyNullary
 from .satellite_original import SatellitePolicy
+from .transport import TransportPolicy
 
 
 def get_handcraft_policy(domain: str) -> Policy:
@@ -13,6 +14,7 @@ def get_handcraft_policy(domain: str) -> Policy:
         "miconic": MiconicPolicy,
         # "satellite": SatellitePolicy,
         "satellite": SatellitePolicyNullary,
+        "transport": TransportPolicy,
     }
     if domain not in domains:
         raise NotImplementedError

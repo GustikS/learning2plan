@@ -66,7 +66,7 @@ def goal_repr(goal: list[pymimir.Literal]):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--domain", type=str, default="blocksworld")
-    parser.add_argument("-p", "--problem", type=str, default="0_02", help="Of the form 'x_yy'")
+    parser.add_argument("-p", "--problem", type=str, default="0_01", help="Of the form 'x_yy'")
     parser.add_argument("-v", "--verbose", type=int, default=0)
     parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound")
     parser.add_argument("-t", "--template", type=str, default="", help="Stored policy template name")
@@ -119,9 +119,9 @@ def main():
 
     # TODO(DZC): cycle checking
 
-    if _DEBUG_LEVEL > 3:
+    if _DEBUG_LEVEL > 5:
         add_handler(sys.stdout, Level.FINE, Formatter.COLOR)
-    if _DEBUG_LEVEL > 2:
+    if _DEBUG_LEVEL > 4:
         add_handler(sys.stdout, Level.WARNING, Formatter.COLOR)
     else:
         add_handler(sys.stdout, Level.OFF, Formatter.COLOR)

@@ -122,8 +122,11 @@ class LearningPolicy(Policy):
         relation.terms = [str(term).upper() for term in relation.terms]
         atom_values = self._engine.query(relation)
         if atom_values:
-            for a in atom_values:
-                results_repr.append(f'{relation.predicate.name} {a[1]} : {a[0]}')
+            try:
+                for a in atom_values:
+                    results_repr.append(f'{relation.predicate.name} {a[1]} : {a[0]}')
+            except IndexError:
+                results_repr = [relation.predicate.name + " <- true"]
         else:
             results_repr = [relation.predicate.name + " <- no inference"]
 
@@ -300,7 +303,7 @@ class FasterLearningPolicy(LearningPolicy):
         return super().query_actions()
 
     @override
-    def get_action_substitutions(self, action_name: str) -> (float, dict):
+    def get_action_substitutions(self, action_name: str) -> tuple[float, dict]:
         atoms = self._built_state_network.get_atom(self.action_header2query[action_name])
         if atoms:
             result = [(a.value, a.substitutions) for a in atoms]
