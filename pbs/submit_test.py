@@ -21,11 +21,13 @@ JOB_SCRIPT = f"{CUR_DIR}/pbs_job.sh"
 assert os.path.exists(JOB_SCRIPT), JOB_SCRIPT
 
 PBS_TRAIN_NCPU = 2
-PBS_TRAIN_TIMEOUT = "01:00:00"
+PBS_TRAIN_TIMEOUT = "48:00:00"
 PBS_TRAIN_MEMOUT = "8GB"
 
-DIMENSIONS = [1, 2, 4, 8, 16, 32, 64]
-LAYERS = [1, 2, 3, 4]
+# DIMENSIONS = [1, 2, 4, 8, 16, 32, 64]
+DIMENSIONS = [1, 2, 4, 8, 16]
+# LAYERS = [1, 2, 3, 4]
+LAYERS = [1, 2, 3]
 REPEATS = [0, 1, 2]
 DOMAINS = [
     "blocksworld", 
@@ -34,8 +36,9 @@ DOMAINS = [
     # "satellite", 
     "transport",
 ]
+PROBLEMS = [f"{x}_{y:02d}" for y in range(1, 31) for x in [0, 1, 2]]
 
-CONFIGS = product(DIMENSIONS, LAYERS, REPEATS, DOMAINS)
+CONFIGS = product(DIMENSIONS, LAYERS, REPEATS, DOMAINS, PROBLEMS)
 
 
 """ Main loop """
@@ -49,16 +52,23 @@ def main():
     ## gadi has queue limits
     assert args.submissions <= 1000
 
+    missing_models = set()
     submitted = 0
     skipped = 0
+    model_missing = 0
     to_go = 0
 
-    for dim, layer, repeat, domain in CONFIGS:
-        description = f"{domain}_{layer}_{dim}_{repeat}"
+    for dim, layer, repeat, domain, problem in CONFIGS:
+        description = f"{domain}_{layer}_{dim}_{problem}_{repeat}"
 
         log_file = f"{LOG_DIR}/{description}.log"
-        save_file = f"{SAVE_DIR}/{description}.model"
+        save_file = f"{SAVE_DIR}/{domain}_{layer}_{dim}_{repeat}.model"
         lock_file = f"{LOCK_DIR}/{description}.lock"
+
+        if not os.path.exists(save_file):
+            model_missing += 1
+            missing_models.add(save_file)
+            continue
 
         if (os.path.exists(log_file) or os.path.exists(lock_file)) and not args.force:
             skipped += 1
@@ -73,7 +83,7 @@ def main():
         with open(lock_file, "w") as f:
             pass
 
-        cmd = f"python3 run.py -d {domain} --embedding {dim} --layers {layer} -s {repeat} --save_file {save_file}"
+        cmd = f"python3 run.py -d {domain} --embedding {dim} --layers {layer} -s {repeat} -b 10000 -p {problem} --load_file {save_file}"
 
         job_cmd = [
             "qsub",
@@ -99,8 +109,12 @@ def main():
         print(log_file)
         submitted += 1
 
+    print("Models missing:")
+    for m in sorted(missing_models):
+        print(m)
     print("Submitted:", submitted)
-    print("Skipped:", skipped)
+    print("Skipped from log or lock:", skipped)
+    print("Skipped from missing model:", model_missing)
     print("To go:", to_go)
 
 
