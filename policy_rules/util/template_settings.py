@@ -8,7 +8,7 @@ from neuralogic.nn.java import NeuraLogic
 
 # we can set up all the learning/numeric-evaluation-related settings here
 neuralogic_settings = Settings(
-    iso_value_compression=False,    # set to true for training speedup (but incompatible with RELUs)
+    iso_value_compression=True,    # set to true for training speedup (but incompatible with RELUs)
     chain_pruning=True,
     # rule_transformation=Transformation.TANH,  # change to RELU for better training
     # rule_aggregation=Aggregation.AVG,  # change to avg for better generalization

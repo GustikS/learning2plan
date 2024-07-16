@@ -237,9 +237,9 @@ class LearningPolicy(Policy):
             weight_init: Initializer = Uniform(),
             num_epochs: int = 100,
             optimizer: Optimizer = Adam,
-            learning_rate: float = 0.001,  # increase for SGD
-            learning_rate_decay: Union["arithmetic", "geometric"] = "arithmetic",
-            activations: Transformation = Transformation.LEAKY_RELU,
+            learning_rate: float = 0.0001,  # increase for SGD
+            learning_rate_decay: Union["arithmetic", "geometric"] = "",
+            activations: Transformation = Transformation.TANH,
             aggregations: Aggregation = Aggregation.AVG,
             state_regression=False,
             action_regression=False,
@@ -272,6 +272,9 @@ class LearningPolicy(Policy):
         neuralogic_settings.relation_transformation = activations
         neuralogic_settings.rule_aggregation = aggregations
         # the output neuron activation should get set automatically w.r.t. given setting (classification/regression)
+
+        if activations == Transformation.RELU or activations == Transformation.LEAKY_RELU:
+            neuralogic_settings.iso_value_compression = False   # these are not compatible with the speedup via lifting
 
         with TimerContextManager("building template"):
             self.model = self._template.build(neuralogic_settings)
