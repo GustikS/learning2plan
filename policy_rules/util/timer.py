@@ -11,7 +11,8 @@ class TimerContextManager:
         self.end = end
 
     def __enter__(self):
-        print(colored(f"Started {self.description}...", "magenta"))
+        print(f"Started {self.description}...")
+        # print(colored(f"Started {self.description}...", "magenta"))
         self.start_time = time.time()
         return self
 

@@ -234,7 +234,8 @@ def main():
     total_time = 0
 
     """ 1. handle domain information """
-    with TimerContextManager(f"parsing PDDL domain file {str(domain_path)}") as timer:
+    with TimerContextManager(f"parsing PDDL domain file") as timer:
+        print(f"{domain_path=}")
         domain = pymimir.DomainParser(str(domain_path)).parse()
         total_time += timer.get_time()
 
@@ -303,7 +304,8 @@ def main():
         exit(0)
 
     """ 2. handle problem information """
-    with TimerContextManager(f"loading PDDL problem file {test_problem_path}") as timer:
+    with TimerContextManager(f"loading PDDL problem file") as timer:
+        print(f"{test_problem_path=}")
         problem = pymimir.ProblemParser(test_problem_path).parse(domain)
         initial_state = problem.create_state(problem.initial)
         goal = problem.goal

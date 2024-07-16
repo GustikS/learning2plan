@@ -6,6 +6,7 @@ from typing import Dict, Optional, Union
 import neuralogic
 from neuralogic.core import Aggregation, Settings, Template, Transformation
 from neuralogic.nn.java import NeuraLogic
+from termcolor import colored
 
 # we can set up all the learning/numeric-evaluation-related settings here
 neuralogic_settings = Settings(
@@ -68,6 +69,8 @@ def save_template_model(model: Union[NeuraLogic | Template], save_model_path: st
 
     with open(save_model_path + "_template.txt", "w") as f:
         f.write(str(template))
+
+    print(colored(f"Model saved to {save_model_path}", "green"))
 
 
 def load_model_weights(model: NeuraLogic, weights_file: str = None):

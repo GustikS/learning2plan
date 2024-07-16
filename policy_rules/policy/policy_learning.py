@@ -12,6 +12,7 @@ from neuralogic.nn.java import NeuraLogic
 from neuralogic.nn.loss import MSE, CrossEntropy
 from pymimir import Action, Domain
 from sklearn.metrics import f1_score
+from termcolor import colored
 from typing_extensions import override
 
 from modelling.templates import (anonymous_predicates, gnn_message_passing, object2object_edges,
@@ -300,7 +301,9 @@ class LearningPolicy(Policy):
 
                     print(f"{epoch=}, {n_samples=}, {loss=}, {accuracy=}, {f1=}, {t=}")
             
-            print(f"Best model at epoch={best_epoch} with f1_score={best_f1}")
+            print(colored(f"Best model at epoch={best_epoch} with f1_score={best_f1}", "green"))
+
+            # Load the best model state dict
             self.model.load_state_dict(best_state_dict)
         except KeyboardInterrupt:
             print(f"Training stopped early due to keyboard interrupt!")
@@ -314,11 +317,6 @@ class LearningPolicy(Policy):
                 print(f"target: {sample.target} <- predicted: {result} for sample: {sample.java_sample.query.ID}")
 
         neuralogic_settings["aggregateConflictingQueries"] = False
-        print("-" * 80)
-
-        # DZC 15/07/2024: This seems redundant as store_policy is called after training in run.py so I commented it out
-        # if save_model_path:
-        #     store_template_model(self.model, save_model_path)
 
     def _debug_neural_samples(self, neural_samples):
         """Check that there are no problems and show some statistics"""
