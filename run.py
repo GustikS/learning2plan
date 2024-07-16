@@ -29,7 +29,7 @@ if not neuralogic.is_initialized():
     neuralogic.initialize(
         jar_path=jar_path,
         debug_mode=False,  # for java backend debugging
-        max_memory_size=4,  # in GB (increase for full miconic)
+        max_memory_size=16,  # in GB (increase for full miconic)
     )
 
 from policy_rules.policy.handcraft.handcraft_factory import get_handcraft_policy
