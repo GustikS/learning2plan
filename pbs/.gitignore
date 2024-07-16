@@ -1,0 +1,4 @@
+*.sif
+__experiments/
+*.csv
+.lock*
