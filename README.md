@@ -53,6 +53,7 @@ is compressed to
 
 The training then starts automatically as long as there is some `--train_dir` provided (existing or to be created).
  - simply skip the argument to skip training
+ - DZC 15/07/2024: training is also done if `--save_file` is specified
 
 The training workflow then consists of
  1. building the given training samples with the given template, yielding dynamically structured neural networks

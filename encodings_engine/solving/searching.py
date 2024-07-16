@@ -5,12 +5,12 @@ import jpype
 
 from neuralogic.nn.module import SAGEConv as SAGErel
 
-from encodings.expressiveness.encoding import Object2ObjectGraph
-from encodings.learning.modelsLRNN import get_trained_model_lrnn
-from encodings.parsing import get_datasets
-from encodings.planning import PlanningInstance, PlanningState, GroundAction
-from encodings.solving.backend import Backend
-from encodings.solving.scoring import Scorer, LRNNScorer
+from encodings_engine.expressiveness.encoding import Object2ObjectGraph
+from encodings_engine.learning.modelsLRNN import get_trained_model_lrnn
+from encodings_engine.parsing import get_datasets
+from encodings_engine.planning import PlanningInstance, PlanningState, GroundAction
+from encodings_engine.solving.backend import Backend
+from encodings_engine.solving.scoring import Scorer, LRNNScorer
 
 
 class Search(ABC):

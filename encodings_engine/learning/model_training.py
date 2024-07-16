@@ -1,7 +1,7 @@
-from encodings.expressiveness.encoding import Object2ObjectGraph
-from encodings.learning.modelsLRNN import get_trained_model_lrnn
-from encodings.learning.modelsTorch import get_trained_model_torch
-from encodings.parsing import get_datasets
+from encodings_engine.expressiveness.encoding import Object2ObjectGraph
+from encodings_engine.learning.modelsLRNN import get_trained_model_lrnn
+from encodings_engine.learning.modelsTorch import get_trained_model_torch
+from encodings_engine.parsing import get_datasets
 
 from neuralogic.nn.module import SAGEConv as SAGErel
 

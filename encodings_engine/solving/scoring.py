@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 
-from encodings.learning.modelsLRNN import get_relational_dataset, get_predictions_LRNN
-from encodings.learning.modelsTorch import get_tensor_dataset, get_predictions_torch
-from encodings.planning import PlanningState, Action
+from encodings_engine.learning.modelsLRNN import get_relational_dataset, get_predictions_LRNN
+from encodings_engine.learning.modelsTorch import get_tensor_dataset, get_predictions_torch
+from encodings_engine.planning import PlanningState, Action
 
 from neuralogic.core import R
 
