@@ -275,7 +275,7 @@ class LearningPolicy(Policy):
         # the output neuron activation should get set automatically w.r.t. given setting (classification/regression)
 
         if activations == Transformation.RELU or activations == Transformation.LEAKY_RELU:
-            neuralogic_settings.iso_value_compression = False   # these are not compatible with the speedup via lifting
+            neuralogic_settings.iso_value_compression = False  # these are not compatible with the speedup via lifting
 
         with TimerContextManager("building template"):
             self.model = self._template.build(neuralogic_settings)
@@ -338,7 +338,7 @@ class LearningPolicy(Policy):
                         best_epoch = epoch
 
                     print(f"{epoch=}, {n_samples=}, {loss=}, {accuracy=}, {f1=}, {t=}")
-            
+
             print(colored(f"Best model at epoch={best_epoch} with f1_score={best_f1}", "green"))
 
             # Load the best model state dict
@@ -349,10 +349,12 @@ class LearningPolicy(Policy):
         # Evaluate again after training
         if self._debug > 1:
             results = self.model(neural_samples, train=False)  # evaluate again due to missing sample outputs
-            for i in range(len(neural_samples)):
-                result = results[i]
-                sample = neural_samples.samples[i]
-                print(f"target: {sample.target} <- predicted: {result} for sample: {sample.java_sample.query.ID}")
+            self._debug_neural_samples(neural_samples, results)
+            if self._debug > 2:
+                for i in range(len(neural_samples)):
+                    result = results[i]
+                    sample = neural_samples.samples[i]
+                    print(f"target: {sample.target} <- predicted: {result} for sample: {sample.java_sample.query.ID}")
 
         print("-" * 80)
 
@@ -360,16 +362,22 @@ class LearningPolicy(Policy):
         # if save_model_path:
         #     store_template_model(self.model, save_model_path)
 
-    def _debug_neural_samples(self, neural_samples):
+    def _debug_neural_samples(self, neural_samples, results=None):
         """Check that there are no problems and show some statistics"""
+        if not results:
+            outputs = [0] * len(neural_samples)
+        else:
+            outputs = results
+
         state2actions = {}
-        for sample in neural_samples:
+        for output, sample in zip(outputs, neural_samples):
             state_net = sample.java_sample.query.evidence.getId()  # a shared neural net for the given State
             actions = state2actions.get(state_net, [])
-            actions.append((sample, sample.target, sample.java_sample.query.neuron))
+            actions.append((sample, sample.target, sample.java_sample.query.neuron, output))
             state2actions[state_net] = actions
         num_reachable_negative = 0
         num_multiple = 0
+        correctly_ordered = 0
         for state, actions in state2actions.items():
             reachable = [action for action in actions if action[2]]
             if not reachable:
@@ -382,12 +390,26 @@ class LearningPolicy(Policy):
             reachable_negative = [action for action in reachable if not action[1]]
             if reachable_negative:
                 num_reachable_negative += 1
+
+            if results:
+                ordered = sorted(reachable, key=lambda item: item[3], reverse=True)
+                if ordered[0][1] == 1:  # the highest output is for (some) optimal action - good
+                    correctly_ordered += 1
+                elif ordered[0][1] == 0:  # this is a problematic state...
+                    if self._debug > 2:
+                        predictions = [(f'{action[1]} : {action[0].java_sample.query.ID} '
+                                        f'-> {action[3]}') for action in ordered]
+                        print(f'A problematic state to predict an optimal action for: {state} -> {predictions}')
+
         print(f"There are {len(neural_samples)} learning queries across {len(state2actions)} unique states")
         print(f"{float(num_multiple) / len(state2actions) * 100} % of states have more than 1 action derived")
         print(
             f"Only {float(num_reachable_negative) / len(state2actions) * 100} % of states "
-            f"have some negative action derived, and hence can be improved with learning"
+            f"have some negative action derived, and hence can be improved with parameter training"
         )
+        if results:
+            print(f"There are {(1- float(correctly_ordered) / len(state2actions)) * 100} % of problematic states"
+                  f" with wrongly ordered action predictions (suboptimal first before optimal)")
 
     def reset_parameters(self):
         self.model.reset_parameters()
