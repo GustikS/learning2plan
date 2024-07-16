@@ -74,6 +74,10 @@ Finally, one can choose various levels of verbosity with
 
     python3 run.py -d ferry -p 0_30
 
+#### Train Ferry but do not save
+
+    python3 run.py -d ferry --embedding 8 --layers 2 --train
+
 #### Train and save Ferry policy
 
     python3 run.py -d ferry --embedding 8 --layers 2 --save_file ferry.model

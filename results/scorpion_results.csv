@@ -204,6 +204,7 @@ miconic,0_22,7.700486,28.0,True
 miconic,0_23,10.153724,26.0,True
 miconic,0_24,7.485449,28.0,True
 miconic,0_25,73.505359,28.0,True
+miconic,0_26,66.533627,30.0,True
 miconic,1_01,100.40855,59.0,True
 miconic,1_02,100.707231,67.0,True
 miconic,1_03,100.558604,76.0,True
@@ -229,6 +230,7 @@ miconic,1_22,,,False
 miconic,1_23,,,False
 miconic,1_24,,,False
 miconic,1_25,,,False
+miconic,1_26,,,False
 miconic,2_01,108.678363,156.0,True
 miconic,2_02,,,False
 miconic,2_03,,,False
@@ -254,3 +256,4 @@ miconic,2_22,,,False
 miconic,2_23,,,False
 miconic,2_24,,,False
 miconic,2_25,,,False
+miconic,2_26,,,False

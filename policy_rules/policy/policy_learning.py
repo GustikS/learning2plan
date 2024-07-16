@@ -260,11 +260,12 @@ class LearningPolicy(Policy):
                 neuralogic_settings["appLimitSamples"] = samples_limit
             dataset = FileDataset(f"{lrnn_dataset_dir}/examples.txt", f"{lrnn_dataset_dir}/queries.txt")
             if samples_limit > 0:
-                print(f"Starting building the samples with a limit to the first {samples_limit}")
+                desc = f"building samples limited to the first {samples_limit}"
             else:
-                print(f"Starting building all samples")
-            neural_samples = self.model.build_dataset(dataset)
-            print("Neural samples successfully built (the template logic is working correctly)!")
+                desc = f"building all samples"
+            end_desc = "(The template logic is working correctly!)"
+            with TimerContextManager(desc, end=end_desc):
+                neural_samples = self.model.build_dataset(dataset)
             if self._debug > 1:
                 self._debug_neural_samples(neural_samples)
 
