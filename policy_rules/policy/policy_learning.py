@@ -16,6 +16,7 @@ from neuralogic.optim.optimizer import Optimizer
 from neuralogic.optim.lr_scheduler import ArithmeticLR, GeometricLR
 from pymimir import Action, Domain
 from sklearn.metrics import f1_score
+from termcolor import colored
 from typing_extensions import override
 
 from modelling.templates import (anonymous_predicates, gnn_message_passing, object2object_edges,
@@ -337,8 +338,10 @@ class LearningPolicy(Policy):
                         best_epoch = epoch
 
                     print(f"{epoch=}, {n_samples=}, {loss=}, {accuracy=}, {f1=}, {t=}")
+            
+            print(colored(f"Best model at epoch={best_epoch} with f1_score={best_f1}", "green"))
 
-            print(f"Best model at epoch={best_epoch} with f1_score={best_f1}")
+            # Load the best model state dict
             self.model.load_state_dict(best_state_dict)
         except KeyboardInterrupt:
             print(f"Training stopped early due to keyboard interrupt!")

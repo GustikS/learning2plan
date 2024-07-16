@@ -45,12 +45,13 @@ def parse_args():
     parser.add_argument("-p", "--problem", type=str, default="0_01", help="Of the form 'x_yy'")
     parser.add_argument("-v", "--verbose", type=int, default=0)
     parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound")
-    # DZC 15/07/2024: changed --template to --load_file as it seemed more intuitive, and the same for below
-    # parser.add_argument("-t", "--template", type=str, default="", help="Stored policy template name")
+    parser.add_argument("--train", type=bool, default=False, action=argparse.BooleanOptionalAction,
+                        help="Train an LRNN. Training is also performed if a save file is specified.")
     parser.add_argument("-load", "--load_file", type=str, default="", help="Filename to load the template")
     parser.add_argument("-save", "--save_file", type=str, default="", help="Filename to save the template")
-    parser.add_argument("-train", "--train_dir", type=str, default="",
-                        help="LRNN training data subdirectory ( '_' for root subdir of the domain).")
+    # DZC 16/07/2024: removed as we can hard code the training data path
+    # parser.add_argument("--train_dir", type=str, default="",
+    #                     help="LRNN training data subdirectory ( '_' for root subdir of the domain).")
     parser.add_argument("-lim", "--limit", type=int, default=-1,
                         help="Training data samples cutoff limit (good for quicker debugging)")
     parser.add_argument("-sr", "--state_regression", type=bool, default=False, action=argparse.BooleanOptionalAction,
@@ -188,22 +189,15 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, args):
 
 def main():
     args = parse_args()
-    random.seed(args.seed)
-    neuralogic.manual_seed(args.seed)
-    np.random.seed(args.seed)
+    seed = args.seed
+    random.seed(seed)
+    neuralogic.manual_seed(seed)
+    np.random.seed(seed)
     domain_name = args.domain
     problem_name = args.problem
     load_file_name = args.load_file
     save_file_name = args.save_file
-    # Uncomment if we want to ensure that we don't load and save at the same time
-    # if load_file_name and save_file_name:
-    #     print("Error: cannot load and save at the same time! Please choose only one option.")
-    #     print("Exiting...")
-    #     exit(-1)
-    if save_file_name:
-        # default to train if save_file is specified
-        args.train_dir = "data"
-    training_data_subdir = args.train_dir if args.train_dir != "_" else ""
+    to_train = ((not load_file_name) and save_file_name) or args.train
     samples_limit = args.limit
     state_regression = args.state_regression
     action_regression = args.action_regression
@@ -213,19 +207,20 @@ def main():
     include_knowledge = args.knowledge
     domain_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/domain.pddl"
     test_problem_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
-    # DZC 15/07/2024: changed variable names to be more intuitive
-    # DZC 16/07/2024: changed save and load file to be exactly where the user specifies
-    # modified_load_file = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{load_file_name}"
-    # modified_save_file = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{save_file_name}"
-    modified_load_file = load_file_name
-    modified_save_file = save_file_name
-    training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{training_data_subdir}"
+    training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/data"
     _DEBUG_LEVEL = args.verbose
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
-    assert (
-            Path(training_data_path).exists() or Path(test_problem_path).exists()
-    ), f"No training at: {training_data_path} nor testing at: {test_problem_path} Problem(s) found!"
-    # fmt: on
+
+    if to_train:
+        print(colored("Running the training script with the following parameters", "green"))
+        print(f"    {domain_name=}")
+        print(f"    {embed_dim=}")
+        print(f"    {num_layers=}")
+        print(f"    {num_epochs=}")
+        print(f"    {include_knowledge=}")
+        print(f"    {seed=}")
+        if save_file_name:
+            print(f"    {save_file_name=}")
 
     # TODO(DZC): cycle checking
 
@@ -239,18 +234,17 @@ def main():
     total_time = 0
 
     """ 1. handle domain information """
-    with TimerContextManager(f"parsing PDDL domain file {str(domain_path)}") as timer:
+    with TimerContextManager(f"parsing PDDL domain file") as timer:
+        print(f"{domain_path=}")
         domain = pymimir.DomainParser(str(domain_path)).parse()
         total_time += timer.get_time()
 
     # possibly load an initial template from file with the same template_name if found
     if load_file_name:
-        print(f"Loading policy from {modified_load_file}")
-        loaded_model: NeuraLogic = load_stored_model(modified_load_file)
-        to_train = False
+        print(f"Loading policy from {load_file_name}")
+        loaded_model: NeuraLogic = load_stored_model(load_file_name)
     else:
         loaded_model = None
-        to_train = save_file_name
 
     policy: LearningPolicy = get_handcraft_policy(domain.name)(domain, debug=_DEBUG_LEVEL)
 
@@ -271,17 +265,18 @@ def main():
 
     # training should be performed if there are training data AND the policy has learnable parameters/model
     if to_train and hasattr(policy, "model"):
+        training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/data"
         if os.path.isdir(training_data_path):
             print(f"Loading EXISTING LRNN training data from {training_data_path}")
         else:
-            # fmt: off
             print(f"No LRNN training data available at {training_data_path}")
             print("Generating new LRNN training dataset from respective domain's JSON file w.r.t. current flags...")
             # fmt: on
+            print("Generating new LRNN trainset from respective domain's JSON file w.r.t. current flags...")
             with TimerContextManager("creating LRNN training dataset from JSON") as timer:
                 prepare_training_data(
                     domain.name,
-                    training_data_subdir,
+                    target_subdir="data",
                     cur_dir=CUR_DIR,
                     state_regression=state_regression,
                     action_regression=action_regression,
@@ -305,10 +300,14 @@ def main():
 
         # save trained model if requested
         if save_file_name:
-            policy.store_policy(modified_save_file)
+            policy.store_policy(save_file_name)
+
+        # do not run a policy after training
+        exit(0)
 
     """ 2. handle problem information """
-    with TimerContextManager(f"loading PDDL problem file {test_problem_path}") as timer:
+    with TimerContextManager(f"loading PDDL problem file") as timer:
+        print(f"{test_problem_path=}")
         problem = pymimir.ProblemParser(test_problem_path).parse(domain)
         initial_state = problem.create_state(problem.initial)
         goal = problem.goal
