@@ -1,7 +1,7 @@
 """Make use of neuralogic and pymimir to encode policies as Horn clause rules"""
 from abc import abstractmethod
 from itertools import product
-from typing import Union, Iterable
+from typing import Iterable, Union
 
 from neuralogic.core import C, R, Template, V
 from neuralogic.core.constructs.relation import BaseRelation
@@ -10,8 +10,7 @@ from neuralogic.nn.java import NeuraLogic
 from pymimir import Action, ActionSchema, Atom, Domain, Literal, Object, Problem
 
 from policy_rules.util.str_atom import StrAtom
-
-from policy_rules.util.template_settings import neuralogic_settings, store_template_model
+from policy_rules.util.template_settings import neuralogic_settings, save_template_model
 
 Schema = Union[str, ActionSchema]
 
@@ -322,4 +321,4 @@ class Policy:
         return ret
 
     def store_policy(self, save_path: str):
-        store_template_model(self._template, save_path)
+        save_template_model(self._template, save_path)

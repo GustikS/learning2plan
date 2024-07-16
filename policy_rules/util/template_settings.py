@@ -50,7 +50,7 @@ def load_stored_model(template_path: str) -> NeuraLogic:
     return model
 
 
-def store_template_model(model: Union[NeuraLogic | Template], save_model_path: str) -> None:
+def save_template_model(model: Union[NeuraLogic | Template], save_model_path: str) -> None:
     if "/" in save_model_path:
         os.makedirs(os.path.dirname(save_model_path), exist_ok=True)
 

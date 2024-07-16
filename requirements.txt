@@ -1,5 +1,6 @@
 neuralogic==0.7.16
 pytest==8.2.2
 pymdzcf==0.1.0
+scikit-learn==1.5.1
 termcolor==2.4.0
 typing_extensions==4.12.0

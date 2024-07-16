@@ -195,10 +195,11 @@ def main():
     problem_name = args.problem
     load_file_name = args.load_file
     save_file_name = args.save_file
-    if load_file_name and save_file_name:
-        print("Error: cannot load and save at the same time! Please choose only one option.")
-        print("Exiting...")
-        exit(-1)
+    # Uncomment if we want to ensure that we don't load and save at the same time
+    # if load_file_name and save_file_name:
+    #     print("Error: cannot load and save at the same time! Please choose only one option.")
+    #     print("Exiting...")
+    #     exit(-1)
     if save_file_name:
         # default to train if save_file is specified
         args.train_dir = "data"
@@ -218,7 +219,9 @@ def main():
     training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{training_data_subdir}"
     _DEBUG_LEVEL = args.verbose
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
-    assert Path(training_data_path).exists() or Path(test_problem_path).exists(), f"No training at: {training_data_path} nor testing at: {test_problem_path} Problem(s) found!"
+    assert (
+        Path(training_data_path).exists() or Path(test_problem_path).exists()
+    ), f"No training at: {training_data_path} nor testing at: {test_problem_path} Problem(s) found!"
     # fmt: on
 
     # TODO(DZC): cycle checking
@@ -284,6 +287,8 @@ def main():
                 # if generation of a new limited dataset is requested, we further train in full on it
                 samples_limit = -1
                 total_time += timer.get_time()
+
+        # Main training function located here!
         with TimerContextManager("training the policy template") as timer:
             policy.train_model_from(
                 training_data_path,
@@ -300,7 +305,7 @@ def main():
             policy.store_policy(modified_save_file)
 
     """ 2. handle problem information """
-    with TimerContextManager(f"parsing + loading PDDL problem file {test_problem_path}") as timer:
+    with TimerContextManager(f"loading PDDL problem file {test_problem_path}") as timer:
         problem = pymimir.ProblemParser(test_problem_path).parse(domain)
         initial_state = problem.create_state(problem.initial)
         goal = problem.goal

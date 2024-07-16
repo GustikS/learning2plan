@@ -11,13 +11,14 @@ from neuralogic.inference import EvaluationInferenceEngine
 from neuralogic.nn.java import NeuraLogic
 from neuralogic.nn.loss import MSE, CrossEntropy
 from pymimir import Action, Domain
+from sklearn.metrics import f1_score
 from typing_extensions import override
 
 from modelling.templates import (anonymous_predicates, gnn_message_passing, object2object_edges,
                                  object_info_aggregation)
 from policy_rules.policy.policy import Policy
 from policy_rules.util.template_settings import (load_model_weights, neuralogic_settings,
-                                                 store_template_model)
+                                                 save_template_model)
 from policy_rules.util.timer import TimerContextManager
 
 
@@ -26,12 +27,19 @@ class LearningPolicy(Policy):
     def __init__(self, domain: Domain, debug=0):
         super().__init__(domain, debug)
 
-        self.action_header2query = {query.predicate.name: query
-                                    for schema in self._schemata
-                                    if (query := self.relation_from_schema(schema))}
+        self.action_header2query = {
+            query.predicate.name: query for schema in self._schemata if (query := self.relation_from_schema(schema))
+        }
 
-    def init_template(self, init_model: NeuraLogic = None, dim=1, num_layers=-1,
-                      state_regression=False, action_regression=False, **kwargs):
+    def init_template(
+        self,
+        init_model: NeuraLogic = None,
+        dim=1,
+        num_layers=-1,
+        state_regression=False,
+        action_regression=False,
+        **kwargs,
+    ):
         self.dim = dim  # the general dimensionality of embeddings assumed in this model
         self.num_layers = num_layers  # the number of embedding message-passing-like layers
 
@@ -41,7 +49,7 @@ class LearningPolicy(Policy):
             self.add_message_passing(self._template)
 
         if state_regression:  # add also an output head for the regression target
-            self.add_rule(R.distance[1,], R.get(f'h_{self.num_layers}')('X')[1, self.dim], embedding_layer=-1)
+            self.add_rule(R.distance[1,], R.get(f"h_{self.num_layers}")("X")[1, self.dim], embedding_layer=-1)
 
         if state_regression or action_regression:
             neuralogic_settings.error_function
@@ -76,7 +84,7 @@ class LearningPolicy(Policy):
         prefix = new_predicate.predicate.name[:2]
         og_predicate = og_predicate
         if self.dim > 0:
-            new_predicate = new_predicate[prefix:self.dim, 1]
+            new_predicate = new_predicate[prefix : self.dim, 1]
         self.add_rule(og_predicate, new_predicate, embedding_layer=-1)  # forbid the embeddings at input!
 
     @override
@@ -114,8 +122,9 @@ class LearningPolicy(Policy):
         for predicate, substitutions in atom_values.items():
             for subs, neuron in substitutions.items():
                 neurons.append(
-                    f'{neuron.getClass().getSimpleName()} : {predicate}{subs} : {neuron.getRawState().getValue()}')
-        print('\n'.join(sorted(neurons)))
+                    f"{neuron.getClass().getSimpleName()} : {predicate}{subs} : {neuron.getRawState().getValue()}"
+                )
+        print("\n".join(sorted(neurons)))
         print("=" * 80)
 
     def _debug_inference_helper(self, relation: BaseRelation, newline=True):
@@ -126,7 +135,7 @@ class LearningPolicy(Policy):
         if atom_values:
             try:
                 for a in atom_values:
-                    results_repr.append(f'{relation.predicate.name} {a[1]} : {a[0]}')
+                    results_repr.append(f"{relation.predicate.name} {a[1]} : {a[0]}")
             except IndexError:
                 results_repr = [relation.predicate.name + " <- true"]
         else:
@@ -138,12 +147,14 @@ class LearningPolicy(Policy):
             print(" ".join(results_repr))
 
     @override
-    def add_rule(self,
-                 head_or_schema_name: Union[BaseRelation, str],
-                 body: list[BaseRelation],
-                 guard_level: int = -1,  # = only call the rule after N inference steps
-                 embedding_layer=None,
-                 fixed_weight: Union[float, np.ndarray] = None):
+    def add_rule(
+        self,
+        head_or_schema_name: Union[BaseRelation, str],
+        body: list[BaseRelation],
+        guard_level: int = -1,  # = only call the rule after N inference steps
+        embedding_layer=None,
+        fixed_weight: Union[float, np.ndarray] = None,
+    ):
         """Extending a given rule with weights and embeddings"""
 
         rule: Rule = self.get_rule(body, head_or_schema_name, guard_level=guard_level)
@@ -166,9 +177,9 @@ class LearningPolicy(Policy):
             for lit in rule.body:
                 variables.update(lit.terms)
             if variables:
-                rule.body += [self.add_weight(R.get(f'h_{embedding_layer}')(var), dim) for var in variables]
+                rule.body += [self.add_weight(R.get(f"h_{embedding_layer}")(var), dim) for var in variables]
             else:
-                rule.body.append(self.add_weight(R.get(f'h_{embedding_layer}'), dim))
+                rule.body.append(self.add_weight(R.get(f"h_{embedding_layer}"), dim))
         self._template += rule
 
     def add_weight(self, literal: BaseRelation, dim: int) -> WeightedRelation:
@@ -178,7 +189,7 @@ class LearningPolicy(Policy):
         if not isinstance(literal, WeightedRelation) and not literal.negated:  # not yet weighted
             # if literal.predicate.name.startswith('applicable_'):
             #     return literal[dim, dim]
-            if literal.predicate.name[:3] in ['ap_', 'ag_', 'ug_']:  # scalar input atoms
+            if literal.predicate.name[:3] in ["ap_", "ag_", "ug_"]:  # scalar input atoms
                 return literal[dim, 1]
             if literal.predicate.name in self.action_header2query.keys():  # scalar output actions
                 return literal[dim, 1]
@@ -202,7 +213,7 @@ class LearningPolicy(Policy):
         template += anonymous_predicates(predicates, dim, input_dim=dim)
 
         # In the learning inference MAP ALSO THE UNACHIEVED PREDICATES!
-        ug_predicates = {f'ug_{pred}': arity for pred, arity in predicates.items()}
+        ug_predicates = {f"ug_{pred}": arity for pred, arity in predicates.items()}
         template += anonymous_predicates(ug_predicates, dim, input_dim=1)
 
         template += object_info_aggregation(max(predicates.values()), dim)
@@ -215,8 +226,16 @@ class LearningPolicy(Policy):
             template += gnn_message_passing("edge", dim, num_layers=self.num_layers - 1)
             # template += gnn_message_passing(f"{2}-ary", dim, num_layers=num_layers)
 
-    def train_model_from(self, train_data_dir: str, samples_limit: int = -1, num_epochs:int = 100,
-                         state_regression=False, action_regression=False, save_drawing=None):
+    def train_model_from(
+        self,
+        train_data_dir: str,
+        samples_limit: int = -1,
+        num_epochs: int = 100,
+        state_regression=False,
+        action_regression=False,
+        save_drawing=None,
+    ):
+        """Set up training, then call self._train_parameters for main training"""
         if state_regression or action_regression:
             neuralogic_settings.error_function = MSE()
             # neuralogic_settings['trainOnlineResultsType'] =
@@ -232,51 +251,67 @@ class LearningPolicy(Policy):
 
         self._engine.model = self.model
 
-        try:
-            self._train_parameters(train_data_dir, samples_limit=samples_limit, epochs=num_epochs)
-        except Exception as e:
-            print(f"Invalid training setup from: {train_data_dir}")
-            print(e)
+        self._train_parameters(train_data_dir, samples_limit=samples_limit, epochs=num_epochs)
 
-    def _train_parameters(self, lrnn_dataset_dir: str,
-                          epochs: int = 100,
-                          save_model_path: str = None,
-                          samples_limit: int = -1,
-                          report_progress=True):
+    def _train_parameters(self, lrnn_dataset_dir: str, epochs: int = 100, samples_limit: int = -1):
         try:
             if samples_limit > 0:
                 neuralogic_settings["stratification"] = False
                 neuralogic_settings["appLimitSamples"] = samples_limit
             dataset = FileDataset(f"{lrnn_dataset_dir}/examples.txt", f"{lrnn_dataset_dir}/queries.txt")
-            print(f"Starting building the samples with a limit to the first {samples_limit}")
+            if samples_limit > 0:
+                print(f"Starting building the samples with a limit to the first {samples_limit}")
+            else:
+                print(f"Starting building all samples")
             neural_samples = self.model.build_dataset(dataset)
-            print("Neural samples successfully built (the template logic is working correctly)")
+            print("Neural samples successfully built (the template logic is working correctly)!")
             if self._debug > 1:
                 self._debug_neural_samples(neural_samples)
 
-            print("Starting training the parameters...")
-            # if report_progress and self._debug > 1:
-            # DZC 15/07/2024: I think it's worth always reporting progress
-            if report_progress:
-                for i in range(epochs):
+            # Main training loop
+            # TODO: maybe have a validation split to save best model
+            best_f1 = 0
+            best_state_dict = self.model.state_dict()
+            best_epoch = -1
+            with TimerContextManager("training the LRNN"):
+                for epoch in range(epochs):
                     t = time.time()
-                    results, total_len = self.model(neural_samples, True, epochs=1)
+                    results, n_samples = self.model(neural_samples, True, epochs=1)
                     t = time.time() - t
-                    print(f'training epoch {i} error: {sum(result[2] for result in results)} over {total_len} samples, time: {t}s')
-            else:
-                results = self.model(neural_samples, train=True, epochs=epochs)
-                results = results[0]
-            print("...finished training")
-            total_error = 0
-            if self._debug > 1:
-                results = self.model(neural_samples, train=False)  # evaluate again due to missing sample outputs
-                for i in range(len(neural_samples)):
-                    result = results[i]
-                    sample = neural_samples.samples[i]
-                    print(f'target: {sample.target} <- predicted: {result} for sample: {sample.java_sample.query.ID}')
-        except Exception as e:
-            print(f"An error occured during attempt to train policy model from: {lrnn_dataset_dir}")
-            print(e)
+
+                    # result[0] = target
+                    # result[1] = prediction
+                    # result[2] = difference between the prediction and target
+
+                    y_true = np.array([result[0] for result in results])
+                    y_pred = np.array([result[1] for result in results])
+                    y_pred_rounded = y_pred >= 0.5
+                    diff = np.array([abs(result[2]) for result in results])
+
+                    loss = sum(diff) / len(diff)
+                    accuracy = sum(y_true == y_pred_rounded) / len(results)
+                    f1 = f1_score(y_true, y_pred_rounded)
+
+                    if f1 > best_f1:
+                        best_f1 = f1
+                        best_state_dict = self.model.state_dict()
+                        best_epoch = epoch
+
+                    print(f"{epoch=}, {n_samples=}, {loss=}, {accuracy=}, {f1=}, {t=}")
+            
+            print(f"Best model at epoch={best_epoch} with f1_score={best_f1}")
+            self.model.load_state_dict(best_state_dict)
+        except KeyboardInterrupt:
+            print(f"Training stopped early due to keyboard interrupt!")
+
+        # Evaluate again after training
+        if self._debug > 1:
+            results = self.model(neural_samples, train=False)  # evaluate again due to missing sample outputs
+            for i in range(len(neural_samples)):
+                result = results[i]
+                sample = neural_samples.samples[i]
+                print(f"target: {sample.target} <- predicted: {result} for sample: {sample.java_sample.query.ID}")
+
         neuralogic_settings["aggregateConflictingQueries"] = False
         print("-" * 80)
 
@@ -308,8 +343,10 @@ class LearningPolicy(Policy):
                 num_reachable_negative += 1
         print(f"There are {len(neural_samples)} learning queries across {len(state2actions)} unique states")
         print(f"{float(num_multiple) / len(state2actions) * 100} % of states have more than 1 action derived")
-        print(f"Only {float(num_reachable_negative) / len(state2actions) * 100} % of states "
-              f"have some negative action derived, and hence can be improved with learning")
+        print(
+            f"Only {float(num_reachable_negative) / len(state2actions) * 100} % of states "
+            f"have some negative action derived, and hence can be improved with learning"
+        )
 
     def reset_parameters(self):
         self.model.reset_parameters()
@@ -318,7 +355,7 @@ class LearningPolicy(Policy):
         load_model_weights(self.model, weights_file_path)
 
     def store_policy(self, save_path: str):
-        store_template_model(self.model, save_path)
+        save_template_model(self.model, save_path)
 
 
 class FasterLearningPolicy(LearningPolicy):
