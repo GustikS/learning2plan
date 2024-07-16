@@ -214,8 +214,11 @@ def main():
     domain_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/domain.pddl"
     test_problem_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
     # DZC 15/07/2024: changed variable names to be more intuitive
-    modified_load_file = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{load_file_name}"
-    modified_save_file = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{save_file_name}"
+    # DZC 16/07/2024: changed save and load file to be exactly where the user specifies
+    # modified_load_file = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{load_file_name}"
+    # modified_save_file = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{save_file_name}"
+    modified_load_file = load_file_name
+    modified_save_file = save_file_name
     training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{training_data_subdir}"
     _DEBUG_LEVEL = args.verbose
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
