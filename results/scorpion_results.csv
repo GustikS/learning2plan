@@ -105,11 +105,11 @@ ferry,0_13,101.180424,31.0,True
 ferry,0_14,101.301587,33.0,True
 ferry,0_15,149.787699,37.0,True
 ferry,0_16,186.102259,39.0,True
-ferry,0_17,,,False
+ferry,0_17,17257.51511,45.0,True
 ferry,0_18,195.564543,40.0,True
 ferry,0_19,3524.891763,44.0,True
 ferry,0_20,,,False
-ferry,0_21,,,False
+ferry,0_21,15298.435661,49.0,True
 ferry,0_22,,,False
 ferry,0_23,,,False
 ferry,0_24,,,False
@@ -206,6 +206,9 @@ miconic,0_24,7.485449,28.0,True
 miconic,0_25,73.505359,28.0,True
 miconic,0_26,66.533627,30.0,True
 miconic,0_27,71.955674,31.0,True
+miconic,0_28,100.210802,35.0,True
+miconic,0_29,100.200682,32.0,True
+miconic,0_30,100.440539,32.0,True
 miconic,1_01,100.40855,59.0,True
 miconic,1_02,100.707231,67.0,True
 miconic,1_03,100.558604,76.0,True
@@ -225,7 +228,7 @@ miconic,1_16,,,False
 miconic,1_17,,,False
 miconic,1_18,,,False
 miconic,1_19,4620.43489,157.0,True
-miconic,1_20,,,False
+miconic,1_20,10612.246478,161.0,True
 miconic,1_21,,,False
 miconic,1_22,,,False
 miconic,1_23,,,False
@@ -233,6 +236,9 @@ miconic,1_24,,,False
 miconic,1_25,,,False
 miconic,1_26,,,False
 miconic,1_27,,,False
+miconic,1_28,,,False
+miconic,1_29,,,False
+miconic,1_30,,,False
 miconic,2_01,108.678363,156.0,True
 miconic,2_02,,,False
 miconic,2_03,,,False
@@ -260,3 +266,14 @@ miconic,2_24,,,False
 miconic,2_25,,,False
 miconic,2_26,,,False
 miconic,2_27,,,False
+miconic,2_28,,,False
+miconic,2_29,,,False
+miconic,2_30,,,False
+satellite,0_01,100.142232,4.0,True
+satellite,0_02,100.034539,8.0,True
+satellite,0_03,100.046451,8.0,True
+satellite,1_01,,,False
+satellite,1_02,,,False
+satellite,1_03,,,False
+satellite,2_01,,,False
+satellite,2_02,,,False
