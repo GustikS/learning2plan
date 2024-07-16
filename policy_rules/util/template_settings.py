@@ -3,24 +3,22 @@ import pickle
 from dataclasses import dataclass
 from typing import Dict, Optional, Union
 
-import neuralogic
 from neuralogic.core import Aggregation, Settings, Template, Transformation
 from neuralogic.nn.java import NeuraLogic
 
 # we can set up all the learning/numeric-evaluation-related settings here
 neuralogic_settings = Settings(
-    iso_value_compression=True,
+    iso_value_compression=False,    # set to true for training speedup (but incompatible with RELUs)
     chain_pruning=True,
-    rule_transformation=Transformation.TANH,  # change to RELU for better training
-    rule_aggregation=Aggregation.AVG,  # change to avg for better generalization
-    relation_transformation=Transformation.TANH,  # change to RELU for better training - check label match
-    epochs=100,
+    # rule_transformation=Transformation.TANH,  # change to RELU for better training
+    # rule_aggregation=Aggregation.AVG,  # change to avg for better generalization
+    # relation_transformation=Transformation.TANH,  # change to RELU for better training - check label match
 )
 
 # neuralogic_settings["inferOutputFcns"] = False
 neuralogic_settings["oneQueryPerExample"] = False
 neuralogic_settings["preprocessTemplateInference"] = False
-
+neuralogic_settings["aggregateConflictingQueries"] = False  # this was only good for the lifted queries setting (not used in the current setup)
 
 """
 DZC 15/07/2024. See commit b24e3b918277778f05585f6c378cb411b72c13e8 for original code

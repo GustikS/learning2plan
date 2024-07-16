@@ -34,7 +34,7 @@ if not neuralogic.is_initialized():
 
 from policy_rules.policy.handcraft.handcraft_factory import get_handcraft_policy
 from policy_rules.util.printing import print_mat
-from policy_rules.util.template_settings import load_stored_model, neuralogic_settings
+from policy_rules.util.template_settings import load_stored_model
 from policy_rules.util.timer import TimerContextManager
 
 
@@ -223,7 +223,7 @@ def main():
     _DEBUG_LEVEL = args.verbose
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
     assert (
-        Path(training_data_path).exists() or Path(test_problem_path).exists()
+            Path(training_data_path).exists() or Path(test_problem_path).exists()
     ), f"No training at: {training_data_path} nor testing at: {test_problem_path} Problem(s) found!"
     # fmt: on
 
@@ -276,7 +276,7 @@ def main():
         else:
             # fmt: off
             print(f"No LRNN training data available at {training_data_path}")
-            print("Generating new LRNN training dataset there from respective domain's JSON file w.r.t. current flags...")
+            print("Generating new LRNN training dataset from respective domain's JSON file w.r.t. current flags...")
             # fmt: on
             with TimerContextManager("creating LRNN training dataset from JSON") as timer:
                 prepare_training_data(
@@ -295,10 +295,10 @@ def main():
         with TimerContextManager("training the policy template") as timer:
             policy.train_model_from(
                 training_data_path,
-                samples_limit,
-                num_epochs,
-                state_regression,
-                action_regression,
+                samples_limit=samples_limit,
+                num_epochs=num_epochs,
+                state_regression=state_regression,
+                action_regression=action_regression,
                 save_drawing=args.visualise,
             )
             total_time += timer.get_time()

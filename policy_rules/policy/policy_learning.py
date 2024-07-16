@@ -4,12 +4,16 @@ import warnings
 from typing import Iterable, Union
 
 import numpy as np
-from neuralogic.core import R, Rule, Template, V
+from neuralogic.core import R, Rule, Template, V, Transformation, Aggregation
 from neuralogic.core.constructs.relation import BaseRelation, WeightedRelation
 from neuralogic.dataset import FileDataset
 from neuralogic.inference import EvaluationInferenceEngine
+from neuralogic.nn.init import Initializer, Uniform
 from neuralogic.nn.java import NeuraLogic
 from neuralogic.nn.loss import MSE, CrossEntropy
+from neuralogic.optim import SGD, Adam
+from neuralogic.optim.optimizer import Optimizer
+from neuralogic.optim.lr_scheduler import ArithmeticLR, GeometricLR
 from pymimir import Action, Domain
 from sklearn.metrics import f1_score
 from typing_extensions import override
@@ -32,13 +36,13 @@ class LearningPolicy(Policy):
         }
 
     def init_template(
-        self,
-        init_model: NeuraLogic = None,
-        dim=1,
-        num_layers=-1,
-        state_regression=False,
-        action_regression=False,
-        **kwargs,
+            self,
+            init_model: NeuraLogic = None,
+            dim=1,
+            num_layers=-1,
+            state_regression=False,
+            action_regression=False,
+            **kwargs,
     ):
         self.dim = dim  # the general dimensionality of embeddings assumed in this model
         self.num_layers = num_layers  # the number of embedding message-passing-like layers
@@ -84,7 +88,7 @@ class LearningPolicy(Policy):
         prefix = new_predicate.predicate.name[:2]
         og_predicate = og_predicate
         if self.dim > 0:
-            new_predicate = new_predicate[prefix : self.dim, 1]
+            new_predicate = new_predicate[prefix: self.dim, 1]
         self.add_rule(og_predicate, new_predicate, embedding_layer=-1)  # forbid the embeddings at input!
 
     @override
@@ -148,12 +152,12 @@ class LearningPolicy(Policy):
 
     @override
     def add_rule(
-        self,
-        head_or_schema_name: Union[BaseRelation, str],
-        body: list[BaseRelation],
-        guard_level: int = -1,  # = only call the rule after N inference steps
-        embedding_layer=None,
-        fixed_weight: Union[float, np.ndarray] = None,
+            self,
+            head_or_schema_name: Union[BaseRelation, str],
+            body: list[BaseRelation],
+            guard_level: int = -1,  # = only call the rule after N inference steps
+            embedding_layer=None,
+            fixed_weight: Union[float, np.ndarray] = None,
     ):
         """Extending a given rule with weights and embeddings"""
 
@@ -227,20 +231,47 @@ class LearningPolicy(Policy):
             # template += gnn_message_passing(f"{2}-ary", dim, num_layers=num_layers)
 
     def train_model_from(
-        self,
-        train_data_dir: str,
-        samples_limit: int = -1,
-        num_epochs: int = 100,
-        state_regression=False,
-        action_regression=False,
-        save_drawing=None,
+            self,
+            train_data_dir: str,
+            samples_limit: int = -1,
+            weight_init: Initializer = Uniform(),
+            num_epochs: int = 100,
+            optimizer: Optimizer = Adam,
+            learning_rate: float = 0.001,  # increase for SGD
+            learning_rate_decay: Union["arithmetic", "geometric"] = "arithmetic",
+            activations: Transformation = Transformation.LEAKY_RELU,
+            aggregations: Aggregation = Aggregation.AVG,
+            state_regression=False,
+            action_regression=False,
+            save_drawing=None,
     ):
         """Set up training, then call self._train_parameters for main training"""
         if state_regression or action_regression:
             neuralogic_settings.error_function = MSE()
-            # neuralogic_settings['trainOnlineResultsType'] =
         else:
             neuralogic_settings.error_function = CrossEntropy(with_logits=False)
+
+        neuralogic_settings.initializer = weight_init
+
+        match learning_rate_decay:
+            case "arithmetic":
+                decay = ArithmeticLR(num_epochs)
+            case "geometric":
+                quotient = 0.1  # these can be played with...
+                every_n_steps = int(num_epochs / 10)
+                decay = GeometricLR(quotient, every_n_steps)
+            case "":
+                decay = None
+            case _:
+                raise ValueError("Unrecognized learning rate decay method")
+
+        neuralogic_settings.optimizer = optimizer(lr=learning_rate, lr_decay=decay)
+
+        # these can be also set for specific rules in the template (keeping it global for simplicity)
+        neuralogic_settings.rule_transformation = activations
+        neuralogic_settings.relation_transformation = activations
+        neuralogic_settings.rule_aggregation = aggregations
+        # the output neuron activation should get set automatically w.r.t. given setting (classification/regression)
 
         with TimerContextManager("building template"):
             self.model = self._template.build(neuralogic_settings)
@@ -251,18 +282,18 @@ class LearningPolicy(Policy):
 
         self._engine.model = self.model
 
-        self._train_parameters(train_data_dir, samples_limit=samples_limit, epochs=num_epochs)
+        if samples_limit > 0:
+            neuralogic_settings["stratification"] = False  # skip this to keep the order of samples (for debugging)
+            neuralogic_settings["appLimitSamples"] = samples_limit
+            print(f"Starting building the samples with a limit to the first {samples_limit}")
+        else:
+            print(f"Starting building all samples")
 
-    def _train_parameters(self, lrnn_dataset_dir: str, epochs: int = 100, samples_limit: int = -1):
+        self._train_parameters(train_data_dir, epochs=num_epochs)
+
+    def _train_parameters(self, lrnn_dataset_dir: str, epochs: int = 100):
         try:
-            if samples_limit > 0:
-                neuralogic_settings["stratification"] = False
-                neuralogic_settings["appLimitSamples"] = samples_limit
             dataset = FileDataset(f"{lrnn_dataset_dir}/examples.txt", f"{lrnn_dataset_dir}/queries.txt")
-            if samples_limit > 0:
-                print(f"Starting building the samples with a limit to the first {samples_limit}")
-            else:
-                print(f"Starting building all samples")
             neural_samples = self.model.build_dataset(dataset)
             print("Neural samples successfully built (the template logic is working correctly)!")
             if self._debug > 1:
@@ -270,6 +301,9 @@ class LearningPolicy(Policy):
 
             # Main training loop
             # TODO: maybe have a validation split to save best model
+            # there is a whole range of options for that in the backend, with detailed reporting of the progress across various metrics,
+            # but that will only work if the whole training is performed there (i.e. not in python epoch by epoch) and logging turned (to FINE at least)...
+            # ...on the other hand it's more flexible to control it from python here, so let's continue with this I guess
             best_f1 = 0
             best_state_dict = self.model.state_dict()
             best_epoch = -1
@@ -277,6 +311,8 @@ class LearningPolicy(Policy):
                 for epoch in range(epochs):
                     t = time.time()
                     results, n_samples = self.model(neural_samples, True, epochs=1)
+                    if decay := neuralogic_settings.optimizer._lr_decay:
+                        decay.decay(epoch)  # if we go epoch by epoch this needs to be called manually
                     t = time.time() - t
 
                     # result[0] = target
@@ -298,7 +334,7 @@ class LearningPolicy(Policy):
                         best_epoch = epoch
 
                     print(f"{epoch=}, {n_samples=}, {loss=}, {accuracy=}, {f1=}, {t=}")
-            
+
             print(f"Best model at epoch={best_epoch} with f1_score={best_f1}")
             self.model.load_state_dict(best_state_dict)
         except KeyboardInterrupt:
@@ -312,7 +348,6 @@ class LearningPolicy(Policy):
                 sample = neural_samples.samples[i]
                 print(f"target: {sample.target} <- predicted: {result} for sample: {sample.java_sample.query.ID}")
 
-        neuralogic_settings["aggregateConflictingQueries"] = False
         print("-" * 80)
 
         # DZC 15/07/2024: This seems redundant as store_policy is called after training in run.py so I commented it out
