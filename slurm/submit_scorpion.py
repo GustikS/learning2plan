@@ -18,12 +18,12 @@ REPEATS = list(range(10))
 # assume we are in slurm/ directory
 CUR_DIR = os.getcwd()  
 # assume you have built the container and put it in root directory
-CONTAINER = f"{CUR_DIR}/../lrnn_planning.sif"  
+CONTAINER = f"{CUR_DIR}/../scorpion.sif"  
 assert os.path.exists(CONTAINER), CONTAINER
 EXPERIMENTS_DIR = f"{CUR_DIR}/__experiments"
-LOG_DIR = f"{EXPERIMENTS_DIR}/baseline_logs"
+LOG_DIR = f"{EXPERIMENTS_DIR}/scorpion_logs"
 os.makedirs(LOG_DIR, exist_ok=True)
-JOB_SCRIPT = f"{CUR_DIR}/slurm_job.sh"
+JOB_SCRIPT = f"{CUR_DIR}/slurm_job_16gb_mem_scorpion.sh"
 assert os.path.exists(JOB_SCRIPT), JOB_SCRIPT
 
 """ Main loop """
@@ -38,8 +38,8 @@ def main():
 
     submitted = 0
 
-    for domain, problem, repeat in product(DOMAINS, PROBLEMS, REPEATS):
-        description = f"{domain}_{problem}_r{repeat}"
+    for domain, problem in product(DOMAINS, PROBLEMS):
+        description = f"{domain}_{problem}"
 
         log_file = f"{LOG_DIR}/{description}.log"
 
@@ -47,15 +47,19 @@ def main():
             skipped_from_log += 1
             continue
         
-        cmd = f"apptainer run {CONTAINER} python3 run.py -d {domain} -p {problem} -s {repeat} -c sample -b 10000"
+        cmd = f"{CONTAINER} --transform-task preprocess-h2 --alias scorpion domain.pddl p{problem}.pddl"
 
         slurm_vars = ','.join([
+            f"DOMAIN={domain}",
+            f"PROBLEM={problem}",
             f"CMD={cmd}",
         ])
 
+        # print(cmd)
+
         job_cmd = [
             "sbatch",
-            f"--job-name={description}",
+            f"--job-name=sc_{description}",
             f"--output={log_file}",
             f"--export={slurm_vars}",
             JOB_SCRIPT,

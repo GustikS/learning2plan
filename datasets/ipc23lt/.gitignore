@@ -7,3 +7,4 @@ venv/
 *.stdout
 IPC23_Learning_Track.egg-info/
 */testing_flattened/*
+sas_plan
