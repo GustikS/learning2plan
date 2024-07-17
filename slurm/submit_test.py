@@ -17,7 +17,7 @@ LOCK_DIR = f"{CUR_DIR}/.lock_test"
 os.makedirs(LOG_DIR, exist_ok=True)
 os.makedirs(SAVE_DIR, exist_ok=True)
 os.makedirs(LOCK_DIR, exist_ok=True)
-JOB_SCRIPT = f"{CUR_DIR}/pbs_job.sh"
+JOB_SCRIPT = f"{CUR_DIR}/slurm_job.sh"
 assert os.path.exists(JOB_SCRIPT), JOB_SCRIPT
 
 PBS_TRAIN_NCPU = 2
@@ -29,16 +29,17 @@ DIMENSIONS = [1, 2, 4, 8, 16]
 # LAYERS = [1, 2, 3, 4]
 LAYERS = [1, 2, 3]
 REPEATS = [0, 1, 2]
+POLICY_SAMPLE = [True, False]
 DOMAINS = [
     "blocksworld", 
     "ferry", 
-    "miconic",
+    "miconic", 
     # "satellite", 
-    # "transport",
+    "transport",
 ]
 PROBLEMS = [f"{x}_{y:02d}" for y in range(1, 31) for x in [0, 1, 2]]
 
-CONFIGS = product(DIMENSIONS, LAYERS, REPEATS, DOMAINS, PROBLEMS)
+CONFIGS = product(DIMENSIONS, LAYERS, REPEATS, POLICY_SAMPLE, DOMAINS, PROBLEMS)
 
 
 """ Main loop """
@@ -58,7 +59,7 @@ def main():
     model_missing = 0
     to_go = 0
 
-    for dim, layer, repeat, domain, problem in CONFIGS:
+    for dim, layer, repeat, sample, domain, problem in CONFIGS:
         choice = "sample" if sample else "best"
         description = f"{domain}_{layer}_{dim}_{choice}_{problem}_{repeat}"
 
@@ -85,23 +86,17 @@ def main():
             pass
 
         cmd = f"python3 run.py -d {domain} --embedding {dim} --layers {layer} -s {repeat} -b 10000 -c {choice} -p {problem} --load_file {save_file}"
+        cmd = f"apptainer run {CONTAINER} {cmd}"
+
+        slurm_vars = ','.join([
+            f"CMD={cmd}",
+        ])
 
         job_cmd = [
-            "qsub",
-            "-o",
-            log_file,
-            "-j",
-            "oe",
-            "-N",
-            "train_" + description,
-            "-l",
-            f"ncpus={PBS_TRAIN_NCPU}",
-            "-l",
-            f"walltime={PBS_TRAIN_TIMEOUT}",
-            "-l",
-            f"mem={PBS_TRAIN_MEMOUT}",
-            "-v",
-            f"CMD={cmd}",
+            "sbatch",
+            f"--job-name=te_{description}",
+            f"--output={log_file}",
+            f"--export={slurm_vars}",
             JOB_SCRIPT,
         ]
 
