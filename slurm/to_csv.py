@@ -56,15 +56,27 @@ def scorpion():
         domain = toks[0]
         problem = toks[1] + "_" + toks[2]
         problem = problem.replace(".log", "")
-        with open(log_f, "r") as f:
-            content = f.read()
-            plan_found = "Solution found!" in content
-            if not plan_found:
-                time = np.nan
-                plan_length = np.nan
-            else:
-                time = float((content.split("Total time: ")[1].replace("s", "")).split("\n")[0])
-                plan_length = float((content.split("Plan length: ")[1]).split()[0])
+        if domain == "blocksworld":
+            # read from Slaney and Thiebaux's generator
+            problem_file = f"{file_dir}/../policy_rules/l4np/blocksworld/classic/testing/p{problem}.pddl"
+            assert os.path.exists(problem_file), problem_file
+            with open(problem_file, "r") as f:
+                content = f.readlines()
+                first_line = content[0]
+                assert first_line.startswith(";;")
+                plan_found = True
+                time = 0
+                plan_length = int(first_line.split()[-1])
+        else:
+            with open(log_f, "r") as f:
+                content = f.read()
+                plan_found = "Solution found!" in content
+                if not plan_found:
+                    time = np.nan
+                    plan_length = np.nan
+                else:
+                    time = float((content.split("Total time: ")[1].replace("s", "")).split("\n")[0])
+                    plan_length = float((content.split("Plan length: ")[1]).split()[0])
         data["domain"].append(domain)
         data["problem"].append(problem)
         data["time"].append(time)

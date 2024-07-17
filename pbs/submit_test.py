@@ -20,25 +20,26 @@ os.makedirs(LOCK_DIR, exist_ok=True)
 JOB_SCRIPT = f"{CUR_DIR}/pbs_job.sh"
 assert os.path.exists(JOB_SCRIPT), JOB_SCRIPT
 
-PBS_TRAIN_NCPU = 2
-PBS_TRAIN_TIMEOUT = "48:00:00"
-PBS_TRAIN_MEMOUT = "8GB"
+PBS_TEST_NCPU = 2
+PBS_TEST_TIMEOUT = "1:00:00"
+PBS_TEST_MEMOUT = "8GB"
 
 # DIMENSIONS = [1, 2, 4, 8, 16, 32, 64]
 DIMENSIONS = [1, 2, 4, 8, 16]
 # LAYERS = [1, 2, 3, 4]
 LAYERS = [1, 2, 3]
 REPEATS = [0, 1, 2]
+POLICY_SAMPLE = [True, False]
 DOMAINS = [
     "blocksworld", 
-    "ferry", 
-    "miconic", 
+    # "ferry", 
+    # "miconic",
     # "satellite", 
-    "transport",
+    # "transport",
 ]
 PROBLEMS = [f"{x}_{y:02d}" for y in range(1, 31) for x in [0, 1, 2]]
 
-CONFIGS = product(DIMENSIONS, LAYERS, REPEATS, DOMAINS, PROBLEMS)
+CONFIGS = product(DIMENSIONS, LAYERS, REPEATS, POLICY_SAMPLE, DOMAINS, PROBLEMS)
 
 
 """ Main loop """
@@ -58,7 +59,7 @@ def main():
     model_missing = 0
     to_go = 0
 
-    for dim, layer, repeat, domain, problem in CONFIGS:
+    for dim, layer, repeat, sample, domain, problem in CONFIGS:
         choice = "sample" if sample else "best"
         description = f"{domain}_{layer}_{dim}_{choice}_{problem}_{repeat}"
 
@@ -93,13 +94,13 @@ def main():
             "-j",
             "oe",
             "-N",
-            "train_" + description,
+            "test_" + description,
             "-l",
-            f"ncpus={PBS_TRAIN_NCPU}",
+            f"ncpus={PBS_TEST_NCPU}",
             "-l",
-            f"walltime={PBS_TRAIN_TIMEOUT}",
+            f"walltime={PBS_TEST_TIMEOUT}",
             "-l",
-            f"mem={PBS_TRAIN_MEMOUT}",
+            f"mem={PBS_TEST_MEMOUT}",
             "-v",
             f"CMD={cmd}",
             JOB_SCRIPT,
