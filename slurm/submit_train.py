@@ -53,7 +53,7 @@ def main():
         log_file = f"{LOG_DIR}/{description}.log"
         save_file = f"{SAVE_DIR}/{description}.model"
 
-        if (os.path.exists(log_file) ) and not args.force:
+        if (os.path.exists(save_file) ) and not args.force:
             skipped += 1
             # print(log_file)
             continue
