@@ -207,7 +207,7 @@ def main():
     action_regression = args.action_regression
     embed_dim = args.embedding
     num_layers = args.layers
-    aggregation = args.aggregations
+    aggregation = args.aggregation
     num_epochs = args.epochs
     include_knowledge = args.knowledge
     domain_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/domain.pddl"

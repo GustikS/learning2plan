@@ -88,8 +88,9 @@ def scorpion():
 
 
 def main():
-    baselines()
-    scorpion()
+    # baselines()
+    # scorpion()
+    print(f"Doing nothing. Uncomment code to run.")
 
 if __name__ == "__main__":
     main()
