@@ -56,7 +56,7 @@ def scorpion():
         domain = toks[0]
         problem = toks[1] + "_" + toks[2]
         problem = problem.replace(".log", "")
-        if domain == "blocksworld":
+        if False:  #domain == "blocksworld":
             # read from Slaney and Thiebaux's generator
             problem_file = f"{file_dir}/../policy_rules/l4np/blocksworld/classic/testing/p{problem}.pddl"
             assert os.path.exists(problem_file), problem_file
