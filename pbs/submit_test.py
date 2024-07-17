@@ -11,9 +11,9 @@ CUR_DIR = os.getcwd()
 CONTAINER = f"{CUR_DIR}/../lrnn_planning.sif"  
 assert os.path.exists(CONTAINER), CONTAINER
 EXPERIMENTS_DIR = f"{CUR_DIR}/__experiments"
-LOG_DIR = f"{EXPERIMENTS_DIR}/train_logs"
+LOG_DIR = f"{EXPERIMENTS_DIR}/test_logs"
 SAVE_DIR = f"{EXPERIMENTS_DIR}/models"
-LOCK_DIR = f"{CUR_DIR}/.lock_train"
+LOCK_DIR = f"{CUR_DIR}/.lock_test"
 os.makedirs(LOG_DIR, exist_ok=True)
 os.makedirs(SAVE_DIR, exist_ok=True)
 os.makedirs(LOCK_DIR, exist_ok=True)
