@@ -3,10 +3,11 @@ from itertools import product
 import os
 import subprocess
 import argparse
+import json
 
 ## paths
-# assume we are in slurm/ directory
-CUR_DIR = os.getcwd()  
+# make everything relative to where this script is located
+CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 # assume you have built the container and put it in root directory
 CONTAINER = f"{CUR_DIR}/../lrnn_planning.sif"  
 assert os.path.exists(CONTAINER), CONTAINER
