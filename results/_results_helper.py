@@ -15,8 +15,8 @@ DOMAINS = [
 
 """ LRNN logs """
 # read test logs and write to csv
-# f"{domain}_{layer}_{dim}_{pro_blem}_{repeat}"
-columns = ["domain", "layer", "dim", "problem", "repeat", "plan_length", "plan_found", "time"]
+# f"{domain}_{layer}_{dim}_{choice}_{pro_blem}_{repeat}"
+columns = ["domain", "layer", "dim", "choice", "problem", "repeat", "plan_length", "plan_found", "time"]
 data = {k: [] for k in columns}
 for f in sorted(os.listdir("test_logs")):
     if not f.endswith(".log"):
@@ -25,8 +25,9 @@ for f in sorted(os.listdir("test_logs")):
     domain = toks[0]
     layer = int(toks[1])
     dim = int(toks[2])
-    problem = toks[3] + "_" + toks[4]
-    repeat = int(toks[5])
+    choice = toks[3]
+    problem = toks[4] + "_" + toks[5]
+    repeat = int(toks[6])
     with open(f"test_logs/{f}") as f:
         content = f.read()
         solved = "Plan generated!" in content
@@ -39,12 +40,12 @@ for f in sorted(os.listdir("test_logs")):
     data["domain"].append(domain)
     data["layer"].append(layer)
     data["dim"].append(dim)
+    data["choice"].append(choice)
     data["problem"].append(problem)
     data["repeat"].append(repeat)
     data["plan_length"].append(plan_length)
     data["plan_found"].append(solved)
     data["time"].append(time)
-
 df = pd.DataFrame(data)
 df.to_csv("lrnn_results.csv")
 
@@ -60,9 +61,10 @@ def group_repeats(df, others_to_keep=None, lrnn=False):
     if lrnn:
         aggr["layer"] = "first"
         aggr["dim"] = "first"
+        aggr["choice"] = "first"
     group_by = ["domain", "problem"]
     if lrnn:
-        group_by += ["layer", "dim"]
+        group_by += ["layer", "dim", "choice"]
     df = df.groupby(group_by).agg(aggr)
     df.columns = df.columns.map("_".join)
     df["all_solved"] = df.plan_found_mean == 1
@@ -78,7 +80,7 @@ for group in groups:
     data = group_repeats(data, lrnn=is_lrnn)
     data["solver"] = group
     if is_lrnn:
-        data["solver"] = "lrnn" + "_L" + data["layer_first"].astype(str) + "_D" + data["dim_first"].astype(str)
+        data["solver"] = "lrnn" + "_L" + data["layer_first"].astype(str) + "_D" + data["dim_first"].astype(str) + "_" + data["choice"]
     datas[group] = data
 # display(datas["lrnn"])
 

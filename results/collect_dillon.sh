@@ -15,7 +15,7 @@ while true; do
     scp cluster-laas:$PATH_TO_CLUSTER_LAAS_CODE/slurm/scorpion_results.csv results/scorpion_results.csv
 
     # collect gadi logs
-    rsync -av --progress gadi:$PATH_TO_GADI_CODE/pbs/__experiments/test_logs results/
+    rsync -av --progress gadi:/scratch/cd85/dc6693/cvut-colab/pbs/__experiments/test_logs results/
 
     # wait a minute
     sleep 60
