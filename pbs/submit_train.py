@@ -24,9 +24,15 @@ PBS_TRAIN_NCPU = 2
 PBS_TRAIN_TIMEOUT = "01:00:00"
 PBS_TRAIN_MEMOUT = "8GB"
 
-DIMENSIONS = [1, 2, 4, 8, 16, 32, 64]
-LAYERS = [1, 2, 3, 4]
-REPEATS = [0, 1, 2]
+PARAMETER_FILE = f"{CUR_DIR}/../parameters.json"
+assert os.path.exists(PARAMETER_FILE), PARAMETER_FILE
+with open(PARAMETER_FILE, "r") as f:
+    parameters = json.load(f)
+DIMENSIONS = parameters["dimensions"]
+LAYERS = parameters["layers"]
+REPEATS = parameters["repeats"]
+POLICY_SAMPLE = parameters["policy_sample"]
+
 DOMAINS = [
     "blocksworld", 
     "ferry", 

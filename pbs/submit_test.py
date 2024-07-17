@@ -3,10 +3,11 @@ from itertools import product
 import os
 import subprocess
 import argparse
+import json
 
 ## paths
-# assume we are in slurm/ directory
-CUR_DIR = os.getcwd()  
+# make everything relative to where this script is located
+CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 # assume you have built the container and put it in root directory
 CONTAINER = f"{CUR_DIR}/../lrnn_planning.sif"  
 assert os.path.exists(CONTAINER), CONTAINER
@@ -24,18 +25,21 @@ PBS_TEST_NCPU = 2
 PBS_TEST_TIMEOUT = "1:00:00"
 PBS_TEST_MEMOUT = "8GB"
 
-# DIMENSIONS = [1, 2, 4, 8, 16, 32, 64]
-DIMENSIONS = [1, 2, 4, 8, 16]
-# LAYERS = [1, 2, 3, 4]
-LAYERS = [1, 2, 3]
-REPEATS = [0, 1, 2]
-POLICY_SAMPLE = [True, False]
+PARAMETER_FILE = f"{CUR_DIR}/../parameters.json"
+assert os.path.exists(PARAMETER_FILE), PARAMETER_FILE
+with open(PARAMETER_FILE, "r") as f:
+    parameters = json.load(f)
+DIMENSIONS = parameters["dimensions"]
+LAYERS = parameters["layers"]
+REPEATS = parameters["repeats"]
+POLICY_SAMPLE = parameters["policy_sample"]
+
 DOMAINS = [
     "blocksworld", 
     # "ferry", 
     # "miconic",
     # "satellite", 
-    # "transport",
+    # "transport"
 ]
 PROBLEMS = [f"{x}_{y:02d}" for y in range(1, 31) for x in [0, 1, 2]]
 
