@@ -13,6 +13,7 @@ DOMAINS = [
     "transport",
 ]
 
+""" LRNN logs """
 # read test logs and write to csv
 # f"{domain}_{layer}_{dim}_{pro_blem}_{repeat}"
 columns = ["domain", "layer", "dim", "problem", "repeat", "plan_length", "plan_found", "time"]
@@ -68,7 +69,7 @@ def group_repeats(df, others_to_keep=None, lrnn=False):
     df.reset_index(inplace=True)
     return df
 
-
+""" Other logs """
 groups = ["baseline", "scorpion", "lrnn"]
 datas = {}
 for group in groups:

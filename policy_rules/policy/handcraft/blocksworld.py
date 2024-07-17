@@ -89,6 +89,7 @@ class BlocksworldPolicy(FasterLearningPolicy):
     @override
     def _add_derived_predicates(self):
         """well_placed_block"""
+        # an assumption we make is that the goal condition specifies the location for *every* block
         # stacked on another well-placed block
         head = R.well_placed_block("A")
         body = [
