@@ -4427,13 +4427,13 @@ transport,2_23,4,141378.3892982006,7975.0,True,False
 transport,2_23,5,74333.02071404457,6921.0,True,False
 transport,2_23,6,144633.00894713402,6415.0,True,False
 transport,2_23,7,141497.90952944756,7956.0,True,False
-transport,2_23,8,,,False,False
+transport,2_23,8,154431.34309077263,7671.0,True,False
 transport,2_23,9,128199.76426458359,6220.0,True,False
 transport,2_24,0,95668.77749538422,9681.0,True,False
 transport,2_24,1,99169.67247462273,6617.0,True,False
 transport,2_24,2,75685.67116713524,7557.0,True,False
 transport,2_24,3,119488.49794578552,6406.0,True,False
-transport,2_24,4,,,False,False
+transport,2_24,4,147786.3367011547,7639.0,True,False
 transport,2_24,5,76831.62945437431,7772.0,True,False
 transport,2_24,6,97517.69173359871,7843.0,True,False
 transport,2_24,7,65599.25763702393,6419.0,True,False
@@ -4476,7 +4476,7 @@ transport,2_28,3,118199.22994589806,8804.0,True,False
 transport,2_28,4,90042.76731967926,7909.0,True,False
 transport,2_28,5,133053.36640930176,9703.0,True,False
 transport,2_28,6,101299.9869363308,8858.0,True,False
-transport,2_28,7,,,False,False
+transport,2_28,7,149770.88240909576,9444.0,True,False
 transport,2_28,8,,,False,True
 transport,2_28,9,89945.60681176186,9797.0,True,False
 transport,2_29,0,,,False,True
