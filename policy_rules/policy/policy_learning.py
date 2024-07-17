@@ -4,7 +4,7 @@ import warnings
 from typing import Iterable, Union
 
 import numpy as np
-from neuralogic.core import R, Rule, Template, V, Transformation, Aggregation
+from neuralogic.core import Aggregation, R, Rule, Template, Transformation, V
 from neuralogic.core.constructs.relation import BaseRelation, WeightedRelation
 from neuralogic.dataset import FileDataset
 from neuralogic.inference import EvaluationInferenceEngine
@@ -12,8 +12,8 @@ from neuralogic.nn.init import Initializer, Uniform
 from neuralogic.nn.java import NeuraLogic
 from neuralogic.nn.loss import MSE, CrossEntropy
 from neuralogic.optim import SGD, Adam
-from neuralogic.optim.optimizer import Optimizer
 from neuralogic.optim.lr_scheduler import ArithmeticLR, GeometricLR
+from neuralogic.optim.optimizer import Optimizer
 from pymimir import Action, Domain
 from sklearn.metrics import f1_score
 from termcolor import colored
@@ -241,7 +241,7 @@ class LearningPolicy(Policy):
             learning_rate: float = 0.0001,  # increase for SGD
             learning_rate_decay: Union["arithmetic", "geometric"] = "",
             activations: Transformation = Transformation.TANH,
-            aggregations: Aggregation = Aggregation.AVG,
+            aggregations: str = "max",
             state_regression=False,
             action_regression=False,
             save_drawing=None,
@@ -267,6 +267,14 @@ class LearningPolicy(Policy):
                 raise ValueError("Unrecognized learning rate decay method")
 
         neuralogic_settings.optimizer = optimizer(lr=learning_rate, lr_decay=decay)
+
+        match aggregations:
+            case "max":
+                aggregations = Aggregation.MAX
+            case "sum":
+                aggregations = Aggregation.SUM
+            case "mean":
+                aggregations = Aggregation.AVG
 
         # these can be also set for specific rules in the template (keeping it global for simplicity)
         neuralogic_settings.rule_transformation = activations
@@ -308,6 +316,7 @@ class LearningPolicy(Policy):
             # there is a whole range of options for that in the backend, with detailed reporting of the progress across various metrics,
             # but that will only work if the whole training is performed there (i.e. not in python epoch by epoch) and logging turned (to FINE at least)...
             # ...on the other hand it's more flexible to control it from python here, so let's continue with this I guess
+            # DZC TODO: try to use the whole training, and logging turned on just for this code segment
             best_f1 = 0
             best_state_dict = self.model.state_dict()
             best_epoch = -1

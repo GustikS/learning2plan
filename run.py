@@ -45,31 +45,35 @@ def parse_args():
     parser.add_argument("-p", "--problem", type=str, default="0_01", help="Of the form 'x_yy'")
     parser.add_argument("-v", "--verbose", type=int, default=0)
     parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound")
+
     parser.add_argument("--train", type=bool, default=False, action=argparse.BooleanOptionalAction,
                         help="Train an LRNN. Training is also performed if a save file is specified.")
     parser.add_argument("-load", "--load_file", type=str, default="", help="Filename to load the template")
     parser.add_argument("-save", "--save_file", type=str, default="", help="Filename to save the template")
-    # DZC 16/07/2024: removed as we can hard code the training data path
-    # parser.add_argument("--train_dir", type=str, default="",
-    #                     help="LRNN training data subdirectory ( '_' for root subdir of the domain).")
+    
+    # Data arguments
     parser.add_argument("-lim", "--limit", type=int, default=-1,
                         help="Training data samples cutoff limit (good for quicker debugging)")
     parser.add_argument("-sr", "--state_regression", type=bool, default=False, action=argparse.BooleanOptionalAction,
                         help="Include state h distance labels for (classic) state regression training")
     parser.add_argument("-ar", "--action_regression", type=bool, default=False, action=argparse.BooleanOptionalAction,
                         help="Switch between regression/classification labels for output actions in training")
+    
+    # Model training arguments
     parser.add_argument("-e", "--embedding", type=int, default=3,
                         help="Embedding dimensionality throughout the model (-1 = off, 1 = scalar)")
     parser.add_argument("-num", "--layers", type=int, default=1,
                         help="Number of model layers (-1 = off, 1 = just embedding, 2+ = message-passing)")
-    parser.add_argument("-ep", "--epochs", type=int, default=100,
+    parser.add_argument("-agg", "--aggregation", default="sum", choices=["sum", "mean", "max"],
+                        help="Aggregation function for message passing")
+    parser.add_argument("-ep", "--epochs", type=int, default=500,
                         help="Number of model training epochs")
+    
     parser.add_argument("-k", "--knowledge", type=bool, default=True, action=argparse.BooleanOptionalAction,
                         help="An option to skip the domain knowledge and use just a generic ML model")
     parser.add_argument("-vis", "--visualise", default=None,
                         help="Save visualisation of template to file.")
     parser.add_argument("-s", "--seed", type=int, default=2024, help="Random seed.")
-    # DZC 14/07/2024: changed default from best to sample to avoid cycles caused by initialised weights
     parser.add_argument("-c", "--choice", default="sample", choices=["sample", "best"],
                         help="Choose the best action or sample from the policy.")
     args = parser.parse_args()
@@ -203,6 +207,7 @@ def main():
     action_regression = args.action_regression
     embed_dim = args.embedding
     num_layers = args.layers
+    aggregation = args.aggregations
     num_epochs = args.epochs
     include_knowledge = args.knowledge
     domain_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/domain.pddl"
@@ -216,6 +221,7 @@ def main():
         print(f"    {domain_name=}")
         print(f"    {embed_dim=}")
         print(f"    {num_layers=}")
+        print(f"    {aggregation=}")
         print(f"    {num_epochs=}")
         print(f"    {include_knowledge=}")
         print(f"    {seed=}")
@@ -294,6 +300,7 @@ def main():
                 num_epochs=num_epochs,
                 state_regression=state_regression,
                 action_regression=action_regression,
+                aggregations=aggregation,
                 save_drawing=args.visualise,
             )
             total_time += timer.get_time()

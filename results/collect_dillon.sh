@@ -17,6 +17,9 @@ while true; do
     # collect gadi logs
     rsync -av --progress gadi:/scratch/cd85/dc6693/cvut-colab/pbs/__experiments/test_logs results/
 
+    # date
+    date
+
     # wait a minute
     sleep 60
 done
