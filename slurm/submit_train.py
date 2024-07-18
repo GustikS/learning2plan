@@ -77,7 +77,7 @@ def main():
 
         job_cmd = [
             "sbatch",
-            f"--job-name=tr_{description}",
+            f"--job-name=TR{description}",
             f"--output={log_file}",
             f"--export={slurm_vars}",
             JOB_SCRIPT,

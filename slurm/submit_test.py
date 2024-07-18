@@ -39,7 +39,7 @@ DOMAINS = [
     "ferry", 
     "miconic", 
     # "satellite", 
-    "transport",
+    # "transport",
 ]
 PROBLEMS = [f"{x}_{y:02d}" for y in range(1, 31) for x in [0, 1, 2]]
 
@@ -54,8 +54,6 @@ def main():
     args = parser.parse_args()
 
     submissions = args.submissions
-    ## gadi has queue limits
-    assert args.submissions <= 1000
 
     missing_models = set()
     submitted = 0
@@ -98,7 +96,7 @@ def main():
 
         job_cmd = [
             "sbatch",
-            f"--job-name=te_{description}",
+            f"--job-name=TE{description}",
             f"--output={log_file}",
             f"--export={slurm_vars}",
             JOB_SCRIPT,

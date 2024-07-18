@@ -44,29 +44,32 @@ def baselines():
     df.to_csv(file_dir / "baseline_results.csv", index=False)
 
 def scorpion():
+    bw_opt_plan_lengths = [10,8,20,24,24,26,32,32,36,38,48,40,42,44,46,54,60,50,54,56,56,72,58,72,82,74,66,82,76,88,106,104,112,144,142,140,158,164,180,186,202,234,240,228,232,246,272,284,286,308,310,314,354,338,348,388,380,368,386,464]
     log_dir = file_dir / "__experiments" / "scorpion_logs"
     print(log_dir)
     keys = ["domain", "problem", "time", "plan_length", "plan_found"]
     data = {k: [] for k in keys}
-    pbar = tqdm(sorted(os.listdir(log_dir)))
-    for f in pbar:
+    # pbar = tqdm(sorted(os.listdir(log_dir)))
+    # for f in pbar:
+    for f in sorted(os.listdir(log_dir)):
         log_f = log_dir / f
-        pbar.set_description(str(log_f))
+        # pbar.set_description(str(log_f))
         toks = f.split("_")
         domain = toks[0]
         problem = toks[1] + "_" + toks[2]
         problem = problem.replace(".log", "")
-        if False:  #domain == "blocksworld":
-            # read from Slaney and Thiebaux's generator
-            problem_file = f"{file_dir}/../policy_rules/l4np/blocksworld/classic/testing/p{problem}.pddl"
-            assert os.path.exists(problem_file), problem_file
-            with open(problem_file, "r") as f:
-                content = f.readlines()
-                first_line = content[0]
-                assert first_line.startswith(";;")
-                plan_found = True
+        if domain=="blocksworld":  # used slaney thiebaux planner
+            toks = problem.split("_")
+            diff = int(toks[0])
+            prob = int(toks[1])
+            index = diff * 30 + prob - 1
+            plan_found = True
+            if index >= len(bw_opt_plan_lengths):
+                plan_length = np.nan
+                time = np.nan
+            else:
+                plan_length = bw_opt_plan_lengths[index]
                 time = 0
-                plan_length = int(first_line.split()[-1])
         else:
             with open(log_f, "r") as f:
                 content = f.read()
