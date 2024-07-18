@@ -1,2 +1,4 @@
-test_logs
-backups
+test_logs/
+backups/
+baseline_logs/
+plots/

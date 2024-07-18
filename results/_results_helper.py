@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.express as px
 
+os.makedirs("plots/", exist_ok=True)
+
 DOMAINS = [
     "blocksworld",
     "ferry",
@@ -12,6 +14,10 @@ DOMAINS = [
     "satellite",
     "transport",
 ]
+PROBLEMS = []
+for i in [0, 1, 2]:
+    for j in range(1, 31):
+        PROBLEMS.append(f"{i}_{j:02d}")
 
 """ LRNN logs """
 # read test logs and write to csv
@@ -89,12 +95,34 @@ all_data = pd.concat([data for data in datas.values()])
 easy_problems = set(f"0_{i:02d}" for i in range(1, 31))
 
 
-def plot_domains(metric, log_y=False, easy_only=False):
+def plot_domains(metric, log_y=False, easy_only=False, include_sample=False, dimensions=None):
+    if dimensions is None:
+        dimensions = []
+    dimensions = set(dimensions)
+
+    solvers = all_data["solver"].unique()
+
+    ignore_models = set()
+    if not include_sample:
+        # get set of solvers from all_data
+        for solver in solvers:
+            if "sample" in solver:
+                ignore_models.add(solver)
+    
+    for solver in solvers:
+        if not solver.startswith("lrnn"):
+            continue
+        toks = solver.split("_")
+        dimension = int(toks[2][1:])
+        if dimension not in dimensions:
+            ignore_models.add(solver)
+
     for domain in DOMAINS:
         print(domain)
         data = all_data[all_data["domain"] == domain]
         if easy_only:
             data = data[data["problem"].isin(easy_problems)]
+        data = data[~data["solver"].isin(ignore_models)]
         # failures = data[data.plan_found == False]
         # max_bound_failures = data[data.max_bound == False]
         # failures_not_due_to_max_bound = data[(data.plan_found == False) & (data.max_bound == False)]
@@ -109,6 +137,8 @@ def plot_domains(metric, log_y=False, easy_only=False):
         metric_std = f"{metric}_std"
         fig = px.line(data, x="problem", y=metric_mean, error_y=metric_std, color="solver", log_y=log_y)
         # fig = px.scatter(data, x="problem", y=metric_mean, error_y=metric_std, color="solver", log_y=log_y)
+        fig.update_xaxes(categoryorder='array', categoryarray=PROBLEMS)
+        fig.write_html("plots/" + domain + ".html")
         fig.show()
 
 
