@@ -1,10 +1,15 @@
 import os
+import pathlib
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import plotly.express as px
+from tqdm import tqdm
 
 os.makedirs("plots/", exist_ok=True)
+
+NO_HARD_PROBLEMS = True
 
 DOMAINS = [
     "blocksworld",
@@ -14,10 +19,10 @@ DOMAINS = [
     "satellite",
     "transport",
 ]
-PROBLEMS = []
-for i in [0, 1, 2]:
-    for j in range(1, 31):
-        PROBLEMS.append(f"{i}_{j:02d}")
+easy_problems = set(f"0_{i:02d}" for i in range(1, 31))
+medium_problems = set(f"1_{i:02d}" for i in range(1, 31))
+hard_problems = set(f"2_{i:02d}" for i in range(1, 31))
+SKIP_HARD = True
 
 """ LRNN logs """
 # read test logs and write to csv
@@ -78,24 +83,67 @@ def group_repeats(df, others_to_keep=None, lrnn=False):
     return df
 
 """ Other logs """
+def baselines():
+    file_dir = pathlib.Path(__file__).parent.resolve()
+    log_dir = file_dir / "baseline_logs"
+    print(log_dir)
+    keys = ["domain", "problem", "repeat", "time", "plan_length", "plan_found", "max_bound"]
+    data = {k: [] for k in keys}
+    pbar = tqdm(sorted(os.listdir(log_dir)))
+    for f in pbar:
+        log_f = log_dir / f
+        pbar.set_description(str(log_f))
+        toks = f.split("_")
+        domain = toks[0]
+        problem = toks[1] + "_" + toks[2]
+        repeat = toks[3][1]
+        with open(log_f, "r") as f:
+            content = f.read()
+            plan_found = "Plan generated!" in content
+            if not plan_found:
+                time = np.nan
+                plan_length = np.nan
+                max_bound = "Terminating with failure after" in content
+            else:
+                time = float((content.split("total_time=")[1]).split("\n")[0])
+                plan_length = float((content.split("plan_length=")[1]).split("\n")[0])
+                max_bound = False
+        data["domain"].append(domain)
+        data["problem"].append(problem)
+        data["repeat"].append(repeat)
+        data["time"].append(time)
+        data["plan_length"].append(plan_length)
+        data["plan_found"].append(plan_found)
+        data["max_bound"].append(max_bound)
+    
+    df = pd.DataFrame(data)
+    df.to_csv(file_dir / "baseline_results.csv", index=False)
+baselines()
+
 groups = ["baseline", "scorpion", "lrnn"]
 datas = {}
 for group in groups:
     data = pd.read_csv(f"{group}_results.csv")
     is_lrnn = group == "lrnn"
     data = group_repeats(data, lrnn=is_lrnn)
-    data["solver"] = group
+    data["solver"] = group if group != "scorpion" else "optimal"
     if is_lrnn:
         data["solver"] = "lrnn" + "_L" + data["layer_first"].astype(str) + "_D" + data["dim_first"].astype(str) + "_" + data["choice"]
+        data["type"] = "lrnn"
+    else:
+        data["type"] = "bounds"
     datas[group] = data
 # display(datas["lrnn"])
 
 failure_logs = {domain: [] for domain in DOMAINS}
 all_data = pd.concat([data for data in datas.values()])
-easy_problems = set(f"0_{i:02d}" for i in range(1, 31))
+all_data["difficulty"] = all_data["problem"].apply(lambda x: x.split("_")[0])
+if SKIP_HARD:
+    print("skipping hard problems because they take too long")
+    all_data = all_data[~all_data["problem"].isin(hard_problems)]
 
 
-def plot_domains(metric, log_y=False, easy_only=False, include_sample=False, dimensions=None):
+def plot_domains(metric, log_y=False, include_sample=False, dimensions=None):
     if dimensions is None:
         dimensions = []
     dimensions = set(dimensions)
@@ -117,35 +165,59 @@ def plot_domains(metric, log_y=False, easy_only=False, include_sample=False, dim
         if dimension not in dimensions:
             ignore_models.add(solver)
 
+    plot_dir = f"plots/{metric}"
+    os.makedirs(plot_dir, exist_ok=True)
+
     for domain in DOMAINS:
         print(domain)
         data = all_data[all_data["domain"] == domain]
-        if easy_only:
-            data = data[data["problem"].isin(easy_problems)]
         data = data[~data["solver"].isin(ignore_models)]
-        # failures = data[data.plan_found == False]
-        # max_bound_failures = data[data.max_bound == False]
-        # failures_not_due_to_max_bound = data[(data.plan_found == False) & (data.max_bound == False)]
-        # n_failures = len(failures)
-        # n_max_bound_failures = len(max_bound_failures)
-        # n_failures_not_due_to_max_bound = len(failures_not_due_to_max_bound)
-        # print(f"{n_failures=}")
-        # for row in failures.itertuples():
-        #     # print(row)
-        #     failure_logs[domain].append(f"/pfcalcul/work/dchen/code/cvut-colab/slurm/__experiments/baseline_logs/{row.domain}_{row.problem}_r{row.repeat}.log")
         metric_mean = f"{metric}_mean"
         metric_std = f"{metric}_std"
-        fig = px.line(data, x="problem", y=metric_mean, error_y=metric_std, color="solver", log_y=log_y)
+        fig = px.line(data, x="problem", y=metric_mean, error_y=metric_std, color="solver",line_dash="type", log_y=log_y, facet_col="difficulty")
         # fig = px.scatter(data, x="problem", y=metric_mean, error_y=metric_std, color="solver", log_y=log_y)
-        fig.update_xaxes(categoryorder='array', categoryarray=PROBLEMS)
-        fig.write_html("plots/" + domain + ".html")
+        fig.update_xaxes(categoryorder='array')
+        fig.update_yaxes(matches=None)
+        fig.update_xaxes(matches=None)
+        fig.for_each_yaxis(lambda y: y.update(showticklabels=True,matches=None))
+        fig.for_each_xaxis(lambda x: x.update(showticklabels=True,matches=None))
+        fig.write_html(plot_dir + "/" + domain + ".html")
         fig.show()
 
 
-def plot_difference(absolute=True):
+def plot_difference(absolute=True, include_sample=False, dimensions=None):
+    if dimensions is None:
+        dimensions = []
+    dimensions = set(dimensions)
+
+    solvers = all_data["solver"].unique()
+
+    ignore_models = set()
+    if not include_sample:
+        # get set of solvers from all_data
+        for solver in solvers:
+            if "sample" in solver:
+                ignore_models.add(solver)
+    
+    for solver in solvers:
+        if not solver.startswith("lrnn"):
+            continue
+        toks = solver.split("_")
+        dimension = int(toks[2][1:])
+        if dimension not in dimensions:
+            ignore_models.add(solver)
+
+    plot_dir = f"plots/difference"
+    if absolute:
+        plot_dir += "_absolute"
+    else:
+        plot_dir += "_relative"
+    os.makedirs(plot_dir, exist_ok=True)
+
     for domain in DOMAINS:
         print(domain)
         data = all_data[all_data["domain"] == domain]
+        data = data[~data["solver"].isin(ignore_models)]
 
         data["improvement"] = data.apply(
             lambda row: -row["plan_length_mean"]
@@ -178,5 +250,11 @@ def plot_difference(absolute=True):
         else:
             y = "improvement (%)"
 
-        fig = px.line(data, x="problem", y=y, color="solver")
+        fig = px.line(data, x="problem", y=y, color="solver", facet_col="difficulty")
+        fig.update_xaxes(categoryorder='array')
+        fig.update_yaxes(matches=None)
+        fig.update_xaxes(matches=None)
+        fig.for_each_yaxis(lambda y: y.update(showticklabels=True,matches=None))
+        fig.for_each_xaxis(lambda x: x.update(showticklabels=True,matches=None))
+        fig.write_html(plot_dir + "/" + domain + ".html")
         fig.show()
