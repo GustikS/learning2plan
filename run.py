@@ -60,7 +60,7 @@ def parse_args():
                         help="Switch between regression/classification labels for output actions in training")
     
     # Model training arguments
-    parser.add_argument("-e", "--embedding", type=int, default=3,
+    parser.add_argument("-e", "--embedding", type=int, default=1,
                         help="Embedding dimensionality throughout the model (-1 = off, 1 = scalar)")
     parser.add_argument("-num", "--layers", type=int, default=1,
                         help="Number of model layers (-1 = off, 1 = just embedding, 2+ = message-passing)")
@@ -75,7 +75,7 @@ def parse_args():
                         help="Save visualisation of template to file.")
     parser.add_argument("-s", "--seed", type=int, default=2024, help="Random seed.")
     parser.add_argument("-c", "--choice", default="sample", choices=["sample", "best"],
-                        help="Choose the best action or sample from the policy.")
+                        help="Choose the best action or sample from the policy. Has no effect for baseline policy which defaults to uniform sampling.")
     args = parser.parse_args()
     return args
     # fmt: on
@@ -96,7 +96,7 @@ def goal_count(state: pymimir.State, goal: list[pymimir.Literal]) -> int:
 def state_repr(state: Union[pymimir.State, list[pymimir.Literal]], is_goal=False):
     if not is_goal:
         atom_names = sorted([a.get_name() for a in state.get_atoms()])
-        return ", ".join(atom_names)
+        return " ".join(atom_names)
     else:
         goals = []
         for g in state:
@@ -104,15 +104,49 @@ def state_repr(state: Union[pymimir.State, list[pymimir.Literal]], is_goal=False
                 goals.append(f"~{g.atom.get_name()}")
             else:
                 goals.append(g.atom.get_name())
-        return ", ".join(goals)
+        return " ".join(goals)
 
 
-def execute_policy(policy, initial_state, goal, pre_policy_time, args):
+def sample_action(policy_actions, sampling_method):
+    actions = [a[1] for a in policy_actions]
+    p = [a[0] for a in policy_actions]
+    indices = list(range(len(policy_actions)))
+    match sampling_method:
+        case "uniform":
+            # uniform sampling
+            action_index = np.random.choice(indices)
+        case "sample":
+            # sample from distribution computed by scores
+            div = sum(np.exp(p))
+            p = np.exp(p) / div  # softmax
+            action_index = np.random.choice(indices, p=p)
+        case "highest":
+            # if action classification we take the highest, 
+            action_index = np.argmax(p)
+        case "lowest":
+            # if action regression we take the lowest
+            action_index = np.argmin(p)
+    return action_index
+
+
+def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy, args):
+    """ Main function for executing the policy """
     _DEBUG_LEVEL = args.verbose
 
     plan = []
     total_time = 0
+    cycles_detected = 0
     state = initial_state
+    seen_states = set()
+
+    if baseline_policy:
+        sampling_method = "uniform"
+    elif args.choice == "sample":
+        sampling_method = "sample"
+    elif args.action_regression:
+        sampling_method = "lowest"
+    else:
+        sampling_method = "highest"
 
     with TimerContextManager("executing policy") as timer:
         while True:
@@ -121,6 +155,9 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, args):
                 break
 
             policy_actions: list[tuple[float, pymimir.Action]] = policy.solve(state.get_atoms())
+
+            state_str = state_repr(state)
+            seen_states.add(state_str)
 
             if len(policy_actions) == 0:
                 if _DEBUG_LEVEL > 1:
@@ -138,26 +175,25 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, args):
                 action_names = [f"{v}:{a.get_name()}" for v, a in policy_actions]
                 matrix_log.append(["Available policy actions", ", ".join(action_names)])
 
-            if args.choice == "sample":
-                actions = [a[1] for a in policy_actions]
-                p = [a[0] for a in policy_actions]
-                div = sum(np.exp(p))
-                p = np.exp(p) / div  # softmax
-                action = np.random.choice(actions, p=p)
-            else:
-                # if action classification we take the highest, if action regression we take the lowest
-                sorted_actions = sorted(
-                    policy_actions,
-                    key=lambda item: item[0],
-                    reverse=not args.action_regression,
-                )
-                action = sorted_actions[0][1]  # select the best action
+            # sample action based on selected criterion
+            while len(policy_actions) > 0:
+                action_index = sample_action(policy_actions, sampling_method)
+                action = policy_actions[action_index][1]
+                if _DEBUG_LEVEL > 0:
+                    matrix_log.append(["Applying", colored(action.get_name(), "cyan")])
+                plan.append(action.get_name())
+                succ_state = action.apply(state)
 
-            if _DEBUG_LEVEL > 0:
-                matrix_log.append(["Applying", colored(action.get_name(), "cyan")])
-            plan.append(action.get_name())
+                # check for cycles
+                if state_repr(succ_state) in seen_states:
+                    if _DEBUG_LEVEL > 0:
+                        matrix_log.append(["Loop detected", "sampling again..."])
+                    del policy_actions[action_index]
+                    cycles_detected += 1
+                else:
+                    break
+            state = succ_state
 
-            state = action.apply(state)
             if _DEBUG_LEVEL > 1:
                 ilg_state = policy.get_ilg_facts(state.get_atoms())
                 ilg_state = ", ".join([str(f) for f in ilg_state])
@@ -185,6 +221,7 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, args):
     for action in plan:
         print(action)
     print(f"{plan_length=}")
+    print(f"{cycles_detected=}")
     print(f"{total_time=}")
     print(f"{pre_policy_time=}")
     print("=" * 80)
@@ -215,6 +252,12 @@ def main():
     training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/data"
     _DEBUG_LEVEL = args.verbose
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
+
+    # determine if we are running the baseline handcrafted policy
+    run_baseline = not to_train and not load_file_name
+    if run_baseline:
+        print(colored(f"Running uniform sampling of the baseline handcrafted policy for {domain_name}", "green"))
+        embed_dim = 1
 
     if to_train:
         print(colored("Running the training script with the following parameters", "green"))
@@ -269,6 +312,12 @@ def main():
             policy._debug_template()
         total_time += timer.get_time()
 
+    # save visualisation of the template if requested
+    save_drawing = args.visualise
+    if save_drawing is not None:
+        policy.model.draw(filename=save_drawing)
+        print(colored(f"Saved template visualisation to {save_drawing}", "green"))
+
     # training should be performed if there are training data AND the policy has learnable parameters/model
     if to_train and hasattr(policy, "model"):
         training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/data"
@@ -301,7 +350,6 @@ def main():
                 state_regression=state_regression,
                 action_regression=action_regression,
                 aggregations=aggregation,
-                save_drawing=args.visualise,
             )
             total_time += timer.get_time()
 
@@ -341,6 +389,7 @@ def main():
         initial_state=initial_state,
         goal=goal,
         pre_policy_time=total_time,
+        baseline_policy=run_baseline,
         args=args,
     )
 

@@ -7,10 +7,6 @@ import pandas as pd
 import plotly.express as px
 from tqdm import tqdm
 
-os.makedirs("plots/", exist_ok=True)
-
-NO_HARD_PROBLEMS = True
-
 DOMAINS = [
     "blocksworld",
     "ferry",
@@ -24,69 +20,58 @@ medium_problems = set(f"1_{i:02d}" for i in range(1, 31))
 hard_problems = set(f"2_{i:02d}" for i in range(1, 31))
 SKIP_HARD = True
 
-# """ LRNN logs """
-# # read test logs and write to csv
-# # f"{domain}_{layer}_{dim}_{choice}_{pro_blem}_{repeat}"
-# columns = ["domain", "layer", "dim", "choice", "problem", "repeat", "plan_length", "plan_found", "time"]
-# data = {k: [] for k in columns}
-# for f in sorted(os.listdir("test_logs")):
-#     if not f.endswith(".log"):
-#         continue
-#     toks = f[:-4].split("_")
-#     domain = toks[0]
-#     layer = int(toks[1])
-#     dim = int(toks[2])
-#     choice = toks[3]
-#     problem = toks[4] + "_" + toks[5]
-#     repeat = int(toks[6])
-#     with open(f"test_logs/{f}") as f:
-#         content = f.read()
-#         solved = "Plan generated!" in content
-#         if solved:
-#             plan_length = int(content.split("plan_length=")[1].split("\n")[0])
-#             time = float(content.split("total_time=")[1].split("\n")[0])
-#         else:
-#             plan_length = None
-#             time = None
-#     data["domain"].append(domain)
-#     data["layer"].append(layer)
-#     data["dim"].append(dim)
-#     data["choice"].append(choice)
-#     data["problem"].append(problem)
-#     data["repeat"].append(repeat)
-#     data["plan_length"].append(plan_length)
-#     data["plan_found"].append(solved)
-#     data["time"].append(time)
-# df = pd.DataFrame(data)
-# df.to_csv("lrnn_results.csv")
+os.makedirs("plots/", exist_ok=True)
 
+this_file_dir = pathlib.Path(__file__).parent.resolve()
+print(f"{this_file_dir=}")
 
-def group_repeats(df, others_to_keep=None, lrnn=False):
-    if others_to_keep is None:
-        others_to_keep = []
-    aggr = {
-        "time": ["mean", "std"],
-        "plan_length": ["mean", "std"],
-        "plan_found": "mean",
-    }
-    if lrnn:
-        aggr["layer"] = "first"
-        aggr["dim"] = "first"
-        aggr["choice"] = "first"
-    group_by = ["domain", "problem"]
-    if lrnn:
-        group_by += ["layer", "dim", "choice"]
-    df = df.groupby(group_by).agg(aggr)
-    df.columns = df.columns.map("_".join)
-    df["all_solved"] = df.plan_found_mean == 1
-    df.reset_index(inplace=True)
-    return df
+baseline_logs_dir = this_file_dir / "baseline_logs"
+test_logs_dir = this_file_dir / "test_logs"
+raw_logs_exist = os.path.exists(test_logs_dir) and os.path.isdir(test_logs_dir)
+if not raw_logs_exist:
+    print("No raw logs found. Reading data from csv files...")
+else:
+    print("Raw logs found. Rewriting data to csv files...")
 
-""" Other logs """
-def baselines():
-    file_dir = pathlib.Path(__file__).parent.resolve()
-    log_dir = file_dir / "baseline_logs"
-    print(log_dir)
+if raw_logs_exist:
+    """ LRNN logs """
+    # read test logs and write to csv
+    # f"{domain}_{layer}_{dim}_{choice}_{pro_blem}_{repeat}"
+    columns = ["domain", "layer", "dim", "choice", "problem", "repeat", "plan_length", "plan_found", "time"]
+    data = {k: [] for k in columns}
+    for f in sorted(os.listdir("test_logs")):
+        if not f.endswith(".log"):
+            continue
+        toks = f[:-4].split("_")
+        domain = toks[0]
+        layer = int(toks[1])
+        dim = int(toks[2])
+        choice = toks[3]
+        problem = toks[4] + "_" + toks[5]
+        repeat = int(toks[6])
+        with open(f"test_logs/{f}") as f:
+            content = f.read()
+            solved = "Plan generated!" in content
+            if solved:
+                plan_length = int(content.split("plan_length=")[1].split("\n")[0])
+                time = float(content.split("total_time=")[1].split("\n")[0])
+            else:
+                plan_length = None
+                time = None
+        data["domain"].append(domain)
+        data["layer"].append(layer)
+        data["dim"].append(dim)
+        data["choice"].append(choice)
+        data["problem"].append(problem)
+        data["repeat"].append(repeat)
+        data["plan_length"].append(plan_length)
+        data["plan_found"].append(solved)
+        data["time"].append(time)
+    df = pd.DataFrame(data)
+    df.to_csv("lrnn_results.csv")
+
+    """ baseline logs """
+    log_dir = baseline_logs_dir
     keys = ["domain", "problem", "repeat", "time", "plan_length", "plan_found", "max_bound"]
     data = {k: [] for k in keys}
     pbar = tqdm(sorted(os.listdir(log_dir)))
@@ -117,9 +102,31 @@ def baselines():
         data["max_bound"].append(max_bound)
     
     df = pd.DataFrame(data)
-    df.to_csv(file_dir / "baseline_results.csv", index=False)
-# baselines()
+    df.to_csv(this_file_dir / "baseline_results.csv", index=False)
 
+
+def group_repeats(df, others_to_keep=None, lrnn=False):
+    if others_to_keep is None:
+        others_to_keep = []
+    aggr = {
+        "time": ["mean", "std"],
+        "plan_length": ["mean", "std"],
+        "plan_found": "mean",
+    }
+    if lrnn:
+        aggr["layer"] = "first"
+        aggr["dim"] = "first"
+        aggr["choice"] = "first"
+    group_by = ["domain", "problem"]
+    if lrnn:
+        group_by += ["layer", "dim", "choice"]
+    df = df.groupby(group_by).agg(aggr)
+    df.columns = df.columns.map("_".join)
+    df["all_solved"] = df.plan_found_mean == 1
+    df.reset_index(inplace=True)
+    return df
+
+""" Other logs """
 groups = ["baseline", "scorpion", "lrnn"]
 datas = {}
 for group in groups:

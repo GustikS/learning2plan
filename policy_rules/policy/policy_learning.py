@@ -146,6 +146,8 @@ class LearningPolicy(Policy):
         else:
             results_repr = [relation.predicate.name + " <- no inference"]
 
+        results_repr = sorted(results_repr, key=lambda x: str(x))
+
         if newline:
             print("\n".join(results_repr))
         else:
@@ -190,21 +192,26 @@ class LearningPolicy(Policy):
     def add_weight(self, literal: BaseRelation, dim: int) -> WeightedRelation:
         if dim <= 0:
             return literal
-
+        
         if not isinstance(literal, WeightedRelation) and not literal.negated:  # not yet weighted
-            # if literal.predicate.name.startswith('applicable_'):
-            #     return literal[dim, dim]
-            if literal.predicate.name[:3] in ["ap_", "ag_", "ug_"]:  # scalar input atoms
-                return literal[dim, 1]
-            if literal.predicate.name in self.action_header2query.keys():  # scalar output actions
-                return literal[dim, 1]
-            if literal.predicate.name.startswith("g_") and literal.predicate.arity == 0:  # scalar special guards
-                return literal[dim, 1]
-            if literal.predicate.name == "satellite":
-                # DZC 15/07/2024: I ended up using your nullary code, so not sure if this is needed anymore
-                return literal[dim, 1]  # a hot patch for Dillon's dummy satellite(S) predicate
+            square = True
+
+            if literal.predicate.name[:3] in ["ap_", "ag_", "ug_"]:  
+                # scalar input atoms
+                square = False
+            if literal.predicate.name in self.action_header2query.keys():  
+                # scalar output actions
+                square = False
+            if literal.predicate.name.startswith("g_") and literal.predicate.arity == 0:  
+                # scalar special guards
+                square = False
+            
+            if square:
+                ret = literal[dim, dim]
             else:
-                return literal[dim, dim]
+                ret = literal[dim, 1]
+
+            return ret
         else:
             if self._debug > 4:
                 print(f"attempting to weight atom {literal} that is already weighted")
@@ -239,12 +246,11 @@ class LearningPolicy(Policy):
             num_epochs: int = 100,
             optimizer: Optimizer = Adam,
             learning_rate: float = 0.0001,  # increase for SGD
-            learning_rate_decay: Union["arithmetic", "geometric"] = "",
+            learning_rate_decay: str = "",
             activations: Transformation = Transformation.TANH,
             aggregations: str = "max",
             state_regression=False,
             action_regression=False,
-            save_drawing=None,
     ):
         """Set up training, then call self._train_parameters for main training"""
         if state_regression or action_regression:
@@ -264,7 +270,7 @@ class LearningPolicy(Policy):
             case "":
                 decay = None
             case _:
-                raise ValueError("Unrecognized learning rate decay method")
+                raise ValueError("Unrecognized learning rate decay method.")
 
         neuralogic_settings.optimizer = optimizer(lr=learning_rate, lr_decay=decay)
 
@@ -287,10 +293,6 @@ class LearningPolicy(Policy):
 
         with TimerContextManager("building template"):
             self.model = self._template.build(neuralogic_settings)
-
-        if save_drawing is not None:
-            self.model.draw(filename=save_drawing)
-            print("Saved template visualisation to", save_drawing)
 
         self._engine.model = self.model
 

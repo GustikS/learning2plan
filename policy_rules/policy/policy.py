@@ -84,11 +84,16 @@ class Policy:
         self._goal = self._problem.goal
         self._name_to_object: dict[str, Object] = {obj.name: obj for obj in self._objects}
 
-    def setup_test_state(self, state: list[Atom]):
-        """Set up a STATEFUL dependency on a current test State"""
+    def _get_atoms_from_test_state(self, state: list[Atom]):
         ilg_atoms = self.get_ilg_facts(state)
         lrnn_atoms = [R.get(atom.predicate)([C.get(obj) for obj in atom.objects]) for atom in ilg_atoms]
-        self._engine.set_knowledge(lrnn_atoms + self.get_object_information())
+        object_atoms = self.get_object_information()
+        return lrnn_atoms + object_atoms
+        
+    def setup_test_state(self, state: list[Atom]):
+        """Set up a STATEFUL dependency on a current test State"""
+        atoms = self._get_atoms_from_test_state(state)
+        self._engine.set_knowledge(atoms)
 
     def solve(self, state: list[Atom]) -> list[(float, Action)]:
         """given a State from the currently assumed Problem, return possible actions from policy rules"""

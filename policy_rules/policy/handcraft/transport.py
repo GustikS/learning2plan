@@ -47,26 +47,46 @@ class TransportPolicy(FasterLearningPolicy):
     def _debug_inference(self):
         print("Inference for current state:")
         self._debug_inference_actions()
-        self._debug_inference_helper(R.shortest("A", "B"), newline=True)
         self._debug_inference_helper(R.derivable_pickup, newline=True)
         self._debug_inference_helper(R.derivable_drop, newline=True)
+        self._debug_inference_helper(R.shortest("A", "B"), newline=True)
         print("=" * 80)
+
+    @override
+    def _get_atoms_from_test_state(self, state: list[Atom]):
+        """DZC: hack to construct non-parameterisable atoms from the state for use below"""
+        ret = super()._get_atoms_from_test_state(state)
+
+        ilg_atoms = self.get_ilg_facts(state)
+        new_atoms = []
+        ones = [1 for _ in range(self.dim)]
+        for atom in ilg_atoms:
+            if atom.predicate == "ap_road":
+                new_atoms.append(R.road_static(atom.objects[0], atom.objects[1])[ones])
+
+        # for a in sorted(new_atoms, key=lambda x: str(x)):
+        #     print(a)
+        # breakpoint()
+
+        return ret + new_atoms
 
     @override
     def _add_derived_predicates(self):
         self.add_rule(R.derivable_pickup, R.pickup("V", "L", "P", "S1", "S2"))
         self.add_rule(R.derivable_drop, R.drop("V", "L", "P", "S1", "S2"))
 
-        # DZC 15/07/2024 TODOs: 
-        # - code to initialise weights to start from 1 and have shortest path based on unit costs so we are not just aggregating randomly initialised weights
-        # - understand Metadata(combination) to compute closest location from a given location
-        metadata = Metadata(aggregation=Aggregation.MIN, transformation=Transformation.IDENTITY)
-        self._template += (R.shortest("L1", "L2") <= R.road("L1", "L2")) | metadata
-        self._template += (R.shortest("L1", "L2") <= (R.road("L1", "L3"), R.shortest("L3", "L2"))) | metadata
+        # compute shortest paths with help of road_static with non-parameterisable weights above
+        # TODO: neuralogic seems to not compute shortest paths correctly due to cycles
+        metadata = Metadata(
+            aggregation=Aggregation.MIN,
+            transformation=Transformation.IDENTITY,
+        )
+        self._template += (R.shortest("L1", "L2") <= R.road_static("L1", "L2")) | metadata
+        self._template += (R.shortest("L1", "L2") <= (R.road_static("L1", "L3"), R.shortest("L3", "L2"))) | metadata
 
     @override
     def _add_policy_rules(self):
-        """ pickup(?v - vehicle ?l - location ?p - package ?s1 ?s2 - size) """
+        """pickup(?v - vehicle ?l - location ?p - package ?s1 ?s2 - size)"""
         # pick up any package not at goal location
         body = [
             R.ug_at("P", "Goal_location"),
