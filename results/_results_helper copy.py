@@ -24,41 +24,41 @@ medium_problems = set(f"1_{i:02d}" for i in range(1, 31))
 hard_problems = set(f"2_{i:02d}" for i in range(1, 31))
 SKIP_HARD = True
 
-# """ LRNN logs """
-# # read test logs and write to csv
-# # f"{domain}_{layer}_{dim}_{choice}_{pro_blem}_{repeat}"
-# columns = ["domain", "layer", "dim", "choice", "problem", "repeat", "plan_length", "plan_found", "time"]
-# data = {k: [] for k in columns}
-# for f in sorted(os.listdir("test_logs")):
-#     if not f.endswith(".log"):
-#         continue
-#     toks = f[:-4].split("_")
-#     domain = toks[0]
-#     layer = int(toks[1])
-#     dim = int(toks[2])
-#     choice = toks[3]
-#     problem = toks[4] + "_" + toks[5]
-#     repeat = int(toks[6])
-#     with open(f"test_logs/{f}") as f:
-#         content = f.read()
-#         solved = "Plan generated!" in content
-#         if solved:
-#             plan_length = int(content.split("plan_length=")[1].split("\n")[0])
-#             time = float(content.split("total_time=")[1].split("\n")[0])
-#         else:
-#             plan_length = None
-#             time = None
-#     data["domain"].append(domain)
-#     data["layer"].append(layer)
-#     data["dim"].append(dim)
-#     data["choice"].append(choice)
-#     data["problem"].append(problem)
-#     data["repeat"].append(repeat)
-#     data["plan_length"].append(plan_length)
-#     data["plan_found"].append(solved)
-#     data["time"].append(time)
-# df = pd.DataFrame(data)
-# df.to_csv("lrnn_results.csv")
+""" LRNN logs """
+# read test logs and write to csv
+# f"{domain}_{layer}_{dim}_{choice}_{pro_blem}_{repeat}"
+columns = ["domain", "layer", "dim", "choice", "problem", "repeat", "plan_length", "plan_found", "time"]
+data = {k: [] for k in columns}
+for f in sorted(os.listdir("test_logs")):
+    if not f.endswith(".log"):
+        continue
+    toks = f[:-4].split("_")
+    domain = toks[0]
+    layer = int(toks[1])
+    dim = int(toks[2])
+    choice = toks[3]
+    problem = toks[4] + "_" + toks[5]
+    repeat = int(toks[6])
+    with open(f"test_logs/{f}") as f:
+        content = f.read()
+        solved = "Plan generated!" in content
+        if solved:
+            plan_length = int(content.split("plan_length=")[1].split("\n")[0])
+            time = float(content.split("total_time=")[1].split("\n")[0])
+        else:
+            plan_length = None
+            time = None
+    data["domain"].append(domain)
+    data["layer"].append(layer)
+    data["dim"].append(dim)
+    data["choice"].append(choice)
+    data["problem"].append(problem)
+    data["repeat"].append(repeat)
+    data["plan_length"].append(plan_length)
+    data["plan_found"].append(solved)
+    data["time"].append(time)
+df = pd.DataFrame(data)
+df.to_csv("lrnn_results.csv")
 
 
 def group_repeats(df, others_to_keep=None, lrnn=False):
