@@ -1,4 +1,4 @@
-neuralogic==0.7.16
+neuralogic==0.7.20
 plotly==5.22.0
 pytest==8.2.2
 pymdzcf==0.1.0

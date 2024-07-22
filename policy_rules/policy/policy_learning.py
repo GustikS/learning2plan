@@ -6,10 +6,10 @@ from typing import Iterable, Union
 import numpy as np
 from neuralogic.core import Aggregation, R, Rule, Template, Transformation, V
 from neuralogic.core.constructs.relation import BaseRelation, WeightedRelation
+from neuralogic.core.neural_module import NeuralModule
 from neuralogic.dataset import FileDataset
 from neuralogic.inference import EvaluationInferenceEngine
 from neuralogic.nn.init import Initializer, Uniform
-from neuralogic.nn.java import NeuraLogic
 from neuralogic.nn.loss import MSE, CrossEntropy
 from neuralogic.optim import SGD, Adam
 from neuralogic.optim.lr_scheduler import ArithmeticLR, GeometricLR
@@ -38,7 +38,7 @@ class LearningPolicy(Policy):
 
     def init_template(
             self,
-            init_model: NeuraLogic = None,
+            init_model: NeuralModule = None,
             dim=1,
             num_layers=-1,
             state_regression=False,
@@ -308,7 +308,7 @@ class LearningPolicy(Policy):
     def _train_parameters(self, lrnn_dataset_dir: str, epochs: int = 100):
         try:
             dataset = FileDataset(f"{lrnn_dataset_dir}/examples.txt", f"{lrnn_dataset_dir}/queries.txt")
-            neural_samples = self.model.build_dataset(dataset)
+            neural_samples = self.model.build_dataset(dataset, progress=True)
             print("Neural samples successfully built (the template logic is working correctly)!")
             if self._debug > 1:
                 self._debug_neural_samples(neural_samples)
@@ -325,7 +325,7 @@ class LearningPolicy(Policy):
             with TimerContextManager("training the LRNN"):
                 for epoch in range(epochs):
                     t = time.time()
-                    results, n_samples = self.model(neural_samples, True, epochs=1)
+                    results, n_samples = self.model.train(neural_samples, epochs=1)
                     if decay := neuralogic_settings.optimizer._lr_decay:
                         decay.decay(epoch)  # if we go epoch by epoch this needs to be called manually
                     t = time.time() - t
@@ -359,7 +359,7 @@ class LearningPolicy(Policy):
 
         # Evaluate again after training
         if self._debug > 1:
-            results = self.model(neural_samples, train=False)  # evaluate again due to missing sample outputs
+            results = self.model.test(neural_samples)  # evaluate again due to missing sample outputs
             self._debug_neural_samples(neural_samples, results)
             if self._debug > 2:
                 for i in range(len(neural_samples)):
@@ -438,11 +438,11 @@ class FasterLearningPolicy(LearningPolicy):
     def __init__(self, domain: Domain, debug=0):
         super().__init__(domain, debug)
 
-    def init_template(self, init_model: NeuraLogic = None, dim=1, num_layers=-1, **kwargs):
+    def init_template(self, init_model: NeuralModule = None, dim=1, num_layers=-1, **kwargs):
         super().init_template(init_model, dim=dim, num_layers=num_layers, **kwargs)
         # self.model.settings['neuralNetsPostProcessing'] = False  # for speedup
         # self.model.settings.chain_pruning = False     # if trained with pruning we should keep it for evaluation too
-        self.model.settings.iso_value_compression = False
+        self.model._settings.iso_value_compression = False
 
     @override
     def query_actions(self) -> list[(float, Action)]:
@@ -451,7 +451,7 @@ class FasterLearningPolicy(LearningPolicy):
             built_dataset = self.model.build_dataset(self._engine.dataset)
             self._built_state_network = built_dataset[0]
             # we cannot skip this extra evaluation if we want alignment with the evaluation_inference_engine
-            output = self.model(built_dataset.samples, train=False)
+            output = self.model(built_dataset._samples)
         except Exception as e:
             warnings.warn(f"Failed to build template on the state: {self._engine.dataset}")
             warnings.warn(str(e))

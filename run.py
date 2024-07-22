@@ -10,8 +10,8 @@ from typing import Union
 import neuralogic
 import numpy as np
 import pymimir
+from neuralogic.core.neural_module import NeuralModule
 from neuralogic.logging import Formatter, Level, add_handler
-from neuralogic.nn.java import NeuraLogic
 from termcolor import colored
 
 from modelling.samples import prepare_training_data
@@ -291,7 +291,7 @@ def main():
     # possibly load an initial template from file with the same template_name if found
     if load_file_name:
         print(f"Loading policy from {load_file_name}")
-        loaded_model: NeuraLogic = load_stored_model(load_file_name)
+        loaded_model: NeuralModule = load_stored_model(load_file_name)
     else:
         loaded_model = None
 

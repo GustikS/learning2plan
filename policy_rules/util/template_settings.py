@@ -4,7 +4,8 @@ from dataclasses import dataclass
 from typing import Dict, Optional, Union
 
 from neuralogic.core import Aggregation, Settings, Template, Transformation
-from neuralogic.nn.java import NeuraLogic
+from neuralogic.core.neural_module import NeuralModule
+
 from termcolor import colored
 
 # we can set up all the learning/numeric-evaluation-related settings here
@@ -35,7 +36,7 @@ class SaveData:
     template: Template
 
 
-def load_stored_model(template_path: str) -> NeuraLogic:
+def load_stored_model(template_path: str) -> NeuralModule:
     if not os.path.exists(template_path):
         print(f"WARNING: Model {template_path} does not exist")
         return None
@@ -49,12 +50,12 @@ def load_stored_model(template_path: str) -> NeuraLogic:
     return model
 
 
-def save_template_model(model: Union[NeuraLogic | Template], save_model_path: str) -> None:
+def save_template_model(model: Union[NeuralModule | Template], save_model_path: str) -> None:
     if "/" in save_model_path:
         os.makedirs(os.path.dirname(save_model_path), exist_ok=True)
 
     model_state_dict = None
-    if isinstance(model, NeuraLogic):
+    if isinstance(model, NeuralModule):
         model_state_dict = model.state_dict()
         template = Template()
         template.template = model.source_template
@@ -71,7 +72,7 @@ def save_template_model(model: Union[NeuraLogic | Template], save_model_path: st
     print(colored(f"Model saved to {save_model_path}", "green"))
 
 
-def load_model_weights(model: NeuraLogic, weights_file: str = None):
+def load_model_weights(model: NeuralModule, weights_file: str = None):
     try:
         f = open(weights_file, "rb")
         weights = pickle.load(f)

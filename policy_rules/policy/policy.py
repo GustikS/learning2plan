@@ -5,8 +5,8 @@ from typing import Iterable, Union
 
 from neuralogic.core import C, R, Template, V
 from neuralogic.core.constructs.relation import BaseRelation
+from neuralogic.core.neural_module import NeuralModule
 from neuralogic.inference.inference_engine import InferenceEngine
-from neuralogic.nn.java import NeuraLogic
 from pymimir import Action, ActionSchema, Atom, Domain, Literal, Object, Problem
 
 from policy_rules.util.str_atom import StrAtom
@@ -29,7 +29,7 @@ class Policy:
 
         self.guards_levels = -1
 
-    def init_template(self, init_model: NeuraLogic = None, **kwargs):
+    def init_template(self, init_model: NeuralModule = None, **kwargs):
         if init_model:
             template = Template()
             template.template = init_model.source_template
