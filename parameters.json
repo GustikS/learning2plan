@@ -1,7 +1,6 @@
 {
     "dimensions": [
-        4,
-        8,
+        1,
         16,
         32,
         64
@@ -9,15 +8,18 @@
     "layers": [
         1,
         2,
-        3
+        3,
+        4,
+        5
     ],
     "repeats": [
         0,
         1,
-        2
+        2,
+        3,
+        4
     ],
     "policy_sample": [
-        true,
         false
     ]
 }

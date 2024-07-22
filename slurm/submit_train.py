@@ -34,7 +34,7 @@ DOMAINS = [
     "blocksworld", 
     "ferry", 
     "miconic", 
-    # "satellite", 
+    "satellite", 
     "transport",
 ]
 

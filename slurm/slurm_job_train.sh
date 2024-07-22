@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --mem=64gb # Job memory request
-#SBATCH --time=48:00:00 # Time limit hrs:min:sec
+#SBATCH --time=96:00:00 # Time limit hrs:min:sec
 
 # Show commands
 set -x
