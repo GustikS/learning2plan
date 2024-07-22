@@ -185,10 +185,13 @@ def plot_domains(metric, log_y=False, include_sample=False, dimensions=None):
         fig.show()
 
 
-def plot_difference(absolute=True, include_sample=False, dimensions=None):
+def plot_difference(absolute=True, include_sample=False, layers=None, dimensions=None):
     if dimensions is None:
         dimensions = []
     dimensions = set(dimensions)
+    if layers is None:
+        layers = []
+    layers = set(layers)
 
     solvers = all_data["solver"].unique()
 
@@ -205,6 +208,9 @@ def plot_difference(absolute=True, include_sample=False, dimensions=None):
         toks = solver.split("_")
         dimension = int(toks[2][1:])
         if dimension not in dimensions:
+            ignore_models.add(solver)
+        layer = int(toks[1][1:])
+        if layer not in layers:
             ignore_models.add(solver)
 
     plot_dir = f"plots/difference"
@@ -250,7 +256,7 @@ def plot_difference(absolute=True, include_sample=False, dimensions=None):
         else:
             y = "improvement (%)"
 
-        fig = px.line(data, x="problem", y=y, color="solver", facet_col="difficulty")
+        fig = px.line(data, x="problem", y=y, color="solver",line_dash="type", facet_col="difficulty")
         fig.update_xaxes(categoryorder='array')
         fig.update_yaxes(matches=None)
         fig.update_xaxes(matches=None)
