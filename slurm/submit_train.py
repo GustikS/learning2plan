@@ -69,7 +69,7 @@ def main():
             to_go += 1
             continue
 
-        cmd = f"apptainer run {CONTAINER} python3 run.py -d {domain} --embedding {dim} --layers {layer} -s {repeat} --save_file {save_file}"
+        cmd = f"apptainer run {CONTAINER} python3 run.py -d {domain} --embedding {dim} --layers {layer} -s {repeat} --epochs 100 --save_file {save_file}"
 
         slurm_vars = ','.join([
             f"CMD={cmd}",

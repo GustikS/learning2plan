@@ -66,7 +66,7 @@ def parse_args():
                         help="Number of model layers (-1 = off, 1 = just embedding, 2+ = message-passing)")
     parser.add_argument("-agg", "--aggregation", default="sum", choices=["sum", "mean", "max"],
                         help="Aggregation function for message passing")
-    parser.add_argument("-ep", "--epochs", type=int, default=500,
+    parser.add_argument("-ep", "--epochs", type=int, default=100,
                         help="Number of model training epochs")
     
     parser.add_argument("-k", "--knowledge", type=bool, default=True, action=argparse.BooleanOptionalAction,
