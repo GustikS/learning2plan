@@ -38,7 +38,7 @@ DOMAINS = [
     "transport",
 ]
 
-CONFIGS = product(DIMENSIONS, LAYERS, REPEATS, DOMAINS)
+CONFIGS = sorted(product(DOMAINS, LAYERS, DIMENSIONS, REPEATS))
 
 
 """ Main loop """
@@ -54,7 +54,7 @@ def main():
     skipped = 0
     to_go = 0
 
-    for dim, layer, repeat, domain in CONFIGS:
+    for domain, layer, dim, repeat in CONFIGS:
         description = f"{domain}_{layer}_{dim}_{repeat}"
 
         log_file = f"{LOG_DIR}/{description}.log"
@@ -66,6 +66,7 @@ def main():
             continue
 
         if submitted >= submissions:
+            print("to_go:", description)
             to_go += 1
             continue
 
