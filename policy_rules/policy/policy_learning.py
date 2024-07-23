@@ -18,6 +18,7 @@ from neuralogic.optim.optimizer import Optimizer
 from pymimir import Action, Domain
 from sklearn.metrics import f1_score
 from termcolor import colored
+from tqdm import tqdm
 from typing_extensions import override
 
 from modelling.templates import (anonymous_predicates, gnn_message_passing, object2object_edges,
@@ -411,12 +412,17 @@ class LearningPolicy(Policy):
         for state, actions in state2actions.items():
             reachable = [action for action in actions if action[2]]
             if not reachable:
-                raise Exception(f"State {state.getId()} has no reachable actions at all!")
+                # raise Exception(f"State {state} has no reachable actions at all!")    # commenting this out just for debugging purposes
+                problematic_actions = [action[0].java_sample.query.ID for action in actions if action[1] > 0]
+                print(colored(f"State {state} -> {problematic_actions} has no reachable actions at all!", "magenta"))
+                continue
             if len(reachable) > 1:
                 num_multiple += 1
             reachable_positive = [action for action in reachable if action[1]]
             if not reachable_positive:
-                raise Exception(f"State {state.getId()} has no reachable positive (optimal) actions!")
+                # raise Exception(f"State {state} has no reachable positive (optimal) actions!")     # commenting this out just for debugging purposes
+                print(colored(f"State {state} has no reachable positive (optimal) actions!", "magenta"))
+                continue
             reachable_negative = [action for action in reachable if not action[1]]
             if reachable_negative:
                 num_reachable_negative += 1
