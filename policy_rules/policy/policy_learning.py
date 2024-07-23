@@ -319,8 +319,7 @@ class LearningPolicy(Policy):
             progress.closing()
 
             print("Neural samples successfully built (the template logic is working correctly)!")
-            if self._debug > 1:
-                self._debug_neural_samples(neural_samples)
+            self._debug_neural_samples(neural_samples)
 
             # Main training loop
             # TODO: maybe have a validation split to save best model
@@ -395,42 +394,58 @@ class LearningPolicy(Policy):
         num_multiple = 0
         correctly_ordered = 0
         for state, actions in state2actions.items():
-            reachable = [action for action in actions if action[2]]
-            if not reachable:
-                # raise Exception(f"State {state} has no reachable actions at all!")    # commenting this out just for debugging purposes
-                problematic_actions = [action[0].java_sample.query.ID for action in actions if action[1] > 0]
-                print(colored(f"State {state} -> {problematic_actions} has no reachable actions at all!", "magenta"))
-                continue
-            if len(reachable) > 1:
-                num_multiple += 1
-            reachable_positive = [action for action in reachable if action[1]]
-            if not reachable_positive:
-                # raise Exception(f"State {state} has no reachable positive (optimal) actions!")     # commenting this out just for debugging purposes
-                print(colored(f"State {state} has no reachable positive (optimal) actions!", "magenta"))
-                continue
-            reachable_negative = [action for action in reachable if not action[1]]
-            if reachable_negative:
+            reachable_actions = []
+            reachable_positive = []
+            reachable_negative = []
+            for action in reachable_actions:
+                if action[2]:
+                    reachable_actions.append(action)
+                else:
+                    continue
+
+                if action[1]:
+                    reachable_positive.append(action)
+                else:
+                    reachable_negative.append(action)
+
+            # some debugging to check whether optimal actions are preserved
+            debug_colour = "magenta"
+            if not reachable_actions and self._debug > 1:
+                print(colored(f"State {state} has no reachable actions at all!", debug_colour))
+            if not reachable_positive and self._debug > 1:
+                actions = [(action[0].java_sample.query.ID.split(":")[1], int(action[1]), action[0].java_sample.query.ID.split(":")[0]) for action in actions]
+                sid = actions[0][2]
+                print(colored(f"State {state} {sid} has no reachable positive (optimal) actions at all!", debug_colour))
+                print(colored("Applicable actions:", debug_colour))
+                for action_name, is_optimal, _ in sorted(actions, key=lambda item: repr(item[1]) + repr(item[0]), reverse=True):
+                    print(colored(f"\t{is_optimal} : {action_name}", debug_colour))
+                print(colored("Reachable actions:", debug_colour))
+                for action in reachable_actions:
+                    action_name = action[0].java_sample.query.ID.split(":")[1]
+                    print(colored(f"\t{action_name}", debug_colour))
+
+            if len(reachable_negative) > 0:
                 num_reachable_negative += 1
+            if len(reachable_actions) > 1:
+                num_multiple += 1
 
             if results:
-                ordered = sorted(reachable, key=lambda item: item[3], reverse=True)
+                ordered = sorted(reachable_actions, key=lambda item: item[3], reverse=True)
                 if ordered[0][1] == 1:  # the highest output is for (some) optimal action - good
                     correctly_ordered += 1
                 elif ordered[0][1] == 0:  # this is a problematic state...
-                    if self._debug > 2:
+                    if self._debug > 1:
                         predictions = [(f'{action[1]} : {action[0].java_sample.query.ID} '
                                         f'-> {action[3]}') for action in ordered]
                         print(f'A problematic state to predict an optimal action for: {state} -> {predictions}')
 
+        # fmt: off
         print(f"There are {len(neural_samples)} learning queries across {len(state2actions)} unique states")
-        print(f"{float(num_multiple) / len(state2actions) * 100} % of states have more than 1 action derived")
-        print(
-            f"Only {float(num_reachable_negative) / len(state2actions) * 100} % of states "
-            f"have some negative action derived, and hence can be improved with parameter training"
-        )
+        print(f"{float(num_multiple) / len(state2actions) * 100:2f} % of states have more than 1 action derived")
+        print(f"{float(num_reachable_negative) / len(state2actions) * 100:2f} % of states have some negative action derived, and hence can be improved with parameter training")
         if results:
-            print(f"There are {(1 - float(correctly_ordered) / len(state2actions)) * 100} % of problematic states"
-                  f" with wrongly ordered action predictions (suboptimal first before optimal)")
+            print(f"{(1 - float(correctly_ordered) / len(state2actions)) * 100:2f} % of states are problematic with wrongly ordered action predictions (suboptimal first before optimal)")
+        # fmt: on
 
     def _grounding_debug(self):
         @jpype.JImplements(jpype.JClass("java.util.function.Consumer"))

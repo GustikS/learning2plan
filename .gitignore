@@ -8,3 +8,4 @@ __pycache__/
 *.model
 *.model_template.txt
 *.log
+TODOs.md

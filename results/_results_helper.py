@@ -19,6 +19,9 @@ easy_problems = set(f"0_{i:02d}" for i in range(1, 31))
 medium_problems = set(f"1_{i:02d}" for i in range(1, 31))
 hard_problems = set(f"2_{i:02d}" for i in range(1, 31))
 SKIP_HARD = True
+if not SKIP_HARD:
+    print("we skip hard problems because they take too long and we don't have time to optimise")
+    SKIP_HARD = True
 
 os.makedirs("plots/", exist_ok=True)
 
