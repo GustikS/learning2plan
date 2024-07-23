@@ -3,6 +3,7 @@ import time
 import warnings
 from typing import Iterable, Union
 
+import jpype
 import numpy as np
 from neuralogic.core import Aggregation, R, Rule, Template, Transformation, V
 from neuralogic.core.constructs.relation import BaseRelation, WeightedRelation
@@ -192,20 +193,20 @@ class LearningPolicy(Policy):
     def add_weight(self, literal: BaseRelation, dim: int) -> WeightedRelation:
         if dim <= 0:
             return literal
-        
+
         if not isinstance(literal, WeightedRelation) and not literal.negated:  # not yet weighted
             square = True
 
-            if literal.predicate.name[:3] in ["ap_", "ag_", "ug_"]:  
+            if literal.predicate.name[:3] in ["ap_", "ag_", "ug_"]:
                 # scalar input atoms
                 square = False
-            if literal.predicate.name in self.action_header2query.keys():  
+            if literal.predicate.name in self.action_header2query.keys():
                 # scalar output actions
                 square = False
-            if literal.predicate.name.startswith("g_") and literal.predicate.arity == 0:  
+            if literal.predicate.name.startswith("g_") and literal.predicate.arity == 0:
                 # scalar special guards
                 square = False
-            
+
             if square:
                 ret = literal[dim, dim]
             else:
@@ -302,6 +303,24 @@ class LearningPolicy(Policy):
             print(f"Starting building the samples with a limit to the first {samples_limit}")
         else:
             print(f"Starting building all samples")
+
+        if self._debug > 2:
+            @jpype.JImplements(jpype.JClass("java.util.function.Consumer"))
+            class GroundingCallback:
+                def __init__(self):
+                    self.inference_round = 0
+                    herbrand_class = jpype.JClass("cz.cvut.fel.ida.logic.subsumption.HerbrandModel")
+                    herbrand_class.callBack = self
+
+                @jpype.JOverride
+                def accept(self, herbrand_model):
+                    print(f"\n========Herbrand model inference round {self.inference_round}==========\n")
+                    herbrand_map = sorted(f'{predicate} : {atoms}' for predicate, atoms in herbrand_model.entrySet())
+                    for line in herbrand_map:
+                        print(line)
+                    self.inference_round += 1
+
+            GroundingCallback()
 
         self._train_parameters(train_data_dir, epochs=num_epochs)
 
@@ -419,7 +438,7 @@ class LearningPolicy(Policy):
             f"have some negative action derived, and hence can be improved with parameter training"
         )
         if results:
-            print(f"There are {(1- float(correctly_ordered) / len(state2actions)) * 100} % of problematic states"
+            print(f"There are {(1 - float(correctly_ordered) / len(state2actions)) * 100} % of problematic states"
                   f" with wrongly ordered action predictions (suboptimal first before optimal)")
 
     def reset_parameters(self):
