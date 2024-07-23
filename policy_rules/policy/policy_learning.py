@@ -1,6 +1,7 @@
 import os
 import time
 import warnings
+from contextlib import contextmanager
 from typing import Iterable, Union
 
 import jpype
@@ -306,29 +307,17 @@ class LearningPolicy(Policy):
             print(f"Starting building all samples")
 
         if self._debug > 2:
-            @jpype.JImplements(jpype.JClass("java.util.function.Consumer"))
-            class GroundingCallback:
-                def __init__(self):
-                    self.inference_round = 0
-                    herbrand_class = jpype.JClass("cz.cvut.fel.ida.logic.subsumption.HerbrandModel")
-                    herbrand_class.callBack = self
-
-                @jpype.JOverride
-                def accept(self, herbrand_model):
-                    print(f"\n========Herbrand model inference round {self.inference_round}==========\n")
-                    herbrand_map = sorted(f'{predicate} : {atoms}' for predicate, atoms in herbrand_model.entrySet())
-                    for line in herbrand_map:
-                        print(line)
-                    self.inference_round += 1
-
-            GroundingCallback()
+            self._grounding_debug()
 
         self._train_parameters(train_data_dir, epochs=num_epochs)
 
     def _train_parameters(self, lrnn_dataset_dir: str, epochs: int = 100):
         try:
             dataset = FileDataset(f"{lrnn_dataset_dir}/examples.txt", f"{lrnn_dataset_dir}/queries.txt")
+            progress = self._grounding_progress()
             neural_samples = self.model.build_dataset(dataset)
+            progress.closing()
+
             print("Neural samples successfully built (the template logic is working correctly)!")
             if self._debug > 1:
                 self._debug_neural_samples(neural_samples)
@@ -389,10 +378,6 @@ class LearningPolicy(Policy):
 
         print("-" * 80)
 
-        # DZC 15/07/2024: This seems redundant as store_policy is called after training in run.py so I commented it out
-        # if save_model_path:
-        #     store_template_model(self.model, save_model_path)
-
     def _debug_neural_samples(self, neural_samples, results=None):
         """Check that there are no problems and show some statistics"""
         if not results:
@@ -446,6 +431,44 @@ class LearningPolicy(Policy):
         if results:
             print(f"There are {(1 - float(correctly_ordered) / len(state2actions)) * 100} % of problematic states"
                   f" with wrongly ordered action predictions (suboptimal first before optimal)")
+
+    def _grounding_debug(self):
+        @jpype.JImplements(jpype.JClass("java.util.function.Consumer"))
+        class GroundingCallback:
+            def __init__(self):
+                self.inference_round = 0
+                herbrand_class = jpype.JClass("cz.cvut.fel.ida.logic.subsumption.HerbrandModel")
+                herbrand_class.callBack = self
+
+            @jpype.JOverride
+            def accept(self, herbrand_model):
+                print(f"\n========Herbrand model inference round {self.inference_round}==========\n")
+                herbrand_map = sorted(f'{predicate} : {atoms}' for predicate, atoms in herbrand_model.entrySet())
+                for line in herbrand_map:
+                    print(line)
+                self.inference_round += 1
+
+        return GroundingCallback()
+
+    def _grounding_progress(self):
+        @jpype.JImplements(jpype.JClass("java.util.function.IntConsumer"))
+        class GroundingProgress:
+            def __init__(self):
+                groundingClass = jpype.JClass("cz.cvut.fel.ida.logic.grounding.GroundTemplate")
+                self.samplesClass = jpype.JClass("cz.cvut.fel.ida.logic.constructs.building.SamplesBuilder")
+                groundingClass.progressBar = self
+                self.pbar = None
+
+            @jpype.JOverride
+            def accept(self, int):
+                if self.pbar is None:
+                    self.pbar = tqdm(total=self.samplesClass.counter)
+                self.pbar.update(1)
+
+            def closing(self):
+                self.pbar.close()
+
+        return GroundingProgress()
 
     def reset_parameters(self):
         self.model.reset_parameters()
