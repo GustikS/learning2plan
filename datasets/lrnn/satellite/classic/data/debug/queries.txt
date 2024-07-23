@@ -1,0 +1,2 @@
+s2 :- 0 turn_to(sat1, dir2, dir1), 1 calibrate(sat1, ins1, dir1), 0 turn_to(sat1, dir1, dir1), 0 switch_off(ins1, sat1).
+s8 :- 1 turn_to(sat1, dir1, dir2), 0 turn_to(sat1, dir2, dir2), 1 switch_on(ins1, sat1).

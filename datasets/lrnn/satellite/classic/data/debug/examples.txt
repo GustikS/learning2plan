@@ -1,0 +1,2 @@
+s2 :- ap_supports(ins1, mod1), ap_calibration_target(ins1, dir1), ap_pointing(sat1, dir1), ap_on_board(ins1, sat1), ap_power_on(ins1), ug_have_image(dir2, mod1).
+s8 :- ap_pointing(sat1, dir2), ap_calibrated(ins1), ap_power_avail(sat1), ap_supports(ins1, mod1), ap_calibration_target(ins1, dir1), ap_on_board(ins1, sat1), ug_have_image(dir2, mod1).
