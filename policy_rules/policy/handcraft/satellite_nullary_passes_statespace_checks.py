@@ -5,9 +5,8 @@ from typing_extensions import override
 from ..policy import Policy
 from ..policy_learning import FasterLearningPolicy, LearningPolicy
 
-""" See satellite_nullary_passes_statespace_checks.py for version that works on entire state space, even if some are not reached by the policy """
 
-class SatellitePolicyNullary(FasterLearningPolicy):
+class SatellitePolicyNullaryX(FasterLearningPolicy):
     def print_state(self, state: list[Atom]):
         object_names = sorted([o.name for o in self._problem.objects])
         directions = 0
@@ -106,24 +105,21 @@ class SatellitePolicyNullary(FasterLearningPolicy):
 
         """ turn_to(?s - satellite ?d_new - direction ?d_prev - direction) """
         # Ensure turn_to is always last priority (LP)
+        # From looking at the entire state space data, there are cases where turn_to is optimal but not calibrate and switch_on/off
+        # It may be the case that when actually executing the policy, this problem does not occur...
         # - todo gustav: you can perhaps use some very low weight for that
 
         # turn towards unachieved have_image goals
         body = [
             R.ug_have_image("D_new", "M"),
             R.instrument_config("S", "I", "M"),
-            R.calibrated("I"),
+            # R.calibrated("I"),
             # (LP)
-            R.guard_calibrate,
             R.guard_take_image,
-            # R.guard_switch_on,
         ]
         head = R.turn_towards_ug_have_image("S", "D_new", "D_prev")
         self.add_rule(head, body)
-        self.add_output_action("turn_to", [
-            head,
-            R.guard_take_image
-        ])
+        self.add_output_action("turn_to", [head])
 
         # turn towards calibration direction if instrument is not turned on
         body = [
@@ -131,11 +127,9 @@ class SatellitePolicyNullary(FasterLearningPolicy):
             R.instrument_config("S", "I", "M"),
             ~R.calibrated("I"),
             R.calibration_target("I", "D_new"),
-            R.guard_towards_ug_have_image,
+            # R.guard_towards_ug_have_image,
             # (LP)
-            R.guard_calibrate,
             R.guard_take_image,
-            # R.guard_switch_on,
         ]
         self.add_output_action("turn_to", body)
 
@@ -145,9 +139,7 @@ class SatellitePolicyNullary(FasterLearningPolicy):
             R.guard_ug_have_image,
             R.guard_towards_ug_have_image,
             # (LP)
-            R.guard_calibrate,
             R.guard_take_image,
-            # R.guard_switch_on,
         ]
         self.add_output_action("turn_to", body)
 

@@ -321,7 +321,11 @@ def main():
     # training should be performed if there are training data AND the policy has learnable parameters/model
     if to_train and hasattr(policy, "model"):
         training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/data"
-        if os.path.isdir(training_data_path):
+        training_data_exists = os.path.isdir(training_data_path)
+        # if _DEBUG_LEVEL > 0:
+        #     print(colored("Debug mode on. Overwriting existing LRNN training data", "red"))
+        #     training_data_exists = False
+        if training_data_exists:
             print(f"Loading EXISTING LRNN training data from {training_data_path}")
         else:
             print(f"No LRNN training data available at {training_data_path}")

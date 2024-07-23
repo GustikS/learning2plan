@@ -9,6 +9,8 @@ PATH_TO_CLUSTER_LAAS_CODE=/pfcalcul/work/dchen/code/cvut-colab
 PATH_TO_GADI_CODE=/scratch/cd85/dc6693/cvut-colab
 
 while true; do
+    mkdir -p baseline_logs
+
     # # run cluster-laas to_csv.py
     # ssh cluster-laas "cd $PATH_TO_CLUSTER_LAAS_CODE && /pfcalcul/work/dchen/containers/stats.sif ./slurm/to_csv.py"
 
@@ -21,8 +23,8 @@ while true; do
     # baseline and optimal logs from cluster-laas
     rsync -av --progress cluster-laas:$PATH_TO_CLUSTER_LAAS_CODE/slurm/__experiments/baseline_logs results
 
-    # baseline and optimal logs from gadi (overwrite cluster-laas for miconic)
-    rsync -av --progress gadi:$PATH_TO_GADI_CODE/pbs/__experiments/baseline_logs results
+    # # baseline and optimal logs from gadi (overwrite cluster-laas for miconic)
+    # rsync -av --progress gadi:$PATH_TO_GADI_CODE/pbs/__experiments/baseline_logs results
 
     # logs from cluster-laas
     rsync -av --progress cluster-laas:$PATH_TO_CLUSTER_LAAS_CODE/slurm/__experiments/test_logs results/
