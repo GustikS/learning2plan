@@ -40,6 +40,7 @@ class TransportPolicy(FasterLearningPolicy):
 
     def _debug_inference(self):
         print("Inference for current state:")
+        super()._debug_inference()
         # self._grounding_debug()
         self._debug_inference_actions()
         self._debug_inference_helper(R.derivable_pickup, newline=True)
