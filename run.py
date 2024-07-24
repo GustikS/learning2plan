@@ -207,10 +207,12 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
             #     else:
             #         break
 
-            # ok to have cycles (rare)
+            # ideally have no cycles in BK policies
             action_index = sample_action(policy_actions, sampling_method)
             action = policy_actions[action_index][1]
             succ_state = action.apply(state)
+            if state_repr(succ_state) in seen_states:
+                cycles_detected += 1
 
             if _DEBUG_LEVEL > 0:
                 matrix_log.append(["Applying", colored(action.get_name(), "cyan")])

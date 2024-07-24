@@ -40,33 +40,40 @@ if raw_logs_exist:
     """ LRNN logs """
     # read test logs and write to csv
     # f"{domain}_{layer}_{dim}_{choice}_{pro_blem}_{repeat}"
-    columns = ["domain", "layer", "dim", "choice", "problem", "repeat", "plan_length", "plan_found", "time"]
+    columns = ["domain", "layer", "dim", "choice", "problem", "repeat", "cycles", "plan_length", "plan_found", "time"]
     data = {k: [] for k in columns}
-    for f in sorted(os.listdir("test_logs")):
-        if not f.endswith(".log"):
+    for file in sorted(os.listdir("test_logs")):
+        if not file.endswith(".log"):
             continue
-        toks = f[:-4].split("_")
-        domain = toks[0]
-        layer = int(toks[1])
-        dim = int(toks[2])
-        choice = toks[3]
-        problem = toks[4] + "_" + toks[5]
-        repeat = int(toks[6])
-        with open(f"test_logs/{f}") as f:
-            content = f.read()
-            solved = "Plan generated!" in content
-            if solved:
-                plan_length = int(content.split("plan_length=")[1].split("\n")[0])
-                time = float(content.split("total_time=")[1].split("\n")[0])
-            else:
-                plan_length = None
-                time = None
+        try:
+            toks = file[:-4].split("_")
+            domain = toks[0]
+            layer = int(toks[1])
+            dim = int(toks[2])
+            choice = toks[3]
+            problem = toks[4] + "_" + toks[5]
+            repeat = int(toks[6])
+            with open(f"test_logs/{file}") as f:
+                content = f.read()
+                solved = "Plan generated!" in content
+                if solved:
+                    plan_length = int(content.split("plan_length=")[1].split("\n")[0])
+                    time = float(content.split("total_time=")[1].split("\n")[0])
+                    cycles = int(content.split("cycles_detected=")[1].split("\n")[0])
+                else:
+                    plan_length = None
+                    time = None
+                    cycles = None
+        except Exception as e:
+            print(f"Error in {file}: {e}")
+            continue
         data["domain"].append(domain)
         data["layer"].append(layer)
         data["dim"].append(dim)
         data["choice"].append(choice)
         data["problem"].append(problem)
         data["repeat"].append(repeat)
+        data["cycles"].append(cycles)
         data["plan_length"].append(plan_length)
         data["plan_found"].append(solved)
         data["time"].append(time)
@@ -75,7 +82,7 @@ if raw_logs_exist:
 
     """ baseline logs """
     log_dir = baseline_logs_dir
-    keys = ["domain", "problem", "repeat", "time", "plan_length", "plan_found", "max_bound"]
+    keys = ["domain", "problem", "repeat", "time", "cycles", "plan_length", "plan_found", "max_bound"]
     data = {k: [] for k in keys}
     pbar = tqdm(sorted(os.listdir(log_dir)))
     for f in pbar:
@@ -91,15 +98,18 @@ if raw_logs_exist:
             if not plan_found:
                 time = np.nan
                 plan_length = np.nan
+                cycles = np.nan
                 max_bound = "Terminating with failure after" in content
             else:
                 time = float((content.split("total_time=")[1]).split("\n")[0])
                 plan_length = float((content.split("plan_length=")[1]).split("\n")[0])
+                cycles = int(content.split("cycles_detected=")[1].split("\n")[0])
                 max_bound = False
         data["domain"].append(domain)
         data["problem"].append(problem)
         data["repeat"].append(repeat)
         data["time"].append(time)
+        data["cycles"].append(cycles)
         data["plan_length"].append(plan_length)
         data["plan_found"].append(plan_found)
         data["max_bound"].append(max_bound)
@@ -128,6 +138,14 @@ def group_repeats(df, others_to_keep=None, lrnn=False):
     df["all_solved"] = df.plan_found_mean == 1
     df.reset_index(inplace=True)
     return df
+
+
+def visualise_cylces():
+    data = pd.read_csv(f"baseline_results.csv")
+    print("Ideally, we want 0 cycles")
+    fig = px.line(data, x="problem", y="cycles", color="domain")
+    fig.show()
+
 
 """ Other logs """
 groups = ["baseline", "scorpion", "lrnn"]
