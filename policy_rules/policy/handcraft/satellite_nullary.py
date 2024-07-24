@@ -120,10 +120,7 @@ class SatellitePolicyNullary(FasterLearningPolicy):
         ]
         head = R.turn_towards_ug_have_image("S", "D_new", "D_prev")
         self.add_rule(head, body)
-        self.add_output_action("turn_to", [
-            head,
-            R.guard_take_image
-        ])
+        self.add_output_action("turn_to", [head])
 
         # turn towards calibration direction if instrument is not turned on
         body = [

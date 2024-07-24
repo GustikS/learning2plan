@@ -397,7 +397,7 @@ class LearningPolicy(Policy):
             reachable_actions = []
             reachable_positive = []
             reachable_negative = []
-            for action in reachable_actions:
+            for action in actions:
                 if action[2]:
                     reachable_actions.append(action)
                 else:

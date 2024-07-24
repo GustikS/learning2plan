@@ -156,6 +156,9 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
 
             policy_actions: list[tuple[float, pymimir.Action]] = policy.solve(state.get_atoms())
 
+            # sort for reproducibility
+            policy_actions = sorted(policy_actions, key=lambda x: x[1].get_name())
+
             state_str = state_repr(state)
             seen_states.add(state_str)
 
