@@ -477,7 +477,6 @@ class LearningPolicy(Policy):
         print(f"{ratio_pos_neg=:.2f} % of states have both some negative and positive action derived, ideally this should be {ratio_negative=:.2f}")
         if results:
             print(f"{ratio_problematic=:.2f} % of states are problematic with wrongly ordered action predictions (suboptimal first before optimal)")
-        breakpoint()
         # fmt: on
 
     def _grounding_debug(self):

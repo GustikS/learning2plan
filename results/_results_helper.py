@@ -143,7 +143,7 @@ def group_repeats(df, others_to_keep=None, lrnn=False):
 def visualise_cylces():
     data = pd.read_csv(f"baseline_results.csv")
     print("Ideally, we want 0 cycles")
-    fig = px.line(data, x="problem", y="cycles", color="domain")
+    fig = px.line(data, x="problem", y="cycles", color="domain", log_y=True)
     fig.show()
 
 
