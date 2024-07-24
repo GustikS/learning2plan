@@ -30,7 +30,7 @@ class TransportPolicy(FasterLearningPolicy):
         # print(results)
 
         new_atoms = []
-        for a, b in combinations(locs, 2):
+        for a, b in zip(locs, locs):
             dist = [results[a][b] for _ in range(self.dim)]
             atom = R.get("distance")(C.get(a), C.get(b))[dist]
             atom.fixed()
@@ -134,7 +134,7 @@ class TransportPolicy(FasterLearningPolicy):
         body = [
             R.ap_at("P", "Loc_of_package"),
             R.ug_at("P", "Goal_location"),
-            # R.distance("L2", "Loc_of_package"),
+            R.distance("L2", "Loc_of_package"),
             ~R.derivable_pickup,
             ~R.derivable_drop,
         ]
@@ -144,7 +144,7 @@ class TransportPolicy(FasterLearningPolicy):
         body = [
             R.ap_in("P", "V"),  # package in truck
             R.ug_at("P", "Goal_location"),
-            # R.distance("L2", "Goal_location"),
+            R.distance("L2", "Goal_location"),
             ~R.derivable_pickup,
             ~R.derivable_drop,
         ]
