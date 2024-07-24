@@ -4,6 +4,7 @@ import warnings
 from contextlib import contextmanager
 from typing import Iterable, Union
 
+import joblib
 import jpype
 import numpy as np
 from neuralogic.core import Aggregation, R, Rule, Template, Transformation, V
@@ -254,6 +255,8 @@ class LearningPolicy(Policy):
             aggregations: str = "max",
             state_regression=False,
             action_regression=False,
+            load_built_samples=False,
+            eval_bk_policy=False,
     ):
         """Set up training, then call self._train_parameters for main training"""
         if state_regression or action_regression:
@@ -309,17 +312,32 @@ class LearningPolicy(Policy):
         if self._debug > 2:
             self._grounding_debug()
 
-        self._train_parameters(train_data_dir, epochs=num_epochs)
+        self._train_parameters(train_data_dir, epochs=num_epochs, cache=load_built_samples, eval_bk_policy=eval_bk_policy)
 
-    def _train_parameters(self, lrnn_dataset_dir: str, epochs: int = 100):
+    def _train_parameters(self, lrnn_dataset_dir: str, epochs: int, cache: bool, eval_bk_policy: bool):
         try:
             dataset = FileDataset(f"{lrnn_dataset_dir}/examples.txt", f"{lrnn_dataset_dir}/queries.txt")
+
             progress = self._grounding_progress()
             neural_samples = self.model.build_dataset(dataset)
             progress.closing()
 
+            # Java object not picklable
+            # cache_store_path = f"{lrnn_dataset_dir}/build.cache"
+            # if cache and os.path.exists(cache_store_path):
+            #     print(f"Loading cached samples from {cache_store_path}")
+            #     neural_samples = joblib.load(cache_store_path)
+            # else:
+            #     progress = self._grounding_progress()
+            #     neural_samples = self.model.build_dataset(dataset)
+            #     progress.closing()
+            #     joblib.dump(neural_samples, filename=cache_store_path)
+
             print("Neural samples successfully built (the template logic is working correctly)!")
             self._debug_neural_samples(neural_samples)
+            if eval_bk_policy:
+                print("BK policy evaluation complete. Exiting with success.")
+                exit(0)
 
             # Main training loop
             # TODO: maybe have a validation split to save best model
@@ -392,9 +410,10 @@ class LearningPolicy(Policy):
             actions = state2actions.get(state_net, [])
             actions.append((sample, sample.target, sample.java_sample.query.neuron, output))
             state2actions[state_net] = actions
-        num_reachable_negative = 0
         num_multiple = 0
+        num_reachable_negative = 0
         num_reachable_positive = 0
+        num_reachable_pos_neg = 0
         correctly_ordered = 0
         for state, actions in state2actions.items():
             reachable_actions = []
@@ -433,6 +452,8 @@ class LearningPolicy(Policy):
                 num_multiple += 1
             if len(reachable_positive) > 0:
                 num_reachable_positive += 1
+            if len(reachable_negative) > 0 and len(reachable_positive) > 0:
+                num_reachable_pos_neg += 1
 
             if results and len(reachable_actions) > 0:
                 ordered = sorted(reachable_actions, key=lambda item: item[3], reverse=True)
@@ -445,12 +466,17 @@ class LearningPolicy(Policy):
                         print(f'A problematic state to predict an optimal action for: {state} -> {predictions}')
 
         # fmt: off
+        ratio_positive = float(num_reachable_positive) / len(state2actions) * 100
+        ratio_negative = float(num_reachable_negative) / len(state2actions) * 100
+        ratio_pos_neg = float(num_reachable_pos_neg) / len(state2actions) * 100
         print(f"There are {len(neural_samples)} learning queries across {len(state2actions)} unique states")
         print(f"{float(num_multiple) / len(state2actions) * 100:2f} % of states have more than 1 action derived")
-        print(f"{float(num_reachable_positive) / len(state2actions) * 100:2f} % of states have some positive action preserved, ideally this should be 100%")
-        print(f"{float(num_reachable_negative) / len(state2actions) * 100:2f} % of states have some negative action derived, and hence can be improved with parameter training")
+        print(f"{ratio_positive=:.2f} % of states have some positive action derived, ideally this should be 100%")
+        print(f"{ratio_negative=:2f} % of states have some negative action derived, and hence can be improved with parameter training")
+        print(f"{ratio_pos_neg=:2f} % of states have both some negative and positive action derived, ideally this should be {ratio_negative=:2f}")
         if results:
             print(f"{(1 - float(correctly_ordered) / len(state2actions)) * 100:2f} % of states are problematic with wrongly ordered action predictions (suboptimal first before optimal)")
+        breakpoint()
         # fmt: on
 
     def _grounding_debug(self):

@@ -76,6 +76,14 @@ def parse_args():
     parser.add_argument("-s", "--seed", type=int, default=2024, help="Random seed.")
     parser.add_argument("-c", "--choice", default="best", choices=["sample", "best"],
                         help="Choose the best action or sample from the policy. Has no effect for baseline policy which defaults to uniform sampling.")
+    
+    # Other debugging options
+    parser.add_argument("-eval_bk", "--eval_bk_policy", type=bool, default=False, action=argparse.BooleanOptionalAction,
+                        help="Computes percentages from training data for the baseline BK policy")
+    parser.add_argument("-ca", "--cache", type=bool, default=False, action=argparse.BooleanOptionalAction,
+                        help="Store or use stored built samples. Does not work because java objects are not picklable")
+    
+
     args = parser.parse_args()
     return args
     # fmt: on
@@ -247,7 +255,7 @@ def main():
     problem_name = args.problem
     load_file_name = args.load_file
     save_file_name = args.save_file
-    to_train = ((not load_file_name) and save_file_name) or args.train
+    to_train = ((not load_file_name) and save_file_name) or args.train or args.eval_bk_policy
     samples_limit = args.limit
     state_regression = args.state_regression
     action_regression = args.action_regression
@@ -313,6 +321,8 @@ def main():
             dim=embed_dim,
             num_layers=num_layers,
             include_knowledge=include_knowledge,
+            # TODO(DZC) 24/07/2024: may need to add typing soon as not doing so causes 
+            # some very long plans for Transport
             add_types=not to_train,  # don't use typing in training at the moment todo,
             state_regression=state_regression,
             action_regression=action_regression,
@@ -363,6 +373,8 @@ def main():
                 state_regression=state_regression,
                 action_regression=action_regression,
                 aggregations=aggregation,
+                load_built_samples=args.cache,
+                eval_bk_policy=args.eval_bk_policy,
             )
             total_time += timer.get_time()
 

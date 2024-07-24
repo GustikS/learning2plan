@@ -122,7 +122,7 @@ class SatellitePolicy(FasterLearningPolicy):
             # (LP)
             R.guard_calibrate,
             R.guard_take_image,
-            R.guard_switch_on,
+            # R.guard_switch_on,
         ]
         head = R.turn_towards_ug_have_image("S", "D_new", "D_prev")
         self.add_rule(head, body)
@@ -138,7 +138,6 @@ class SatellitePolicy(FasterLearningPolicy):
             # (LP)
             R.guard_calibrate,
             R.guard_take_image,
-            R.guard_switch_on,
         ]
         self.add_output_action("turn_to", body)
 
@@ -150,7 +149,6 @@ class SatellitePolicy(FasterLearningPolicy):
             # (LP)
             R.guard_calibrate,
             R.guard_take_image,
-            R.guard_switch_on,
         ]
         self.add_output_action("turn_to", body)
 
@@ -171,6 +169,7 @@ class SatellitePolicy(FasterLearningPolicy):
             R.instrument_config("S", "I_other", "M"),
             ~R.calibrated("I_other"),
         ]
+        # self.add_output_action("switch_off", body)
 
         """ calibrate(?s - satellite ?i - instrument ?d - direction) """
         body = [

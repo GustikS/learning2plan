@@ -31,10 +31,10 @@ class TransportPolicy(FasterLearningPolicy):
 
         new_atoms = []
         for a, b in combinations(locs, 2):
-            # dist = [results[a][b] for _ in range(self.dim)]
-            # atom = R.get("distance")(C.get(a), C.get(b))[dist]
-            # atom.fixed()
-            atom = R.get("distance")(C.get(a), C.get(b))
+            dist = [results[a][b] for _ in range(self.dim)]
+            atom = R.get("distance")(C.get(a), C.get(b))[dist]
+            atom.fixed()
+            # atom = R.get("distance")(C.get(a), C.get(b))
             new_atoms.append(atom)
         self.preprocessed_distances = new_atoms
 
