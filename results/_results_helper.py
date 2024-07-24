@@ -10,7 +10,7 @@ from tqdm import tqdm
 DOMAINS = [
     "blocksworld",
     "ferry",
-    "miconic",
+    # "miconic",
     # "rovers",
     "satellite",
     "transport",
@@ -153,10 +153,14 @@ if SKIP_HARD:
     all_data = all_data[~all_data["problem"].isin(hard_problems)]
 
 
-def plot_domains(metric, log_y=False, include_sample=False, dimensions=None):
+def plot_domains(metric, log_y=False, include_sample=False, layers=None, dimensions=None):
     if dimensions is None:
         dimensions = []
     dimensions = set(dimensions)
+
+    if layers is None:
+        layers = []
+    layers = set(layers)
 
     solvers = all_data["solver"].unique()
 
@@ -173,6 +177,9 @@ def plot_domains(metric, log_y=False, include_sample=False, dimensions=None):
         toks = solver.split("_")
         dimension = int(toks[2][1:])
         if dimension not in dimensions:
+            ignore_models.add(solver)
+        layer = int(toks[1][1:])
+        if layer not in layers:
             ignore_models.add(solver)
 
     plot_dir = f"plots/{metric}"

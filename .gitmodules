@@ -1,6 +1,0 @@
-[submodule "modelling/mimir"]
-	path = modelling/mimir
-	url = https://github.com/simon-stahlberg/mimir.git
-[submodule "modelling/l4np"]
-	path = modelling/l4np
-	url = https://github.com/DillonZChen/learning-4-numeric-planning-dataset.git

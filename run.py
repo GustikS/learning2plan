@@ -250,8 +250,8 @@ def main():
     aggregation = args.aggregation
     num_epochs = args.epochs
     include_knowledge = args.knowledge
-    domain_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/domain.pddl"
-    test_problem_path = f"{CUR_DIR}/policy_rules/l4np/{domain_name}/classic/testing/p{problem_name}.pddl"
+    domain_path = f"{CUR_DIR}/datasets/pddl/{domain_name}/domain.pddl"
+    test_problem_path = f"{CUR_DIR}/datasets/pddl/{domain_name}/testing/p{problem_name}.pddl"
     training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/data"
     _DEBUG_LEVEL = args.verbose
     assert Path(domain_path).exists(), f"Domain file not found: {domain_path}"
