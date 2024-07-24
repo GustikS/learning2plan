@@ -7,7 +7,6 @@ from itertools import product
 DOMAINS = [
     # "blocksworld", 
     # "ferry", 
-    # "miconic", 
     "satellite", 
     # "transport",
 ]
