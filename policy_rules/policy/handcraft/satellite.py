@@ -5,9 +5,14 @@ from typing_extensions import override
 from ..policy import Policy
 from ..policy_learning import FasterLearningPolicy, LearningPolicy
 
-""" See satellite_nullary_passes_statespace_checks.py for version that works on entire state space, even if some are not reached by the policy """
+""" 
+See satellite_nullary_100.py for version that works on entire state space, 
+even if some of these states are not reached by the policy. The version in this
+file only derives at least one optimal action for ~79% of states.
+"""
 
-class SatellitePolicyNullary(FasterLearningPolicy):
+
+class SatellitePolicy(FasterLearningPolicy):
     def print_state(self, state: list[Atom]):
         object_names = sorted([o.name for o in self._problem.objects])
         directions = 0
@@ -93,7 +98,8 @@ class SatellitePolicyNullary(FasterLearningPolicy):
         self.add_rule(R.guard_switch_on, ~R.derivable_switch_on, guard_level=6, embedding_layer=-1)
 
         self.add_rule(R.derivable_towards_ug_have_image, R.turn_towards_ug_have_image("A", "B", "C"))
-        self.add_rule(R.guard_towards_ug_have_image, ~R.derivable_towards_ug_have_image, guard_level=9, embedding_layer=-1)
+        self.add_rule(R.guard_towards_ug_have_image, ~R.derivable_towards_ug_have_image, guard_level=9, embedding_layer=-1
+        )
 
     @override
     def _add_policy_rules(self):
@@ -116,7 +122,7 @@ class SatellitePolicyNullary(FasterLearningPolicy):
             # (LP)
             R.guard_calibrate,
             R.guard_take_image,
-            # R.guard_switch_on,
+            R.guard_switch_on,
         ]
         head = R.turn_towards_ug_have_image("S", "D_new", "D_prev")
         self.add_rule(head, body)
@@ -132,7 +138,7 @@ class SatellitePolicyNullary(FasterLearningPolicy):
             # (LP)
             R.guard_calibrate,
             R.guard_take_image,
-            # R.guard_switch_on,
+            R.guard_switch_on,
         ]
         self.add_output_action("turn_to", body)
 
@@ -144,7 +150,7 @@ class SatellitePolicyNullary(FasterLearningPolicy):
             # (LP)
             R.guard_calibrate,
             R.guard_take_image,
-            # R.guard_switch_on,
+            R.guard_switch_on,
         ]
         self.add_output_action("turn_to", body)
 
@@ -154,8 +160,7 @@ class SatellitePolicyNullary(FasterLearningPolicy):
             R.ug_have_image("D", "M"),
             R.instrument_config("S", "I", "M"),
             ~R.power_on("I"),
-            # could be the case intstrument is calibrated but not switched on, so comment this out
-            # ~R.calibrated("I"),
+            ~R.calibrated("I"),
         ]
         self.add_output_action("switch_on", body)
 
@@ -166,11 +171,11 @@ class SatellitePolicyNullary(FasterLearningPolicy):
             R.instrument_config("S", "I_other", "M"),
             ~R.calibrated("I_other"),
         ]
-        self.add_output_action("switch_off", body)
 
         """ calibrate(?s - satellite ?i - instrument ?d - direction) """
         body = [
-            R.ug_have_image("D_other", "M"),
+            R.ug_have_image("D", "M"),
+            R.pointing("S", "D"),
             R.instrument_config("S", "I", "M"),
             ~R.calibrated("I"),
         ]
@@ -182,61 +187,3 @@ class SatellitePolicyNullary(FasterLearningPolicy):
             R.instrument_config("S", "I", "M"),
         ]
         self.add_output_action("take_image", body)
-
-
-    def _add_derived_predicates_orig(self):
-        head = R.instrument_config("S", "I", "M")
-        body = [
-            R.supports("I", "M"),
-            R.on_board("I", "S"),
-        ]
-        self.add_rule(head, body)
-
-        # "S" is dummy in the following since neuralogic does not have nullary predicates
-        # todo Gustav: it does have nullary predicates - R.nullary
-        #  - see modifications/simplifications above, hopefully it is what you meant
-        #  - but please be aware that using the "exists..." is a very brittle thing to do
-        #       - it will not stop the derivation, if the "exists..." has not been proved YET!
-        #           - hence it requires quite some thinking about the derivation order...
-        #               - you might use some "guards" for that purpose, e.g. guard_switch <= applicable_switch_on(_,_)
-        #                   - and then use turn_on(...) <= guard_switch & !exists_switch_on
-
-        # head = R.exists_ug_have_image("S")
-        head = R.exists_ug_have_image
-        body = [
-            R.ug_have_image("D", "M"),
-            # R.satellite("S"),
-        ]
-        self.add_rule(head, body, is_guard=True)
-
-        # head = R.exists_calibrate("S")
-        head = R.exists_calibrate
-        body = [
-            R.calibrate("S_other", "I", "D"),
-            # R.satellite("S")
-        ]
-        self.add_rule(head, body, is_guard=True)
-
-        # head = R.exists_take_image("S")
-        head = R.exists_take_image
-        body = [
-            R.take_image("S_other", "D", "I", "M"),
-            # R.satellite("S")
-        ]
-        self.add_rule(head, body, is_guard=True)
-
-        # head = R.exists_switch_on("S")
-        head = R.exists_switch_on
-        body = [
-            R.switch_on("I", "S_other"),
-            # R.satellite("S")
-        ]
-        self.add_rule(head, body, is_guard=True)
-
-        # head = R.exists_towards_ug_have_image("S")
-        head = R.exists_towards_ug_have_image
-        body = [
-            R.turn_towards_ug_have_image("S_other", "D_new", "D_prev"),
-            # R.satellite("S")
-        ]
-        self.add_rule(head, body, is_guard=True)

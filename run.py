@@ -298,7 +298,7 @@ def main():
     else:
         loaded_model = None
 
-    policy: LearningPolicy = get_handcraft_policy(domain.name)(domain, debug=_DEBUG_LEVEL)
+    policy: LearningPolicy = get_handcraft_policy(domain_name)(domain, debug=_DEBUG_LEVEL)
 
     with TimerContextManager("initialising policy template") as timer:
         # no need to recreate the template with every new state, we can retain it for the whole domain

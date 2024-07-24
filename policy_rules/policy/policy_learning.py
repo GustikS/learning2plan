@@ -392,6 +392,7 @@ class LearningPolicy(Policy):
             state2actions[state_net] = actions
         num_reachable_negative = 0
         num_multiple = 0
+        num_reachable_positive = 0
         correctly_ordered = 0
         for state, actions in state2actions.items():
             reachable_actions = []
@@ -428,12 +429,14 @@ class LearningPolicy(Policy):
                 num_reachable_negative += 1
             if len(reachable_actions) > 1:
                 num_multiple += 1
+            if len(reachable_positive) > 0:
+                num_reachable_positive += 1
 
-            if results:
+            if results and len(reachable_actions) > 0:
                 ordered = sorted(reachable_actions, key=lambda item: item[3], reverse=True)
                 if ordered[0][1] == 1:  # the highest output is for (some) optimal action - good
                     correctly_ordered += 1
-                elif ordered[0][1] == 0:  # this is a problematic state...
+                elif ordered[0][1] == 0:  # this is a problematic state (wrongly predicted)...
                     if self._debug > 1:
                         predictions = [(f'{action[1]} : {action[0].java_sample.query.ID} '
                                         f'-> {action[3]}') for action in ordered]
@@ -442,6 +445,7 @@ class LearningPolicy(Policy):
         # fmt: off
         print(f"There are {len(neural_samples)} learning queries across {len(state2actions)} unique states")
         print(f"{float(num_multiple) / len(state2actions) * 100:2f} % of states have more than 1 action derived")
+        print(f"{float(num_reachable_positive) / len(state2actions) * 100:2f} % of states have some positive action preserved, ideally this should be 100%")
         print(f"{float(num_reachable_negative) / len(state2actions) * 100:2f} % of states have some negative action derived, and hence can be improved with parameter training")
         if results:
             print(f"{(1 - float(correctly_ordered) / len(state2actions)) * 100:2f} % of states are problematic with wrongly ordered action predictions (suboptimal first before optimal)")

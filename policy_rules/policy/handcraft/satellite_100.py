@@ -2,12 +2,10 @@ from neuralogic.core import R
 from pymimir import Atom
 from typing_extensions import override
 
-from ..policy import Policy
-from ..policy_learning import \
-    LearningPolicy  # better this supervised (slow) version due to the unstable negation
+from ..policy_learning import FasterLearningPolicy
 
 
-class SatellitePolicy(LearningPolicy):
+class SatellitePolicy100(FasterLearningPolicy):
     def print_state(self, state: list[Atom]):
         object_names = sorted([o.name for o in self._problem.objects])
         directions = 0
@@ -62,16 +60,17 @@ class SatellitePolicy(LearningPolicy):
     def _debug_inference(self):
         print("Inference for current state:")
         self._debug_inference_helper(R.instrument_config("S", "I", "M"), newline=True)
-        self._debug_inference_helper(R.exists_ug_have_image("S"), newline=True)
-        self._debug_inference_helper(R.exists_calibrate("S"), newline=True)
-        self._debug_inference_helper(R.exists_take_image("S"), newline=True)
-        self._debug_inference_helper(R.exists_switch_on("S"), newline=True)
+        self._debug_inference_helper(R.guard_ug_have_image, newline=True)
+        self._debug_inference_helper(R.guard_calibrate, newline=True)
+        self._debug_inference_helper(R.exists_take_image, newline=True)
+        self._debug_inference_helper(R.exists_switch_on, newline=True)
         print("-" * 80)
         self._debug_inference_actions()
         print("=" * 80)
 
     @override
     def _add_derived_predicates(self):
+        """This is a new version that should be easier to debug/maintain"""
         head = R.instrument_config("S", "I", "M")
         body = [
             R.supports("I", "M"),
@@ -79,31 +78,20 @@ class SatellitePolicy(LearningPolicy):
         ]
         self.add_rule(head, body)
 
-        # "S" is dummy in the following since neuralogic does not have nullary predicates
-        # It does have nullary predicates - please see the nullary version also for tricks with negation
+        self.add_rule(R.derivable_ug_have_image, R.ug_have_image("A", "B"))
+        self.add_rule(R.guard_ug_have_image, ~R.derivable_ug_have_image, guard_level=3, embedding_layer=-1)
 
-        head = R.exists_ug_have_image("S")
-        body = [
-            R.ug_have_image("D", "M"),
-            R.satellite("S"),
-        ]
-        self.add_rule(head, body)
+        self.add_rule(R.derivable_calibrate, R.calibrate("A", "B", "C"))
+        self.add_rule(R.guard_calibrate, ~R.derivable_calibrate, guard_level=6, embedding_layer=-1)
 
-        head = R.exists_calibrate("S")
-        body = [R.calibrate("S_other", "I", "D"), R.satellite("S")]
-        self.add_rule(head, body)
+        self.add_rule(R.derivable_take_image, R.take_image("A", "B", "C", "D"))
+        self.add_rule(R.guard_take_image, ~R.derivable_take_image, guard_level=6, embedding_layer=-1)
 
-        head = R.exists_take_image("S")
-        body = [R.take_image("S_other", "D", "I", "M"), R.satellite("S")]
-        self.add_rule(head, body)
+        self.add_rule(R.derivable_switch_on, R.switch_on("A", "B"))
+        self.add_rule(R.guard_switch_on, ~R.derivable_switch_on, guard_level=6, embedding_layer=-1)
 
-        head = R.exists_switch_on("S")
-        body = [R.switch_on("I", "S_other"), R.satellite("S")]
-        self.add_rule(head, body)
-
-        head = R.exists_turn_to_ug_have_image("S")
-        body = [R.turn_to_ug_have_image("S_other", "D_new", "D_prev"), R.satellite("S")]
-        self.add_rule(head, body)
+        self.add_rule(R.derivable_towards_ug_have_image, R.turn_towards_ug_have_image("A", "B", "C"))
+        self.add_rule(R.guard_towards_ug_have_image, ~R.derivable_towards_ug_have_image, guard_level=9, embedding_layer=-1)
 
     @override
     def _add_policy_rules(self):
@@ -116,18 +104,18 @@ class SatellitePolicy(LearningPolicy):
 
         """ turn_to(?s - satellite ?d_new - direction ?d_prev - direction) """
         # Ensure turn_to is always last priority (LP)
+        # From looking at the entire state space data, there are cases where turn_to is optimal but not calibrate and switch_on/off
+        # It may be the case that when actually executing the policy, this problem does not occur...
+        # - todo gustav: you can perhaps use some very low weight for that
 
         # turn towards unachieved have_image goals
         body = [
             R.ug_have_image("D_new", "M"),
             R.instrument_config("S", "I", "M"),
-            R.calibrated("I"),
             # (LP)
-            ~R.exists_calibrate("S"),
-            ~R.exists_take_image("S"),
-            ~R.exists_switch_on("S"),
+            R.guard_take_image,
         ]
-        head = R.turn_to_ug_have_image("S", "D_new", "D_prev")
+        head = R.turn_towards_ug_have_image("S", "D_new", "D_prev")
         self.add_rule(head, body)
         self.add_output_action("turn_to", [head])
 
@@ -137,23 +125,18 @@ class SatellitePolicy(LearningPolicy):
             R.instrument_config("S", "I", "M"),
             ~R.calibrated("I"),
             R.calibration_target("I", "D_new"),
-            ~R.exists_turn_to_ug_have_image("S"),
             # (LP)
-            ~R.exists_calibrate("S"),
-            ~R.exists_take_image("S"),
-            ~R.exists_switch_on("S"),
+            R.guard_take_image,
         ]
         self.add_output_action("turn_to", body)
 
         # for pointing goals
         body = [
             R.ug_pointing("S", "D_new"),
-            ~R.exists_ug_have_image("S"),
-            ~R.exists_turn_to_ug_have_image("S"),
+            R.guard_ug_have_image,
+            R.guard_towards_ug_have_image,
             # (LP)
-            ~R.exists_calibrate("S"),
-            ~R.exists_take_image("S"),
-            ~R.exists_switch_on("S"),
+            R.guard_take_image,
         ]
         self.add_output_action("turn_to", body)
 
@@ -163,7 +146,6 @@ class SatellitePolicy(LearningPolicy):
             R.ug_have_image("D", "M"),
             R.instrument_config("S", "I", "M"),
             ~R.power_on("I"),
-            ~R.calibrated("I"),
         ]
         self.add_output_action("switch_on", body)
 
@@ -174,11 +156,11 @@ class SatellitePolicy(LearningPolicy):
             R.instrument_config("S", "I_other", "M"),
             ~R.calibrated("I_other"),
         ]
+        self.add_output_action("switch_off", body)
 
         """ calibrate(?s - satellite ?i - instrument ?d - direction) """
         body = [
-            R.ug_have_image("D", "M"),
-            R.pointing("S", "D"),
+            R.ug_have_image("D_other", "M"),
             R.instrument_config("S", "I", "M"),
             ~R.calibrated("I"),
         ]
