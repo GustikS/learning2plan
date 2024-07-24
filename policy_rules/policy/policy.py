@@ -1,4 +1,5 @@
 """Make use of neuralogic and pymimir to encode policies as Horn clause rules"""
+
 from abc import abstractmethod
 from itertools import product
 from typing import Iterable, Union
@@ -22,12 +23,12 @@ class Policy:
 
         self._schemata = self._domain.action_schemas
         self._predicates = self._domain.predicates
-        self._name_to_schema: dict[str, ActionSchema] = {
-            schema.name: schema for schema in self._schemata
-        }
+        self._name_to_schema: dict[str, ActionSchema] = {schema.name: schema for schema in self._schemata}
         self._prev_state = None
 
         self.guards_levels = -1
+
+        self._statics: set[str] = set()  # to define manually for state print debugging
 
     def init_template(self, init_model: NeuraLogic = None, **kwargs):
         if init_model:
@@ -72,9 +73,9 @@ class Policy:
     def setup_test_problem(self, problem: Problem):
         """Set up a STATEFUL dependency on a current test problem"""
         # todo remove this stateful dependence completely and just pass it as an argument (after asking Dillon) ?
-        # DZC 27/06/24: The reason why this may be useful is if we want to use the same policy for 
-        # different problems in the same domain. Although it is probably more robust to just 
-        # reinstantiate for each problem like you mentioned. However, since it works, I'll just 
+        # DZC 27/06/24: The reason why this may be useful is if we want to use the same policy for
+        # different problems in the same domain. Although it is probably more robust to just
+        # reinstantiate for each problem like you mentioned. However, since it works, I'll just
         # keep the code here for now.
         # GS 27/06/24: but that is exactly why it is not useful, no? If the same policy should work
         # for different problems, then there should be nothing problem-specific stored in it, no?
@@ -84,15 +85,15 @@ class Policy:
         self._goal = self._problem.goal
         self._name_to_object: dict[str, Object] = {obj.name: obj for obj in self._objects}
 
-    def _get_atoms_from_test_state(self, state: list[Atom]):
+    def _get_atoms_from_state(self, state: list[Atom]):
         ilg_atoms = self.get_ilg_facts(state)
         lrnn_atoms = [R.get(atom.predicate)([C.get(obj) for obj in atom.objects]) for atom in ilg_atoms]
         object_atoms = self.get_object_information()
         return lrnn_atoms + object_atoms
-        
+
     def setup_test_state(self, state: list[Atom]):
         """Set up a STATEFUL dependency on a current test State"""
-        atoms = self._get_atoms_from_test_state(state)
+        atoms = self._get_atoms_from_state(state)
         self._engine.set_knowledge(atoms)
 
     def solve(self, state: list[Atom]) -> list[(float, Action)]:
@@ -109,6 +110,8 @@ class Policy:
 
     def query_actions(self) -> list[(float, Action)]:
         ret = []
+
+        # single actions
         for schema in self._schemata:
             assignments = self.get_action_substitutions(schema.name)
             param_to_index = {p.name: i for i, p in enumerate(schema.parameters)}
@@ -120,7 +123,15 @@ class Policy:
                     objects[idx] = obj
                 ret_action = Action.new(self._problem, schema, objects)
                 ret.append((value, ret_action))
+
+        # macro actions
+        ret += self._query_macro_actions()
+
         return ret
+    
+    def _query_macro_actions(self) -> list[(float, list[Action])]:
+        # may be extended and replaced
+        return []
 
     def get_action_substitutions(self, action_name: str) -> Iterable[tuple[float, dict]]:
         action_header = self.relation_from_schema(action_name)
@@ -130,7 +141,40 @@ class Policy:
 
     def print_state(self, state: list[Atom]):
         # may be extended and replaced
-        pass
+        statics = []
+        nonstatics = []
+        for atom in state:
+            atom = atom.get_name()
+            if atom.split("(")[0] in self._statics:
+                statics.append(atom)
+            else:
+                nonstatics.append(atom)
+
+        nonstaticsset = set(nonstatics)
+        print()
+        print("Statics:")
+        for f in sorted(statics):
+            print(f)
+
+        print()
+        print("Goal:")
+        goals = []
+        for g in self._goal:
+            assert not g.negated
+            goals.append(g.atom.get_name())
+        for g in sorted(goals):
+            if g in nonstaticsset:
+                g += " *"
+            else:
+                g += " x"
+            print(g)
+
+        print()
+        print("Current state:")
+        for f in sorted(nonstatics):
+            print(f)
+
+        self._prev_state = state
 
     @abstractmethod
     def _add_policy_rules(self):
@@ -193,14 +237,14 @@ class Policy:
             # self._template += R.get(f'h_{0}')() <= R.special.true
             self.guards_levels = 0
         for i in range(self.guards_levels, to):
-            self._template += R.get(f'g_{i + 1}')() <= R.get(f'g_{i}')()
+            self._template += R.get(f"g_{i + 1}")() <= R.get(f"g_{i}")()
         self.guards_levels = to
 
     def get_guard_atom(self, guard_level):
         if self.guards_levels < guard_level:
             self.add_guard_hierarchy(guard_level)
         if guard_level > 0:
-            return R.get(f'g_{guard_level}')
+            return R.get(f"g_{guard_level}")
 
     def add_input_predicate(self, og_predicate, new_predicate):
         self.add_rule(og_predicate, new_predicate)
@@ -222,10 +266,13 @@ class Policy:
     def add_rule(self, head_or_schema_name: Union[BaseRelation, str], body: list[BaseRelation], **kwargs):
         self._template += self.get_rule(body, head_or_schema_name, **kwargs)
 
-    def get_rule(self,
-                 body: Union[list | BaseRelation],
-                 head_or_schema_name: Union[str | BaseRelation],
-                 guard_level: int = -1, **kwargs):
+    def get_rule(
+        self,
+        body: Union[list | BaseRelation],
+        head_or_schema_name: Union[str | BaseRelation],
+        guard_level: int = -1,
+        **kwargs,
+    ):
         assert isinstance(body, Union[list | BaseRelation])
         if isinstance(head_or_schema_name, BaseRelation):
             head = head_or_schema_name

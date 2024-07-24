@@ -6,20 +6,15 @@ import pymimir
 from tqdm import tqdm
 
 DOMAINS = [
-    "blocksworld",
-    # "childsnack",
-    "ferry",
-    # "floortile",
-    "miconic",
-    # "rovers",
-    "satellite",
-    # "sokoban",
-    # "spanner",
+    # "blocksworld",
+    # "ferry",
+    # "miconic",
+    # "satellite",
     "transport",
 ]
 
 MAX_TOTAL_STATES_PER_PROBLEM = 10000
-MAX_TOTAL_STATES_PER_DOMAIN = 25500
+MAX_TOTAL_STATES_PER_DOMAIN = 25500  # to terminate faster based on what we see from other domains
 
 
 def get_static_predicates(domain: pymimir.Domain):
@@ -42,7 +37,7 @@ def main():
     for domain_name in DOMAINS:
         n_states = 0
 
-        domain_pddl = f"ipc23lt/{domain_name}/domain.pddl"
+        domain_pddl = f"pddl/{domain_name}/domain.pddl"
         domain = pymimir.DomainParser(str(domain_pddl)).parse()
         # static_predicates = get_static_predicates(domain) #
         static_predicates = []
@@ -61,7 +56,7 @@ def main():
             problems.append(f"p{i}")
         pbar = tqdm(problems)
         for problem_name in pbar:
-            problem_pddl = f"ipc23lt/{domain_name}/training/{problem_name}.pddl"
+            problem_pddl = f"pddl/{domain_name}/training/{problem_name}.pddl"
             if not os.path.exists(problem_pddl):
                 continue
             if n_states >= MAX_TOTAL_STATES_PER_DOMAIN:

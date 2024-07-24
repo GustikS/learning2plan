@@ -36,4 +36,5 @@ def test_domain(domain, debug=False, problems=1000, seed=2024):
         lengths.append(plan_length)
         rc = process.wait()  # 0 means success
         assert rc == 0, cmd_str
-    return lengths
+    if debug:
+        return lengths

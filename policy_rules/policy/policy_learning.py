@@ -374,6 +374,8 @@ class LearningPolicy(Policy):
                     result = results[i]
                     sample = neural_samples.samples[i]
                     print(f"target: {sample.target} <- predicted: {result} for sample: {sample.java_sample.query.ID}")
+        else:
+            self._debug_neural_samples(neural_samples)
 
         print("-" * 80)
 
@@ -437,7 +439,7 @@ class LearningPolicy(Policy):
                 if ordered[0][1] == 1:  # the highest output is for (some) optimal action - good
                     correctly_ordered += 1
                 elif ordered[0][1] == 0:  # this is a problematic state (wrongly predicted)...
-                    if self._debug > 1:
+                    if self._debug > 2:
                         predictions = [(f'{action[1]} : {action[0].java_sample.query.ID} '
                                         f'-> {action[3]}') for action in ordered]
                         print(f'A problematic state to predict an optimal action for: {state} -> {predictions}')

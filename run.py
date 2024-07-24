@@ -74,7 +74,7 @@ def parse_args():
     parser.add_argument("-vis", "--visualise", default=None,
                         help="Save visualisation of template to file.")
     parser.add_argument("-s", "--seed", type=int, default=2024, help="Random seed.")
-    parser.add_argument("-c", "--choice", default="sample", choices=["sample", "best"],
+    parser.add_argument("-c", "--choice", default="best", choices=["sample", "best"],
                         help="Choose the best action or sample from the policy. Has no effect for baseline policy which defaults to uniform sampling.")
     args = parser.parse_args()
     return args
@@ -161,6 +161,7 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
 
             state_str = state_repr(state)
             seen_states.add(state_str)
+            # print(state_str)
 
             if len(policy_actions) == 0:
                 if _DEBUG_LEVEL > 1:
@@ -182,19 +183,24 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
             while len(policy_actions) > 0:
                 action_index = sample_action(policy_actions, sampling_method)
                 action = policy_actions[action_index][1]
-                if _DEBUG_LEVEL > 0:
-                    matrix_log.append(["Applying", colored(action.get_name(), "cyan")])
-                plan.append(action.get_name())
-                succ_state = action.apply(state)
+
+                if isinstance(action, pymimir.Action):
+                    succ_state = action.apply(state)
+                else:
+                    raise NotImplementedError
 
                 # check for cycles
+                # NOTE: if all successors lead to seen states, one of them is chosen anyway
                 if state_repr(succ_state) in seen_states:
                     if _DEBUG_LEVEL > 0:
-                        matrix_log.append(["Loop detected", "sampling again..."])
+                        matrix_log.append(["", colored("Loop detected, sampling again...", "red")])
                     del policy_actions[action_index]
                     cycles_detected += 1
                 else:
                     break
+            if _DEBUG_LEVEL > 0:
+                matrix_log.append(["Applying", colored(action.get_name(), "cyan")])
+            plan.append(action.get_name())
             state = succ_state
 
             if _DEBUG_LEVEL > 1:

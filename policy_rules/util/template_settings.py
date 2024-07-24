@@ -4,11 +4,17 @@ from dataclasses import dataclass
 from typing import Dict, Optional, Union
 
 from neuralogic.core import Aggregation, Settings, Template, Transformation
+from neuralogic.nn.init import Constant
 from neuralogic.nn.java import NeuraLogic
 from termcolor import colored
 
 # we can set up all the learning/numeric-evaluation-related settings here
 neuralogic_settings = Settings(
+    # for baseline policy
+    initializer=Constant(value=1),
+    rule_transformation=Transformation.IDENTITY,
+    rule_aggregation=Aggregation.MIN,
+    relation_transformation=Transformation.IDENTITY,
     iso_value_compression=True,    # set to true for training speedup (but incompatible with RELUs)
     chain_pruning=True,
     # rule_transformation=Transformation.TANH,  # change to RELU for better training
