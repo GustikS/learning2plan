@@ -182,7 +182,7 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
             matrix_log = []
 
             Step = len(plan)
-            print(f"[{Step=}, {goals_left=}, {timer.get_time()}s]")
+            print(colored(f"[[[{Step=}, {goals_left=}, {timer.get_time()}s]]]", "blue"))
             if _DEBUG_LEVEL > 1:
                 action_names = [f"{v}:{a.get_name()}" for v, a in policy_actions]
                 matrix_log.append(["Available policy actions", ", ".join(action_names)])

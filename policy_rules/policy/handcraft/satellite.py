@@ -66,12 +66,13 @@ class SatellitePolicy(FasterLearningPolicy):
 
     def _debug_inference(self):
         print("Inference for current state:")
+        print("*" * 80)
+        print("Derived predicates:")
         self._debug_inference_helper(R.instrument_config("S", "I", "M"), newline=True)
-        self._debug_inference_helper(R.guard_ug_have_image, newline=True)
-        self._debug_inference_helper(R.guard_calibrate, newline=True)
-        self._debug_inference_helper(R.exists_take_image, newline=True)
-        self._debug_inference_helper(R.exists_switch_on, newline=True)
-        print("-" * 80)
+        self._debug_inference_helper(R.powered_on_focus("S", "I", "M", "D"), newline=True)
+        self._debug_inference_helper(R.calibrated_focus("S", "I", "M", "D"), newline=True)
+        print("*" * 80)
+        print("Actions:")
         self._debug_inference_actions()
         print("=" * 80)
 
@@ -85,21 +86,27 @@ class SatellitePolicy(FasterLearningPolicy):
         ]
         self.add_rule(head, body)
 
-        self.add_rule(R.derivable_ug_have_image, R.ug_have_image("A", "B"))
-        self.add_rule(R.guard_ug_have_image, ~R.derivable_ug_have_image, guard_level=3, embedding_layer=-1)
+        head = R.powered_on_focus("S", "I", "M", "D")
+        body = [
+            R.ug_have_image("D", "M"),
+            R.instrument_config("S", "I", "M"),
+            R.power_on("I"),
+        ]
+        self.add_rule(head, body)
 
-        self.add_rule(R.derivable_calibrate, R.calibrate("A", "B", "C"))
-        self.add_rule(R.guard_calibrate, ~R.derivable_calibrate, guard_level=6, embedding_layer=-1)
+        head = R.calibrated_focus("S", "I", "M", "D")
+        body = [
+            R.ug_have_image("D", "M"),
+            R.instrument_config("S", "I", "M"),
+            R.calibrated("I"),
+        ]
+        self.add_rule(head, body)
 
-        self.add_rule(R.derivable_take_image, R.take_image("A", "B", "C", "D"))
-        self.add_rule(R.guard_take_image, ~R.derivable_take_image, guard_level=6, embedding_layer=-1)
+        self.add_rule(R.derivable_powered_on_focus, R.powered_on_focus("S", "I", "M", "D"))
+        self.add_rule(R.derivable_calibrated_focus, R.calibrated_focus("S", "I", "M", "D"))
 
-        self.add_rule(R.derivable_switch_on, R.switch_on("A", "B"))
-        self.add_rule(R.guard_switch_on, ~R.derivable_switch_on, guard_level=6, embedding_layer=-1)
+        self.add_rule(R.derivable_calibrate, R.calibrate("S", "I", "D"))
 
-        self.add_rule(R.derivable_towards_ug_have_image, R.turn_towards_ug_have_image("A", "B", "C"))
-        self.add_rule(R.guard_towards_ug_have_image, ~R.derivable_towards_ug_have_image, guard_level=9, embedding_layer=-1
-        )
 
     @override
     def _add_policy_rules(self):
@@ -110,79 +117,47 @@ class SatellitePolicy(FasterLearningPolicy):
         - calibrate only has to be done once for each necessary instrument
         """
 
-        """ turn_to(?s - satellite ?d_new - direction ?d_prev - direction) """
-        # Ensure turn_to is always last priority (LP)
-        # - todo gustav: you can perhaps use some very low weight for that
-
-        # turn towards unachieved have_image goals
+        # 1. switch on instrument in a satellite that supports the goal mode
         body = [
-            R.ug_have_image("D_new", "M"),
+            R.ug_have_image("D_goal", "M"),
             R.instrument_config("S", "I", "M"),
-            R.calibrated("I"),
-            # (LP)
-            R.guard_calibrate,
-            R.guard_take_image,
-            # R.guard_switch_on,
-        ]
-        head = R.turn_towards_ug_have_image("S", "D_new", "D_prev")
-        self.add_rule(head, body)
-        self.add_output_action("turn_to", [head])
-
-        # turn towards calibration direction if instrument is not turned on
-        body = [
-            R.ug_have_image("D_other", "M"),
-            R.instrument_config("S", "I", "M"),
-            ~R.calibrated("I"),
-            R.calibration_target("I", "D_new"),
-            R.guard_towards_ug_have_image,
-            # (LP)
-            R.guard_calibrate,
-            R.guard_take_image,
-        ]
-        self.add_output_action("turn_to", body)
-
-        # for pointing goals
-        body = [
-            R.ug_pointing("S", "D_new"),
-            R.guard_ug_have_image,
-            R.guard_towards_ug_have_image,
-            # (LP)
-            R.guard_calibrate,
-            R.guard_take_image,
-        ]
-        self.add_output_action("turn_to", body)
-
-        """ switch_on(?i - instrument ?s - satellite) """
-        # switch on any instrument that may contribute towards the goal
-        body = [
-            R.ug_have_image("D", "M"),
-            R.instrument_config("S", "I", "M"),
-            ~R.power_on("I"),
-            ~R.calibrated("I"),
+            ~R.derivable_powered_on_focus,
         ]
         self.add_output_action("switch_on", body)
 
-        """ switch_off(?i - instrument ?s - satellite) """
-        # switch off any instrument that is not needed, and another instrument is needed
+        # 2a. turn the satellite to calibration target (if necessary)
         body = [
-            ~R.ug_have_image("I_other", "M"),
-            R.instrument_config("S", "I_other", "M"),
-            ~R.calibrated("I_other"),
+            R.powered_on_focus("S", "I", "M", "D_goal"),
+            ~R.calibrated("I"),
+            ~R.pointing("S", "D_new"),  # D_new = calibration direction to turn_to
+            ~R.derivable_calibrate,
         ]
-        # self.add_output_action("switch_off", body)
+        self.add_output_action("turn_to", body)
 
-        """ calibrate(?s - satellite ?i - instrument ?d - direction) """
+        # 2b. calibrate instrument
         body = [
-            R.ug_have_image("D", "M"),
-            R.pointing("S", "D"),
-            R.instrument_config("S", "I", "M"),
+            R.powered_on_focus("S", "I", "M", "D_goal"),
             ~R.calibrated("I"),
         ]
         self.add_output_action("calibrate", body)
 
-        """ take_image(?s - satellite ?d - direction ?i - instrument ?m - mode) """
+        # 3a. turn to goal direction (if necessary)
         body = [
-            R.ug_have_image("D", "M"),
-            R.instrument_config("S", "I", "M"),
+            R.calibrated_focus("S", "I", "M", "D_new"),
+        ]
+        self.add_output_action("turn_to", body)
+
+        # 3b. take image
+        body = [
+            R.calibrated_focus("S", "I", "M", "D"),
         ]
         self.add_output_action("take_image", body)
+
+        # 4. deal with pointing goals
+        body = [
+            R.ug_pointing("S", "D_new"),
+            # (LP)
+            ~R.derivable_calibrated_focus,
+            ~R.derivable_powered_on_focus,
+        ]
+        self.add_output_action("turn_to", body)
