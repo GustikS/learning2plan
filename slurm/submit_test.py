@@ -37,7 +37,6 @@ POLICY_SAMPLE = parameters["policy_sample"]
 DOMAINS = [
     "blocksworld", 
     "ferry", 
-    "miconic", 
     "satellite", 
     "transport",
 ]
