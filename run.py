@@ -340,29 +340,20 @@ def main():
     # training should be performed if there are training data AND the policy has learnable parameters/model
     if to_train and hasattr(policy, "model"):
         training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/data"
-        training_data_exists = os.path.isdir(training_data_path)
-        # if _DEBUG_LEVEL > 0:
-        #     print(colored("Debug mode on. Overwriting existing LRNN training data", "red"))
-        #     training_data_exists = False
-        if training_data_exists:
-            print(f"Loading EXISTING LRNN training data from {training_data_path}")
-        else:
-            print(f"No LRNN training data available at {training_data_path}")
-            print("Generating new LRNN training dataset from respective domain's JSON file w.r.t. current flags...")
-            # fmt: on
-            print("Generating new LRNN trainset from respective domain's JSON file w.r.t. current flags...")
-            with TimerContextManager("creating LRNN training dataset from JSON") as timer:
-                prepare_training_data(
-                    domain.name,
-                    target_subdir="data",
-                    cur_dir=CUR_DIR,
-                    state_regression=state_regression,
-                    action_regression=action_regression,
-                    samples_limit=samples_limit,
-                )
-                # if generation of a new limited dataset is requested, we further train in full on it
-                samples_limit = -1
-                total_time += timer.get_time()
+        
+        # (Very fast) preprocess json data
+        with TimerContextManager("creating LRNN training dataset from JSON") as timer:
+            prepare_training_data(
+                domain.name,
+                target_subdir="data",
+                cur_dir=CUR_DIR,
+                state_regression=state_regression,
+                action_regression=action_regression,
+                samples_limit=samples_limit,
+            )
+            # if generation of a new limited dataset is requested, we further train in full on it
+            samples_limit = -1
+            total_time += timer.get_time()
 
         # Main training function located here!
         with TimerContextManager("training the policy template") as timer:

@@ -124,14 +124,7 @@ class Policy:
                 ret_action = Action.new(self._problem, schema, objects)
                 ret.append((value, ret_action))
 
-        # macro actions
-        ret += self._query_macro_actions()
-
         return ret
-    
-    def _query_macro_actions(self) -> list[(float, list[Action])]:
-        # may be extended and replaced
-        return []
 
     def get_action_substitutions(self, action_name: str) -> Iterable[tuple[float, dict]]:
         action_header = self.relation_from_schema(action_name)
