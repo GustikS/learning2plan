@@ -469,13 +469,14 @@ class LearningPolicy(Policy):
         ratio_positive = float(num_reachable_positive) / len(state2actions) * 100
         ratio_negative = float(num_reachable_negative) / len(state2actions) * 100
         ratio_pos_neg = float(num_reachable_pos_neg) / len(state2actions) * 100
+        ratio_problematic = (1 - float(correctly_ordered) / len(state2actions)) * 100
         print(f"There are {len(neural_samples)} learning queries across {len(state2actions)} unique states")
         print(f"{float(num_multiple) / len(state2actions) * 100:2f} % of states have more than 1 action derived")
         print(f"{ratio_positive=:.2f} % of states have some positive action derived, ideally this should be 100%")
-        print(f"{ratio_negative=:2f} % of states have some negative action derived, and hence can be improved with parameter training")
-        print(f"{ratio_pos_neg=:2f} % of states have both some negative and positive action derived, ideally this should be {ratio_negative=:2f}")
+        print(f"{ratio_negative=:.2f} % of states have some negative action derived, and hence can be improved with parameter training")
+        print(f"{ratio_pos_neg=:.2f} % of states have both some negative and positive action derived, ideally this should be {ratio_negative=:.2f}")
         if results:
-            print(f"{(1 - float(correctly_ordered) / len(state2actions)) * 100:2f} % of states are problematic with wrongly ordered action predictions (suboptimal first before optimal)")
+            print(f"{ratio_problematic=:.2f} % of states are problematic with wrongly ordered action predictions (suboptimal first before optimal)")
         breakpoint()
         # fmt: on
 

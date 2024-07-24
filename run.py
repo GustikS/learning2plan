@@ -187,25 +187,31 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
                 action_names = [f"{v}:{a.get_name()}" for v, a in policy_actions]
                 matrix_log.append(["Available policy actions", ", ".join(action_names)])
 
-            # sample action based on selected criterion
-            while len(policy_actions) > 0:
-                action_index = sample_action(policy_actions, sampling_method)
-                action = policy_actions[action_index][1]
+            # # sample action based on selected criterion
+            # while len(policy_actions) > 0:
+            #     action_index = sample_action(policy_actions, sampling_method)
+            #     action = policy_actions[action_index][1]
 
-                if isinstance(action, pymimir.Action):
-                    succ_state = action.apply(state)
-                else:
-                    raise NotImplementedError
+            #     if isinstance(action, pymimir.Action):
+            #         succ_state = action.apply(state)
+            #     else:
+            #         raise NotImplementedError
 
-                # check for cycles
-                # NOTE: if all successors lead to seen states, one of them is chosen anyway
-                if state_repr(succ_state) in seen_states:
-                    if _DEBUG_LEVEL > 0:
-                        matrix_log.append(["", colored("Loop detected, sampling again...", "red")])
-                    del policy_actions[action_index]
-                    cycles_detected += 1
-                else:
-                    break
+            #     # check for cycles
+            #     # NOTE: if all successors lead to seen states, one of them is chosen anyway
+            #     if state_repr(succ_state) in seen_states:
+            #         if _DEBUG_LEVEL > 0:
+            #             matrix_log.append(["", colored("Loop detected, sampling again...", "red")])
+            #         del policy_actions[action_index]
+            #         cycles_detected += 1
+            #     else:
+            #         break
+
+            # ok to have cycles (rare)
+            action_index = sample_action(policy_actions, sampling_method)
+            action = policy_actions[action_index][1]
+            succ_state = action.apply(state)
+
             if _DEBUG_LEVEL > 0:
                 matrix_log.append(["Applying", colored(action.get_name(), "cyan")])
             plan.append(action.get_name())
