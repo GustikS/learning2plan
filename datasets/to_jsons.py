@@ -19,6 +19,7 @@ MAX_TOTAL_STATES = {
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
+
 def get_nonstatic_predicates(domain: pymimir.Domain):
     # nonstatic predicates are the ones that appear in action effects
     # static predicates do not appear in action effects
@@ -121,7 +122,7 @@ def convert_to_json(domain_name):
             }
             problem_data["states"].append(state_data)
         data["problems"].append(problem_data)
-    print(n_states)
+    print(f"{n_states} states collected from state spaces with <{MAX_TOTAL_STATES_PER_PROBLEM} states.")
 
     os.makedirs(f"{current_dir}/jsons/{domain_name}/classic", exist_ok=True)
     json_path = f"{current_dir}/jsons/{domain_name}/classic/state_space_data.json"
