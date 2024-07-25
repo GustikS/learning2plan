@@ -14,12 +14,9 @@ from neuralogic.logging import Formatter, Level, add_handler
 from neuralogic.nn.java import NeuraLogic
 from termcolor import colored
 
+from datasets.to_jsons import convert_to_json
 from modelling.samples import prepare_training_data
-from policy_rules.policy.policy import Policy
 from policy_rules.policy.policy_learning import LearningPolicy
-
-# sys.path.append("..")  # just a quick fix for the tests to pass... to be removed
-
 
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -83,7 +80,6 @@ def parse_args():
     parser.add_argument("-ca", "--cache", type=bool, default=False, action=argparse.BooleanOptionalAction,
                         help="Store or use stored built samples. Does not work because java objects are not picklable")
     
-
     args = parser.parse_args()
     return args
     # fmt: on
@@ -129,7 +125,7 @@ def sample_action(policy_actions, sampling_method):
             p = np.exp(p) / div  # softmax
             action_index = np.random.choice(indices, p=p)
         case "highest":
-            # if action classification we take the highest, 
+            # if action classification we take the highest,
             action_index = np.argmax(p)
         case "lowest":
             # if action regression we take the lowest
@@ -138,7 +134,7 @@ def sample_action(policy_actions, sampling_method):
 
 
 def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy, args):
-    """ Main function for executing the policy """
+    """Main function for executing the policy"""
     _DEBUG_LEVEL = args.verbose
 
     plan = []
@@ -329,9 +325,7 @@ def main():
             dim=embed_dim,
             num_layers=num_layers,
             include_knowledge=include_knowledge,
-            # TODO(DZC) 24/07/2024: may need to add typing soon as not doing so causes 
-            # some very long plans for Transport
-            add_types=not to_train,  # don't use typing in training at the moment todo,
+            add_types=True,
             state_regression=state_regression,
             action_regression=action_regression,
         )
@@ -348,7 +342,12 @@ def main():
     # training should be performed if there are training data AND the policy has learnable parameters/model
     if to_train and hasattr(policy, "model"):
         training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/data"
-        
+
+        # (Fast) convert raw pddl data to json containing state space info
+        with TimerContextManager("converting PDDL data to JSON") as timer:
+            convert_to_json(domain_name)
+            total_time += timer.get_time()
+
         # (Very fast) preprocess json data
         with TimerContextManager("creating LRNN training dataset from JSON") as timer:
             prepare_training_data(
