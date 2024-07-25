@@ -26,7 +26,7 @@ def test_domain(domain, debug=False, problems=1000, seed=2024):
     for i, problem in iterator:
         if i >= problems:
             break
-        cmd = ["python3", "run.py", "-s", str(seed), "-d", domain, "-p", problem, "-c", "sample", "-b", "10000"]
+        cmd = ["python3", "run.py", "-s", str(seed), "-d", domain, "-p", problem, "-c", "sample", "-b", "1000"]
         cmd_str = " ".join(cmd)
         if not debug:
             logging.critical(cmd_str)
