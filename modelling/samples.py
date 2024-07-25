@@ -40,7 +40,7 @@ def load_json_file(domain_name, numeric=False, path="../", filename="state_space
 
 # TODO transform all the flags here into a class hierarchy of possible state encodings (reusing the existing classes...)
 def parse_json(json_data, problem_limit=-1, state_limit=-1, samples_limit=-1, merge_static=True,
-               encoding="ILG", logic_numbers=False, add_objects=False,
+               encoding="ILG", logic_numbers=False, add_types=False,
                state_regression=False, action_regression=False):
     logging.log(logging.INFO, "parsing domain")
     actions = json_data['schemata']  # to work with these I'd also need their preconditions...
@@ -58,7 +58,7 @@ def parse_json(json_data, problem_limit=-1, state_limit=-1, samples_limit=-1, me
     for problem in json_data['problems']:
         file = problem['problem_pddl']
 
-        object_names = encode_objects(problem['objects'])
+        object_types = encode_types(problem['objects'], problem['type'])
         static_facts = set(problem['static_facts'])
         static_fluents = set(encode_fluents(problem['static_fluents'], logic_numbers))
         boolean_goals = set(problem['boolean_goals'])
@@ -82,8 +82,8 @@ def parse_json(json_data, problem_limit=-1, state_limit=-1, samples_limit=-1, me
                 facts = facts | static_facts | static_fluents
 
             updated_facts = add_goal_info(facts, boolean_goals, is_numeric, encoding)
-            if add_objects:
-                updated_facts += object_names
+            if add_types:
+                updated_facts += object_types
 
             states[tuple(updated_facts)] = encode_query(state, actions, state_regression, action_regression)
 
@@ -182,10 +182,10 @@ def encode_functions(functions, logical=False):
         return functions
 
 
-def encode_objects(objects):
-    # adding at least some info about object types might be more sensible here...
-    objects = [f"object({o})" for o in objects]
-    return objects
+def encode_types(objects, types):
+    assert len(objects) == len(types)
+    typed_objects = [f"{_type}({_object})" for _object, _type in zip(objects, types)]
+    return typed_objects
 
 
 def encode_predicates(orig_predicates, encoding="ILG"):
@@ -231,11 +231,13 @@ def export_problems(problems, domain, numeric, subdir="", cur_dir=".", examples_
     return domain_path
 
 
-def prepare_training_data(domain, target_subdir, state_regression, action_regression, cur_dir=".", samples_limit=-1):
+def prepare_training_data(domain, target_subdir, state_regression, action_regression,
+                          cur_dir=".", add_types=True, samples_limit=-1):
     json_data = load_json_file(domain, numeric=False, path=cur_dir, filename="state_space_data.json")
     problems, predicates, actions = parse_json(json_data, encoding="ILG",
                                                state_regression=state_regression,
                                                action_regression=action_regression,
+                                               add_types=add_types,
                                                samples_limit=samples_limit)
     print(f"Exporting LRNN training data to {target_subdir} with an example limit of {samples_limit}")
     export_problems(problems, domain, numeric=False, subdir=target_subdir, cur_dir=cur_dir)

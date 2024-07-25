@@ -356,6 +356,7 @@ def main():
                 cur_dir=CUR_DIR,
                 state_regression=state_regression,
                 action_regression=action_regression,
+                add_types=True,
                 samples_limit=samples_limit,
             )
             # if generation of a new limited dataset is requested, we further train in full on it

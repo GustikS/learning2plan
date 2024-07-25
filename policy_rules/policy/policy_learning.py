@@ -303,11 +303,11 @@ class LearningPolicy(Policy):
         self._engine.model = self.model
 
         if samples_limit > 0:
-            neuralogic_settings["stratification"] = False  # skip this to keep the order of samples (for debugging)
+            neuralogic_settings["stratification"] = False  # skip this to keep the order of samples (good for debugging)
             neuralogic_settings["appLimitSamples"] = samples_limit
             print(f"Starting building the samples with a limit to the first {samples_limit}")
         else:
-            print(f"Starting building all samples")
+            print(f"Started building all the samples...")
 
         if self._debug > 2:
             self._grounding_debug()
