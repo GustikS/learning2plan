@@ -5,3 +5,7 @@
 - [ ] min/max/quartile stats in plots
 
 Blocksworld and Ferry experiments should be done
+
+Rerun
+- [ ] optimal planner for non Blocksworld
+- [ ] baselines with cycle detection

@@ -114,6 +114,7 @@ def state_repr(state: Union[pymimir.State, list[pymimir.Literal]], is_goal=False
 def sample_action(policy_actions, sampling_method):
     actions = [a[1] for a in policy_actions]
     p = [a[0] for a in policy_actions]
+    p = np.array(p)
     indices = list(range(len(policy_actions)))
     match sampling_method:
         case "uniform":
@@ -121,9 +122,16 @@ def sample_action(policy_actions, sampling_method):
             action_index = np.random.choice(indices)
         case "sample":
             # sample from distribution computed by scores
-            div = sum(np.exp(p))
-            p = np.exp(p) / div  # softmax
+            p = p / sum(p)
             action_index = np.random.choice(indices, p=p)
+        # case "sample":
+        #     # sample after converting distrubtion with softmax
+        #     # p = 1/(1 + np.exp(-p))  # sigmoid so softmax does not overflow
+        #     p = p / sum(p)  # normalise so softmax does not overflow
+        #     div = sum(np.exp(p))
+        #     p = np.exp(p) / div  # softmax
+        #     print(p)
+        #     action_index = np.random.choice(indices, p=p)
         case "highest":
             # if action classification we take the highest,
             action_index = np.argmax(p)
@@ -183,32 +191,32 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
                 action_names = [f"{v}:{a.get_name()}" for v, a in policy_actions]
                 matrix_log.append(["Available policy actions", ", ".join(action_names)])
 
-            # # sample action based on selected criterion
-            # while len(policy_actions) > 0:
-            #     action_index = sample_action(policy_actions, sampling_method)
-            #     action = policy_actions[action_index][1]
+            # sample action based on selected criterion
+            while len(policy_actions) > 0:
+                action_index = sample_action(policy_actions, sampling_method)
+                action = policy_actions[action_index][1]
 
-            #     if isinstance(action, pymimir.Action):
-            #         succ_state = action.apply(state)
-            #     else:
-            #         raise NotImplementedError
+                if isinstance(action, pymimir.Action):
+                    succ_state = action.apply(state)
+                else:
+                    raise NotImplementedError
 
-            #     # check for cycles
-            #     # NOTE: if all successors lead to seen states, one of them is chosen anyway
-            #     if state_repr(succ_state) in seen_states:
-            #         if _DEBUG_LEVEL > 0:
-            #             matrix_log.append(["", colored("Loop detected, sampling again...", "red")])
-            #         del policy_actions[action_index]
-            #         cycles_detected += 1
-            #     else:
-            #         break
+                # check for cycles
+                # NOTE: if all successors lead to seen states, one of them is chosen anyway
+                if state_repr(succ_state) in seen_states:
+                    if _DEBUG_LEVEL > 0:
+                        matrix_log.append(["", colored("Loop detected, sampling again...", "red")])
+                    del policy_actions[action_index]
+                    cycles_detected += 1
+                else:
+                    break
 
-            # use -c sample to break out of cycles
-            action_index = sample_action(policy_actions, sampling_method)
-            action = policy_actions[action_index][1]
-            succ_state = action.apply(state)
-            if state_repr(succ_state) in seen_states:
-                cycles_detected += 1
+            # # use -c sample to break out of cycles
+            # action_index = sample_action(policy_actions, sampling_method)
+            # action = policy_actions[action_index][1]
+            # succ_state = action.apply(state)
+            # if state_repr(succ_state) in seen_states:
+            #     cycles_detected += 1
 
             if _DEBUG_LEVEL > 0:
                 matrix_log.append(["Applying", colored(action.get_name(), "cyan")])

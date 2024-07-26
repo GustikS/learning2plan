@@ -188,7 +188,7 @@ def get_ignore_models(choices=None, layers=None, dimensions=None):
 
     ignore_models = set()
     for solver in solvers:
-        if not solver.startswith("lrnn"):
+        if not solver.startswith("L"):
             continue
         toks = solver.split("_")
         choice = toks[2]
