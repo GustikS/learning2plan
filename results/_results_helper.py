@@ -121,9 +121,12 @@ if raw_logs_exist:
 def group_repeats(df, others_to_keep=None, lrnn=False):
     if others_to_keep is None:
         others_to_keep = []
+    if "cycles" not in df.columns:
+        df["cycles"] = 0
     aggr = {
         "time": ["mean", "std"],
         "plan_length": ["mean", "std"],
+        "cycles": ["mean", "std"],
         "plan_found": "mean",
     }
     if lrnn:
