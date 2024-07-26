@@ -4,28 +4,48 @@ from dataclasses import dataclass
 from typing import Dict, Optional, Union
 
 from neuralogic.core import Aggregation, Settings, Template, Transformation
-from neuralogic.nn.init import Constant
+from neuralogic.nn.init import Constant, Uniform
 from neuralogic.nn.java import NeuraLogic
 from termcolor import colored
 
-# we can set up all the learning/numeric-evaluation-related settings here
-neuralogic_settings = Settings(
-    # for baseline policy
-    initializer=Constant(value=1),
-    rule_transformation=Transformation.IDENTITY,
-    rule_aggregation=Aggregation.MIN,
-    relation_transformation=Transformation.IDENTITY,
-    iso_value_compression=True,    # set to true for training speedup (but incompatible with RELUs)
-    chain_pruning=True,
-    # rule_transformation=Transformation.TANH,  # change to RELU for better training
-    # rule_aggregation=Aggregation.AVG,  # change to avg for better generalization
-    # relation_transformation=Transformation.TANH,  # change to RELU for better training - check label match
-)
+global neuralogic_settings
+
+
+def debug_settings():
+    global neuralogic_settings
+    neuralogic_settings = Settings(
+        # for baseline policy
+        initializer=Constant(value=1),
+        rule_transformation=Transformation.IDENTITY,
+        rule_aggregation=Aggregation.MIN,
+        relation_transformation=Transformation.IDENTITY,
+        iso_value_compression=False,
+        chain_pruning=True,
+    )
+
+
+def train_settings():
+    global neuralogic_settings
+    neuralogic_settings = Settings(
+        initializer=Uniform(),
+        rule_transformation=Transformation.TANH,
+        rule_aggregation=Aggregation.AVG,
+        relation_transformation=Transformation.TANH,
+        iso_value_compression=True,  # set to true for training speedup (but bad for debugging the NN images)
+        chain_pruning=True,
+        # rule_transformation=Transformation.LEAKY_RELU,
+        # relation_transformation=Transformation.LEAKY_RELU,
+    )
+
+
+# the default is settings for actual learning
+train_settings()
 
 # neuralogic_settings["inferOutputFcns"] = False
 neuralogic_settings["oneQueryPerExample"] = False
 neuralogic_settings["preprocessTemplateInference"] = False
-neuralogic_settings["aggregateConflictingQueries"] = False  # this was only good for the lifted queries setting (not used in the current setup)
+# this was only good for the lifted queries setting (not used in the current setup)
+neuralogic_settings["aggregateConflictingQueries"] = False
 
 """
 DZC 15/07/2024. See commit b24e3b918277778f05585f6c378cb411b72c13e8 for original code

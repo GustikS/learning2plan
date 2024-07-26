@@ -17,6 +17,7 @@ from termcolor import colored
 from datasets.to_jsons import convert_to_json
 from modelling.samples import prepare_training_data
 from policy_rules.policy.policy_learning import LearningPolicy
+from policy_rules.util import template_settings
 
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -47,7 +48,7 @@ def parse_args():
                         help="Train an LRNN. Training is also performed if a save file is specified.")
     parser.add_argument("-load", "--load_file", type=str, default="", help="Filename to load the template")
     parser.add_argument("-save", "--save_file", type=str, default="", help="Filename to save the template")
-    
+
     # Data arguments
     parser.add_argument("-lim", "--limit", type=int, default=-1,
                         help="Training data samples cutoff limit (good for quicker debugging)")
@@ -55,17 +56,18 @@ def parse_args():
                         help="Include state h distance labels for (classic) state regression training")
     parser.add_argument("-ar", "--action_regression", type=bool, default=False, action=argparse.BooleanOptionalAction,
                         help="Switch between regression/classification labels for output actions in training")
-    
+
     # Model training arguments
     parser.add_argument("-e", "--embedding", type=int, default=1,
                         help="Embedding dimensionality throughout the model (-1 = off, 1 = scalar)")
+    parser.add_argument("-gnn", "--gnn_type", type=str, default="SAGE", choices=["SAGE", "GIN", "TAG"])
     parser.add_argument("-num", "--layers", type=int, default=1,
                         help="Number of model layers (-1 = off, 1 = just embedding, 2+ = message-passing)")
     parser.add_argument("-agg", "--aggregation", default="sum", choices=["sum", "mean", "max"],
                         help="Aggregation function for message passing")
     parser.add_argument("-ep", "--epochs", type=int, default=100,
                         help="Number of model training epochs")
-    
+
     parser.add_argument("-k", "--knowledge", type=bool, default=True, action=argparse.BooleanOptionalAction,
                         help="An option to skip the domain knowledge and use just a generic ML model")
     parser.add_argument("-vis", "--visualise", default=None,
@@ -73,13 +75,13 @@ def parse_args():
     parser.add_argument("-s", "--seed", type=int, default=2024, help="Random seed.")
     parser.add_argument("-c", "--choice", default="best", choices=["sample", "best"],
                         help="Choose the best action or sample from the policy. Has no effect for baseline policy which defaults to uniform sampling.")
-    
+
     # Other debugging options
     parser.add_argument("-eval_bk", "--eval_bk_policy", type=bool, default=False, action=argparse.BooleanOptionalAction,
                         help="Computes percentages from training data for the baseline BK policy")
     parser.add_argument("-ca", "--cache", type=bool, default=False, action=argparse.BooleanOptionalAction,
                         help="Store or use stored built samples. Does not work because java objects are not picklable")
-    
+
     args = parser.parse_args()
     return args
     # fmt: on
@@ -272,6 +274,7 @@ def main():
     state_regression = args.state_regression
     action_regression = args.action_regression
     embed_dim = args.embedding
+    gnn_type = args.gnn_type
     num_layers = args.layers
     aggregation = args.aggregation
     num_epochs = args.epochs
@@ -285,10 +288,12 @@ def main():
     # determine if we are running the baseline handcrafted policy
     run_baseline = not to_train and not load_file_name
     if run_baseline:
+        template_settings.debug_settings()
         print(colored(f"Running uniform sampling of the baseline handcrafted policy for {domain_name}", "green"))
         embed_dim = 1
 
     if to_train:
+        template_settings.train_settings()
         print(colored("Running the training script with the following parameters", "green"))
         print(f"    {domain_name=}")
         print(f"    {embed_dim=}")
@@ -336,6 +341,7 @@ def main():
             add_types=True,
             state_regression=state_regression,
             action_regression=action_regression,
+            gnn_type=gnn_type
         )
         if _DEBUG_LEVEL > 0:
             policy._debug_template()
