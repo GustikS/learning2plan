@@ -20,10 +20,10 @@ while true; do
 
     # get logs directly
 
-    # baseline and optimal logs from cluster-laas
-    rsync -av --progress cluster-laas:$PATH_TO_CLUSTER_LAAS_CODE/slurm/__experiments/baseline_logs results
+    # # baseline and optimal logs from cluster-laas
+    # rsync -av --progress cluster-laas:$PATH_TO_CLUSTER_LAAS_CODE/slurm/__experiments/baseline_logs results
 
-    # # baseline and optimal logs from gadi (overwrite cluster-laas for miconic)
+    # baseline and optimal logs from gadi
     # rsync -av --progress gadi:$PATH_TO_GADI_CODE/pbs/__experiments/baseline_logs results
 
     # logs from cluster-laas
