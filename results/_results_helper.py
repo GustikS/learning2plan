@@ -156,8 +156,8 @@ for group in groups:
     data = group_repeats(data, lrnn=is_lrnn)
     data["solver"] = group if group != "scorpion" else "optimal"
     if is_lrnn:
-        data["solver"] = "lrnn" + "_L" + data["layer_first"].astype(str) + "_D" + data["dim_first"].astype(str) + "_" + data["choice"]
-        data["type"] = "lrnn"
+        data["solver"] = "L" + data["layer_first"].astype(str) + "_D" + data["dim_first"].astype(str) + "_" + data["choice"]
+        data["type"] = "lrnn_" + data["choice"]
     else:
         data["type"] = "bounds"
     datas[group] = data
@@ -171,7 +171,11 @@ if SKIP_HARD:
     all_data = all_data[~all_data["problem"].isin(hard_problems)]
 
 
-def plot_domains(metric, log_y=False, include_sample=False, layers=None, dimensions=None):
+def get_ignore_models(choices=None, layers=None, dimensions=None):
+    if choices is None:
+        choices = []
+    choices = set(choices)
+
     if dimensions is None:
         dimensions = []
     dimensions = set(dimensions)
@@ -183,22 +187,27 @@ def plot_domains(metric, log_y=False, include_sample=False, layers=None, dimensi
     solvers = all_data["solver"].unique()
 
     ignore_models = set()
-    if not include_sample:
-        # get set of solvers from all_data
-        for solver in solvers:
-            if "sample" in solver:
-                ignore_models.add(solver)
-    
     for solver in solvers:
         if not solver.startswith("lrnn"):
             continue
         toks = solver.split("_")
-        dimension = int(toks[2][1:])
+        choice = toks[2]
+        if choice not in choices:
+            ignore_models.add(solver)
+
+        dimension = int(toks[1][1:])
         if dimension not in dimensions:
             ignore_models.add(solver)
-        layer = int(toks[1][1:])
+
+        layer = int(toks[0][1:])
         if layer not in layers:
             ignore_models.add(solver)
+    
+    return ignore_models
+
+
+def plot_domains(metric, log_y=False, choices=None, layers=None, dimensions=None):
+    ignore_models = get_ignore_models(choices, layers, dimensions)
 
     plot_dir = f"plots/{metric}"
     os.makedirs(plot_dir, exist_ok=True)
@@ -220,33 +229,8 @@ def plot_domains(metric, log_y=False, include_sample=False, layers=None, dimensi
         fig.show()
 
 
-def plot_difference(absolute=True, include_sample=False, layers=None, dimensions=None):
-    if dimensions is None:
-        dimensions = []
-    dimensions = set(dimensions)
-    if layers is None:
-        layers = []
-    layers = set(layers)
-
-    solvers = all_data["solver"].unique()
-
-    ignore_models = set()
-    if not include_sample:
-        # get set of solvers from all_data
-        for solver in solvers:
-            if "sample" in solver:
-                ignore_models.add(solver)
-    
-    for solver in solvers:
-        if not solver.startswith("lrnn"):
-            continue
-        toks = solver.split("_")
-        dimension = int(toks[2][1:])
-        if dimension not in dimensions:
-            ignore_models.add(solver)
-        layer = int(toks[1][1:])
-        if layer not in layers:
-            ignore_models.add(solver)
+def plot_difference(absolute=True, choices=None, layers=None, dimensions=None):
+    ignore_models = get_ignore_models(choices, layers, dimensions)
 
     plot_dir = f"plots/difference"
     if absolute:
