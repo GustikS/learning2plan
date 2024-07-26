@@ -7,5 +7,7 @@
 Blocksworld and Ferry experiments should be done
 
 Rerun
-- [ ] optimal planner for non Blocksworld
-- [ ] baselines with cycle detection
+- [ ] optimal planners for non Blocksworld domains
+- [x] baselines with cycle detection
+- [ ] more repeats for everyone (ideally up to 10) and display boxplots instead of error bars
+- [ ] train test pipeline with non-linearities added
