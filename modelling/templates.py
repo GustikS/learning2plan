@@ -1,5 +1,7 @@
-from neuralogic.core import R, Settings, Template, Transformation, V
-from neuralogic.nn.module import GATv2Conv, GCNConv, GINConv, SAGEConv
+from neuralogic.core import R, Settings, Template, Transformation, V, Aggregation
+from neuralogic.nn.module import GATv2Conv, GCNConv, GINConv, SAGEConv, GENConv, SGConv, TAGConv
+
+from policy_rules.util.template_settings import neuralogic_settings
 
 
 def basic_template(predicates, dim=10, num_layers=3, actions=None, classification=True):
@@ -198,17 +200,28 @@ def custom_message_passing(binary_relation, unary_relation, dim, layer=1, bidire
     return rules
 
 
-def gnn_message_passing(binary_relation, dim, num_layers=3, model_class=SAGEConv):
+def gnn_message_passing(binary_relation, dim, gnn_type="SAGE", num_layers=3):
     """classic message passing reusing some existing GNN models as implemented in LRNN rules..."""
+
+    match gnn_type:
+        case "SAGE":
+            model_class = SAGEConv
+        case "GIN":
+            model_class = GINConv
+        case "TAG":
+            model_class = TAGConv
+        case _:
+            raise NotImplementedError
+
     rules = []
     for layer in range(1, num_layers + 1):
-        rules += model_class(
-            dim,
-            dim,
-            output_name=f"h_{layer + 1}",
-            feature_name=f"h_{layer}",
-            edge_name=binary_relation,
-        )()
+        rules += model_class(in_channels=dim,
+                             out_channels=dim,
+                             output_name=f"h_{layer + 1}",
+                             feature_name=f"h_{layer}",
+                             edge_name=binary_relation,
+                             activation=neuralogic_settings.relation_transformation,
+                             aggregation=neuralogic_settings.rule_aggregation)()
     return rules
 
 
