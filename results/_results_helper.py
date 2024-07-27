@@ -10,8 +10,6 @@ from tqdm import tqdm
 DOMAINS = [
     "blocksworld",
     "ferry",
-    # "miconic",
-    # "rovers",
     "satellite",
     "transport",
 ]
@@ -30,7 +28,8 @@ print(f"{this_file_dir=}")
 
 baseline_logs_dir = this_file_dir / "baseline_logs"
 test_logs_dir = this_file_dir / "test_logs"
-raw_logs_exist = os.path.exists(test_logs_dir) and os.path.isdir(test_logs_dir)
+planner_logs_dir = this_file_dir / "planner_logs"
+raw_logs_exist = os.path.exists(test_logs_dir) and os.path.exists(baseline_logs_dir) and os.path.exists(planner_logs_dir)
 if not raw_logs_exist:
     print("No raw logs found. Reading data from csv files...")
 else:
@@ -79,6 +78,52 @@ if raw_logs_exist:
         data["time"].append(time)
     df = pd.DataFrame(data)
     df.to_csv("lrnn_results.csv")
+
+    """ scorpion and lama logs"""
+    bw_opt_plan_lengths = [10,8,20,24,24,26,32,32,36,38,48,40,42,44,46,54,60,50,54,56,56,72,58,72,82,74,66,82,76,88,106,104,112,144,142,140,158,164,180,186,202,234,240,228,232,246,272,284,286,308,310,314,354,338,348,388,380,368,386,464]
+    log_dir = planner_logs_dir
+    keys = ["domain", "problem", "time", "plan_length", "plan_found"]
+    data = {planner: {k: [] for k in keys} for planner in ["lama", "scorpion"]}
+    # pbar = tqdm(sorted(os.listdir(log_dir)))
+    # for f in pbar:
+    for f in sorted(os.listdir(log_dir)):
+        log_f = log_dir / f
+        # pbar.set_description(str(log_f))
+        toks = f.replace(".log", "").split("_")
+        domain = toks[0]
+        problem = toks[1] + "_" + toks[2]
+        planner = toks[3]
+        if domain=="blocksworld" and planner=="scorpion":  # used slaney thiebaux planner
+            toks = problem.split("_")
+            diff = int(toks[0])
+            prob = int(toks[1])
+            index = diff * 30 + prob - 1
+            plan_found = True
+            if index >= len(bw_opt_plan_lengths):
+                plan_length = np.nan
+                time = np.nan
+            else:
+                plan_length = bw_opt_plan_lengths[index]
+                time = 0
+        else:
+            with open(log_f, "r") as f:
+                content = f.read()
+                plan_found = "Solution found!" in content
+                if not plan_found:
+                    time = np.nan
+                    plan_length = np.nan
+                else:
+                    time = float((content.split("Total time: ")[1].replace("s", "")).split("\n")[0])
+                    plan_length = float((content.split("Plan length: ")[1]).split()[0])
+        data[planner]["domain"].append(domain)
+        data[planner]["problem"].append(problem)
+        data[planner]["time"].append(time)
+        data[planner]["plan_length"].append(plan_length)
+        data[planner]["plan_found"].append(plan_found)
+    
+    for planner in ["lama", "scorpion"]:
+        df = pd.DataFrame(data[planner])
+        df.to_csv(f"{planner}_results.csv")
 
     """ baseline logs """
     log_dir = baseline_logs_dir
@@ -151,7 +196,7 @@ def visualise_cylces():
 
 
 """ Other logs """
-groups = ["baseline", "scorpion", "lrnn"]
+groups = ["baseline", "scorpion", "lama", "lrnn"]
 datas = {}
 for group in groups:
     data = pd.read_csv(f"{group}_results.csv")
