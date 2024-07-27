@@ -2,3 +2,4 @@
 __experiments*/
 *.csv
 .lock*
+__sas*/
