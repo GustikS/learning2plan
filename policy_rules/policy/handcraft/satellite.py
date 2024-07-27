@@ -105,7 +105,10 @@ class SatellitePolicy(FasterLearningPolicy):
         self.add_rule(R.derivable_powered_on_focus, R.powered_on_focus("S", "I", "M", "D"))
         self.add_rule(R.derivable_calibrated_focus, R.calibrated_focus("S", "I", "M", "D"))
 
+        # self.add_rule(R.derivable_switch_on, R.switch_on("I", "D"))
         self.add_rule(R.derivable_calibrate, R.calibrate("S", "I", "D"))
+        self.add_rule(R.derivable_take_image, R.take_image("S", "D", "I", "M"))
+        self.add_rule(R.derivable_ug_have_image, R.ug_have_image("D", "M"))
 
 
     @override
@@ -128,8 +131,9 @@ class SatellitePolicy(FasterLearningPolicy):
         # 2a. turn the satellite to calibration target (if necessary)
         body = [
             R.powered_on_focus("S", "I", "M", "D_goal"),
+            R.calibration_target("I", "D_new"),  # D_new = calibration direction to turn_to
             ~R.calibrated("I"),
-            ~R.pointing("S", "D_new"),  # D_new = calibration direction to turn_to
+            ~R.pointing("S", "D_new"),
             ~R.derivable_calibrate,
         ]
         self.add_output_action("turn_to", body)
@@ -138,12 +142,14 @@ class SatellitePolicy(FasterLearningPolicy):
         body = [
             R.powered_on_focus("S", "I", "M", "D_goal"),
             ~R.calibrated("I"),
+            ~R.derivable_calibrated_focus,
         ]
         self.add_output_action("calibrate", body)
 
         # 3a. turn to goal direction (if necessary)
         body = [
             R.calibrated_focus("S", "I", "M", "D_new"),
+            ~R.derivable_take_image,
         ]
         self.add_output_action("turn_to", body)
 
@@ -157,7 +163,6 @@ class SatellitePolicy(FasterLearningPolicy):
         body = [
             R.ug_pointing("S", "D_new"),
             # (LP)
-            ~R.derivable_calibrated_focus,
-            ~R.derivable_powered_on_focus,
+            ~R.derivable_ug_have_image,
         ]
         self.add_output_action("turn_to", body)

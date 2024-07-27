@@ -20,6 +20,9 @@ for i in range (1, 31):
 
 def test_domain(domain, debug=False, problems=1000, seed=2024):
     lengths = []
+    if not isinstance(problems, int):
+        PROBLEMS = problems
+        problems = 1000
     iterator = list(enumerate(PROBLEMS))
     if debug:
         iterator = tqdm(iterator)

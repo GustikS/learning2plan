@@ -6,6 +6,7 @@ from typing import Iterable, Union
 
 import joblib
 import jpype
+import neuralogic
 import numpy as np
 from neuralogic.core import Aggregation, R, Rule, Template, Transformation, V
 from neuralogic.core.constructs.relation import BaseRelation, WeightedRelation
@@ -14,6 +15,7 @@ from neuralogic.inference import EvaluationInferenceEngine
 from neuralogic.nn.init import Initializer, Uniform
 from neuralogic.nn.java import NeuraLogic
 from neuralogic.nn.loss import MSE, CrossEntropy
+from neuralogic.nn.module import SAGEConv
 from neuralogic.optim import SGD, Adam
 from neuralogic.optim.lr_scheduler import ArithmeticLR, GeometricLR
 from neuralogic.optim.optimizer import Optimizer
@@ -47,6 +49,7 @@ class LearningPolicy(Policy):
             num_layers=-1,
             state_regression=False,
             action_regression=False,
+            gnn_type = "SAGE",
             **kwargs,
     ):
         self.dim = dim  # the general dimensionality of embeddings assumed in this model
@@ -55,7 +58,7 @@ class LearningPolicy(Policy):
         super().init_template(init_model, **kwargs)
 
         if self.num_layers > 0:
-            self.add_message_passing(self._template)
+            self.add_message_passing(self._template, gnn_type=gnn_type)
 
         if state_regression:  # add also an output head for the regression target
             self.add_rule(R.distance[1,], R.get(f"h_{self.num_layers}")("X")[1, self.dim], embedding_layer=-1)
@@ -221,7 +224,7 @@ class LearningPolicy(Policy):
                 print(f"attempting to weight atom {literal} that is already weighted")
             return literal
 
-    def add_message_passing(self, template: Template):
+    def add_message_passing(self, template: Template, gnn_type: str = "SAGE"):
         """This is where we can incorporate various generic modelling/ML constructs to the template"""
         predicates = {pred.name: pred.arity for pred in self._domain.predicates}
         dim = self.dim if self.dim > 0 else 1
@@ -239,7 +242,7 @@ class LearningPolicy(Policy):
             template += object2object_edges(max(predicates.values()), dim, "edge")
 
             # template += custom_message_passing("edge", "h0", dim)
-            template += gnn_message_passing("edge", dim, num_layers=self.num_layers - 1)
+            template += gnn_message_passing("edge", dim, gnn_type, num_layers=self.num_layers - 1)
             # template += gnn_message_passing(f"{2}-ary", dim, num_layers=num_layers)
 
     def train_model_from(

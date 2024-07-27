@@ -9,7 +9,8 @@ fi
 
 timestamp=$(date +%Y%m%d-%H%M%S)
 
-for dir in baseline_logs test_logs train_logs models; do
+for dir in test_logs; do
+# for dir in baseline_logs test_logs train_logs models; do
     mkdir -p backups/$timestamp/$dir
     mv __experiments/${dir}/*${domain}* backups/$timestamp/$dir
 done

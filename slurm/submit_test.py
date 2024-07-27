@@ -38,7 +38,7 @@ DOMAINS = [
     "blocksworld", 
     "ferry", 
     "satellite", 
-    "transport",
+    # "transport",
 ]
 # PROBLEMS = [f"{x}_{y:02d}" for y in range(1, 31) for x in [0, 1, 2]]
 PROBLEMS = [f"{x}_{y:02d}" for y in range(1, 31) for x in [0, 1]]
@@ -77,6 +77,7 @@ def main():
         if (os.path.exists(log_file) or os.path.exists(lock_file)) and not args.force:
             skipped += 1
             # print(log_file)
+            # print(lock_file)
             continue
 
         if submitted >= submissions:
