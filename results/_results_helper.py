@@ -14,7 +14,7 @@ DOMAINS = [
     "blocksworld",
     "ferry",
     "satellite",
-    "rovers",
+    # "rovers",
 ]
 easy_problems = set(f"0_{i:02d}" for i in range(1, 31))
 medium_problems = set(f"1_{i:02d}" for i in range(1, 31))
@@ -265,6 +265,67 @@ def get_ignore_models(choices=None, layers=None, dimensions=None):
     return ignore_models
 
 
+def get_improvement(df):
+    combination = "plan_length_mean" if not TAKE_BEST else "plan_length_min"
+    df["improvement"] = df.apply(
+        lambda row: -row[combination]
+        + df[
+            (df["domain"] == row["domain"])
+            & (df["problem"] == row["problem"])
+            & (df["solver"] == "baseline")
+        ][combination].values[0],
+        axis=1,
+    )
+    df["improvement (%)"] = df.apply(
+        lambda row: 100 * (
+            -row[combination]
+            + df[
+                (df["domain"] == row["domain"])
+                & (df["problem"] == row["problem"])
+                & (df["solver"] == "baseline")
+            ][combination].values[0]
+        )
+        / df[
+            (df["domain"] == row["domain"])
+            & (df["problem"] == row["problem"])
+            & (df["solver"] == "baseline")
+        ][combination].values[0],
+        axis=1,
+    )
+    return df
+
+
+def quantify_performance(choices=None, layers=None, dimensions=None):
+    assert len(choices) == 1
+    ignore_models = get_ignore_models(choices, layers, dimensions)
+    for domain in DOMAINS:
+        data = all_data[all_data["domain"] == domain]
+        data = data[~data["solver"].isin(ignore_models)]
+        print(domain)
+        df = get_improvement(data)
+        df = df[~df["type"].isin(["bounds"])]
+
+        # print(df)
+        df["config"] = "" + df["layer_first"].astype(int).astype(str) + "_" + df["dim_first"].astype(int).astype(str)
+        group_by = ["config", "difficulty"]
+        df = df.groupby(group_by).agg({"improvement (%)": ["mean", "std"]})
+        df.columns = df.columns.map(" ".join)
+        df.reset_index(inplace=True)
+        fig = px.scatter(df, x="config", y="improvement (%) mean", error_y="improvement (%) std", facet_col="difficulty")
+        fig.show()
+
+        # easy = data[data["difficulty"] == "0"]
+        # medium = data[data["difficulty"] == "1"]
+        # easy_mean = data["improvement"].mean()
+        # easy_std = data["improvement"].std()
+        # medium_mean = medium["improvement"].mean()
+        # medium_std = medium["improvement"].std()
+        # print(f"{easy_mean=}")
+        # print(f"{easy_std=}")
+        # print(f"{medium_mean=}")
+        # print(f"{medium_std=}")
+
+
 def plot_domains(metric, log_y=False, choices=None, layers=None, dimensions=None):
     ignore_models = get_ignore_models(choices, layers, dimensions)
 
@@ -295,7 +356,6 @@ def plot_domains(metric, log_y=False, choices=None, layers=None, dimensions=None
 def plot_difference(absolute=True, choices=None, layers=None, dimensions=None):
     ignore_models = get_ignore_models(choices, layers, dimensions)
 
-    combination = "plan_length_mean" if not TAKE_BEST else "plan_length_min"
     plot_dir = f"plots/difference"
     if absolute:
         plot_dir += "_absolute"
@@ -307,33 +367,7 @@ def plot_difference(absolute=True, choices=None, layers=None, dimensions=None):
         print(domain)
         data = all_data[all_data["domain"] == domain]
         data = data[~data["solver"].isin(ignore_models)]
-
-
-        data["improvement"] = data.apply(
-            lambda row: -row[combination]
-            + data[
-                (data["domain"] == row["domain"])
-                & (data["problem"] == row["problem"])
-                & (data["solver"] == "baseline")
-            ][combination].values[0],
-            axis=1,
-        )
-        data["improvement (%)"] = data.apply(
-            lambda row: 100 * (
-                -row[combination]
-                + data[
-                    (data["domain"] == row["domain"])
-                    & (data["problem"] == row["problem"])
-                    & (data["solver"] == "baseline")
-                ][combination].values[0]
-            )
-            / data[
-                (data["domain"] == row["domain"])
-                & (data["problem"] == row["problem"])
-                & (data["solver"] == "baseline")
-            ][combination].values[0],
-            axis=1,
-        )
+        data = get_improvement(data)
 
         if absolute:
             y = "improvement"
@@ -362,14 +396,16 @@ LAYERS = parameters["layers"]
 REPEATS = parameters["repeats"]
 POLICY_SAMPLE = parameters["policy_sample"]
 
+TRAIN_LOG_DIR = f"{this_file_dir}/train_logs"
+
 train_csv_file = f"{this_file_dir}/train_results.csv"
 
 train_data = ["domain", "layers", "dimension", "config", "repeat", "loss", "f1", "epoch", "time"]
 train_data = {k: [] for k in train_data}
 
-if not os.path.exists(train_csv_file):
+if os.path.exists(TRAIN_LOG_DIR):
     for domain, layer, dimension, repeat in product(DOMAINS, LAYERS, DIMENSIONS, REPEATS):
-        log_file = f"{this_file_dir}/train_logs/{domain}_{layer}_{dimension}_{repeat}.log"
+        log_file = f"{TRAIN_LOG_DIR}/{domain}_{layer}_{dimension}_{repeat}.log"
         if not os.path.exists(log_file):
             continue
         try:
