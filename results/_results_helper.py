@@ -1,5 +1,7 @@
+import json
 import os
 import pathlib
+from itertools import product
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -346,3 +348,54 @@ def plot_difference(absolute=True, choices=None, layers=None, dimensions=None):
         fig.for_each_xaxis(lambda x: x.update(showticklabels=True,matches=None))
         fig.write_html(plot_dir + "/" + domain + ".html")
         fig.show()
+
+
+##################### Train stats
+# make everything relative to where this script is located
+CUR_DIR = os.path.dirname(os.path.abspath(__file__))
+PARAMETER_FILE = f"{CUR_DIR}/../parameters.json"
+assert os.path.exists(PARAMETER_FILE), PARAMETER_FILE
+with open(PARAMETER_FILE, "r") as f:
+    parameters = json.load(f)
+DIMENSIONS = parameters["dimensions"]
+LAYERS = parameters["layers"]
+REPEATS = parameters["repeats"]
+POLICY_SAMPLE = parameters["policy_sample"]
+
+train_csv_file = f"{this_file_dir}/train_results.csv"
+
+train_data = ["domain", "layers", "dimension", "config", "repeat", "loss", "f1", "epoch", "time"]
+train_data = {k: [] for k in train_data}
+
+if not os.path.exists(train_csv_file):
+    for domain, layer, dimension, repeat in product(DOMAINS, LAYERS, DIMENSIONS, REPEATS):
+        log_file = f"{this_file_dir}/train_logs/{domain}_{layer}_{dimension}_{repeat}.log"
+        if not os.path.exists(log_file):
+            continue
+        try:
+            with open(log_file, "r") as f:
+                content = f.read()
+                epoch = content.split("Best model at epoch=")[1].split()[0]
+                t = content.split("Finished training the LRNN in")[1].split("s\n")[0]
+                content = content.split(f"epoch={epoch}, ")[1].split("\n")[0]
+                toks = content.split(", ")
+                loss = float(toks[1].replace("loss=np.float64", "").replace("(", "").replace(")", ""))
+                f1 = float(toks[3].replace("f1=np.float64", "").replace("(", "").replace(")", ""))
+        except:
+            print(f"Training failure in {log_file}")
+            continue
+        train_data["domain"].append(domain)
+        train_data["layers"].append(layer)
+        train_data["dimension"].append(dimension)
+        train_data["repeat"].append(repeat)
+        train_data["config"].append(f"{layer}_{dimension}")
+        train_data["loss"].append(loss)
+        train_data["f1"].append(f1)
+        train_data["epoch"].append(epoch)
+        train_data["time"].append(t)
+
+    train_df = pd.DataFrame(train_data)
+    train_df.to_csv(train_csv_file, index=False)
+else:
+    train_df = pd.read_csv(train_csv_file)
+
