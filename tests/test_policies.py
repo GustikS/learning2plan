@@ -13,12 +13,11 @@ def _log_subprocess_output(pipe):
             plan_length = int(line.split("=")[1])
     return plan_length
 
-# test all "easy" problems
-PROBLEMS = []
-for i in range (1, 31):
-    PROBLEMS.append(f"0_{i:02}")
-
 def test_domain(domain, debug=False, problems=1000, seed=2024):
+    # test all "easy" problems
+    PROBLEMS = []
+    for i in range (1, 31):
+        PROBLEMS.append(f"0_{i:02}")
     lengths = []
     if not isinstance(problems, int):
         PROBLEMS = problems

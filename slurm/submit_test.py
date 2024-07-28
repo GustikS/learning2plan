@@ -57,7 +57,8 @@ def main():
 
     missing_models = set()
     submitted = 0
-    skipped = 0
+    skipped_from_log = 0
+    skipped_from_lock = 0
     model_missing = 0
     to_go = 0
 
@@ -74,11 +75,18 @@ def main():
             missing_models.add(save_file)
             continue
 
-        if (os.path.exists(log_file) or os.path.exists(lock_file)) and not args.force:
-            skipped += 1
-            # print(log_file)
-            # print(lock_file)
+        if os.path.exists(lock_file) and not args.force:
+            skipped_from_lock += 1
             continue
+
+        if os.path.exists(log_file) and not args.force:
+            with open(log_file, "r") as f:
+                content = f.read()
+            if "Plan generated!" in content:
+                skipped_from_log += 1
+                # print(log_file)
+                # print(lock_file)
+                continue
 
         if submitted >= submissions:
             to_go += 1
@@ -112,7 +120,8 @@ def main():
     for m in sorted(missing_models):
         print(m)
     print("Submitted:", submitted)
-    print("Skipped from log or lock:", skipped)
+    print("Skipped from successful log:", skipped_from_log)
+    print("Skipped from lock:", skipped_from_lock)
     print("Skipped from missing model:", model_missing)
     print("To go:", to_go)
 

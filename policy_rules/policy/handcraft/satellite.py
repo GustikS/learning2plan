@@ -69,8 +69,8 @@ class SatellitePolicy(FasterLearningPolicy):
         print("*" * 80)
         print("Derived predicates:")
         self._debug_inference_helper(R.instrument_config("S", "I", "M"), newline=True)
-        self._debug_inference_helper(R.powered_on_focus("S", "I", "M", "D"), newline=True)
-        self._debug_inference_helper(R.calibrated_focus("S", "I", "M", "D"), newline=True)
+        self._debug_inference_helper(R.phase_one("S", "I", "M", "D"), newline=True)
+        self._debug_inference_helper(R.phase_two("S", "I", "M", "D"), newline=True)
         print("*" * 80)
         print("Actions:")
         self._debug_inference_actions()
@@ -86,7 +86,7 @@ class SatellitePolicy(FasterLearningPolicy):
         ]
         self.add_rule(head, body)
 
-        head = R.powered_on_focus("S", "I", "M", "D")
+        head = R.phase_one("S", "I", "M", "D")
         body = [
             R.ug_have_image("D", "M"),
             R.instrument_config("S", "I", "M"),
@@ -94,7 +94,7 @@ class SatellitePolicy(FasterLearningPolicy):
         ]
         self.add_rule(head, body)
 
-        head = R.calibrated_focus("S", "I", "M", "D")
+        head = R.phase_two("S", "I", "M", "D")
         body = [
             R.ug_have_image("D", "M"),
             R.instrument_config("S", "I", "M"),
@@ -102,8 +102,8 @@ class SatellitePolicy(FasterLearningPolicy):
         ]
         self.add_rule(head, body)
 
-        self.add_rule(R.derivable_powered_on_focus, R.powered_on_focus("S", "I", "M", "D"))
-        self.add_rule(R.derivable_calibrated_focus, R.calibrated_focus("S", "I", "M", "D"))
+        self.add_rule(R.derivable_phase_one, R.phase_one("S", "I", "M", "D"))
+        self.add_rule(R.derivable_phase_two, R.phase_two("S", "I", "M", "D"))
 
         # self.add_rule(R.derivable_switch_on, R.switch_on("I", "D"))
         self.add_rule(R.derivable_calibrate, R.calibrate("S", "I", "D"))
@@ -122,15 +122,15 @@ class SatellitePolicy(FasterLearningPolicy):
 
         # 1. switch on instrument in a satellite that supports the goal mode
         body = [
+            ~R.derivable_phase_one,
             R.ug_have_image("D_goal", "M"),
             R.instrument_config("S", "I", "M"),
-            ~R.derivable_powered_on_focus,
         ]
         self.add_output_action("switch_on", body)
 
         # 2a. turn the satellite to calibration target (if necessary)
         body = [
-            R.powered_on_focus("S", "I", "M", "D_goal"),
+            R.phase_one("S", "I", "M", "D_goal"),
             R.calibration_target("I", "D_new"),  # D_new = calibration direction to turn_to
             ~R.calibrated("I"),
             ~R.pointing("S", "D_new"),
@@ -140,22 +140,22 @@ class SatellitePolicy(FasterLearningPolicy):
 
         # 2b. calibrate instrument
         body = [
-            R.powered_on_focus("S", "I", "M", "D_goal"),
+            R.phase_one("S", "I", "M", "D_goal"),
             ~R.calibrated("I"),
-            ~R.derivable_calibrated_focus,
+            ~R.derivable_phase_two,
         ]
         self.add_output_action("calibrate", body)
 
         # 3a. turn to goal direction (if necessary)
         body = [
-            R.calibrated_focus("S", "I", "M", "D_new"),
+            R.phase_two("S", "I", "M", "D_new"),
             ~R.derivable_take_image,
         ]
         self.add_output_action("turn_to", body)
 
         # 3b. take image
         body = [
-            R.calibrated_focus("S", "I", "M", "D"),
+            R.phase_two("S", "I", "M", "D"),
         ]
         self.add_output_action("take_image", body)
 
