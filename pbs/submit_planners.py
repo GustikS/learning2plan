@@ -18,7 +18,7 @@ os.makedirs(LOG_DIR, exist_ok=True)
 os.makedirs(LOCK_DIR, exist_ok=True)
 PLANNERS = [
     "lama",
-    "scorpion",
+    # "scorpion",
 ]
 JOB_SCRIPT = {planner: f"{CUR_DIR}/{planner}_job.sh" for planner in PLANNERS}
 for planner, job_script in JOB_SCRIPT.items():
@@ -70,9 +70,11 @@ def main():
                 content = f.read()
             if "Solution found!" in content:
                 skipped += 1
-            else:
-                print(log_file)
                 continue
+            else:
+                # print(log_file)
+                pass
+                # continue
             # skipped += 1
             # print(log_file)
             # continue
