@@ -399,3 +399,25 @@ if not os.path.exists(train_csv_file):
 else:
     train_df = pd.read_csv(train_csv_file)
 
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+
+def visualise_train():
+    for domain in DOMAINS:
+        print(domain)
+        domain_df = train_df[train_df["domain"] == domain]
+        fig = make_subplots(rows=1, cols=2)
+
+        fig.add_trace(
+            go.Scatter(x=domain_df["config"], y=domain_df["loss"],mode='markers',name="loss"),
+            row=1, col=1
+        )
+
+        fig.add_trace(
+            go.Scatter(x=domain_df["config"], y=domain_df["f1"],mode='markers',name="f1"),
+            row=1, col=2
+        )
+
+        # fig.update_layout(height=600, width=800, title_text="Side By Side Subplots")
+        fig.show()
