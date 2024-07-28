@@ -35,10 +35,10 @@ PBS_TEST_TIMEOUT = "1:00:00"
 PBS_TEST_MEMOUT = "8GB"
 
 DOMAINS = [
-    "blocksworld", 
-    "ferry", 
+    # "blocksworld", 
+    # "ferry", 
     "satellite", 
-    "transport"
+    # "transport"
 ]
 PROBLEMS = [f"{x}_{y:02d}" for y in range(1, 31) for x in [0, 1]]
 

@@ -56,6 +56,8 @@ def parse_args():
                         help="Include state h distance labels for (classic) state regression training")
     parser.add_argument("-ar", "--action_regression", type=bool, default=False, action=argparse.BooleanOptionalAction,
                         help="Switch between regression/classification labels for output actions in training")
+    parser.add_argument("-dnj", "--do_not_json", type=bool, default=False, action=argparse.BooleanOptionalAction,
+                        help="Do not convert PDDL data to JSON")
 
     # Model training arguments
     parser.add_argument("-e", "--embedding", type=int, default=1,
@@ -357,10 +359,11 @@ def main():
     if to_train and hasattr(policy, "model"):
         training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/data"
 
-        # (Fast) convert raw pddl data to json containing state space info
-        with TimerContextManager("converting PDDL data to JSON") as timer:
-            convert_to_json(domain_name)
-            total_time += timer.get_time()
+        if not args.do_not_json:
+            # (Fast) convert raw pddl data to json containing state space info
+            with TimerContextManager("converting PDDL data to JSON") as timer:
+                convert_to_json(domain_name)
+                total_time += timer.get_time()
 
         # (Very fast) preprocess json data
         with TimerContextManager("creating LRNN training dataset from JSON") as timer:
