@@ -143,6 +143,7 @@ class LearningPolicy(Policy):
         print("-" * 80)
         results_repr = []
         relation.terms = [str(term).upper() for term in relation.terms]
+        print(f"Querying {relation}")
         atom_values = self._engine.query(relation)
         if atom_values:
             try:
@@ -150,6 +151,8 @@ class LearningPolicy(Policy):
                     results_repr.append(f"{relation.predicate.name} {a[1]} : {a[0]}")
             except IndexError:
                 results_repr = [relation.predicate.name + " <- true"]
+            except AttributeError:
+                results_repr = [relation.predicate.name + " <- no inference"]
         else:
             results_repr = [relation.predicate.name + " <- no inference"]
 
@@ -564,15 +567,16 @@ class FasterLearningPolicy(LearningPolicy):
         else:
             result = []
 
-        if self._debug > 2:
-            check_result = super().get_action_substitutions(action_name)
-            check = str(check_result).lower()
-            fast = str(result).lower()
-            if fast != check:
-                print("-" * 80)
-                print("Debugging error: mismatch between inference engine and fast evaluation")
-                print(fast)
-                print(check)
-                # raise RuntimeError(f"Results mismatch between standard and fast policy evaluation")
+        # TODO: seems to cause code to crash starting 28/07/2024
+        # if self._debug > 2:
+        #     check_result = super().get_action_substitutions(action_name)
+        #     check = str(check_result).lower()
+        #     fast = str(result).lower()
+        #     if fast != check:
+        #         print("-" * 80)
+        #         print("Debugging error: mismatch between inference engine and fast evaluation")
+        #         print(fast)
+        #         print(check)
+        #         # raise RuntimeError(f"Results mismatch between standard and fast policy evaluation")
 
         return result

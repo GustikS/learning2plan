@@ -7,12 +7,12 @@ import pandas as pd
 import plotly.express as px
 from tqdm import tqdm
 
-TAKE_BEST = 1
+TAKE_BEST = 0
 DOMAINS = [
     "blocksworld",
     "ferry",
     "satellite",
-    "transport",
+    "rovers",
 ]
 easy_problems = set(f"0_{i:02d}" for i in range(1, 31))
 medium_problems = set(f"1_{i:02d}" for i in range(1, 31))

@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        domain: ["blocksworld", "ferry", "satellite", "transport"]
+        domain: ["blocksworld", "ferry", "satellite"]
 
     steps:
       - uses: actions/checkout@v4

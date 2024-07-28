@@ -178,10 +178,10 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
             # print(state_str)
 
             if len(policy_actions) == 0:
-                if _DEBUG_LEVEL > 1:
-                    # may or may not be implemented depending on domain
-                    policy.print_state(state.get_atoms())
-                print("Error: No actions computed and not at goal state!")
+                # if _DEBUG_LEVEL > 1:
+                #     # may or may not be implemented depending on domain
+                #     policy.print_state(state.get_atoms())
+                print(f"Error: At step {len(plan)} but no actions computed and not at goal state!")
                 print("Terminating...")
                 exit(-1)
 
@@ -207,7 +207,7 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
                 # NOTE: if all successors lead to seen states, one of them is chosen anyway
                 if state_repr(succ_state) in seen_states:
                     if _DEBUG_LEVEL > 0:
-                        matrix_log.append(["", colored("Loop detected, sampling again...", "red")])
+                        matrix_log.append([" " * 8, colored(action.get_name(), "cyan") + colored(f" Loop detected, sampling again...", "red")])
                     del policy_actions[action_index]
                     cycles_detected += 1
                 else:
@@ -225,7 +225,7 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
             plan.append(action.get_name())
             state = succ_state
 
-            if _DEBUG_LEVEL > 1:
+            if _DEBUG_LEVEL > 4:
                 ilg_state = policy.get_ilg_facts(state.get_atoms())
                 ilg_state = ", ".join([str(f) for f in ilg_state])
                 matrix_log.append(["Current state: ", ilg_state])
@@ -235,8 +235,8 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
                 # may or may not be implemented depending on domain
                 policy.print_state(state.get_atoms())
 
-            if _DEBUG_LEVEL > 3:
-                breakpoint()
+            # if _DEBUG_LEVEL > 3:
+            #     breakpoint()
 
             if len(plan) == args.bound:
                 # fmt: off
