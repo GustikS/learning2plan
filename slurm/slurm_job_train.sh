@@ -1,5 +1,6 @@
 #!/bin/bash
-#SBATCH --mem=64gb # Job memory request
+#SBATCH --mem=32gb # Job memory request
+#SBATCH --cpus-per-task=8 # Number of CPU cores
 #SBATCH --time=96:00:00 # Time limit hrs:min:sec
 
 # Show commands

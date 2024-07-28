@@ -29,10 +29,11 @@ DIMENSIONS = parameters["dimensions"]
 LAYERS = parameters["layers"]
 REPEATS = parameters["repeats"]
 POLICY_SAMPLE = parameters["policy_sample"]
+EPOCHS = parameters["epochs"]
 
 DOMAINS = [
-    "blocksworld", 
-    "ferry", 
+    # "blocksworld", 
+    # "ferry", 
     "satellite", 
     # "transport",
 ]
@@ -69,7 +70,7 @@ def main():
             to_go += 1
             continue
 
-        cmd = f"apptainer run {CONTAINER} python3 run.py -d {domain} --embedding {dim} --layers {layer} -s {repeat} --epochs 100 --save_file {save_file}"
+        cmd = f"apptainer run {CONTAINER} python3 run.py -d {domain} --embedding {dim} --layers {layer} -s {repeat} --epochs {EPOCHS} -dnj --save_file {save_file}"
 
         slurm_vars = ','.join([
             f"CMD={cmd}",
