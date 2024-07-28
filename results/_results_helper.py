@@ -7,6 +7,7 @@ import pandas as pd
 import plotly.express as px
 from tqdm import tqdm
 
+TAKE_BEST = 1
 DOMAINS = [
     "blocksworld",
     "ferry",
@@ -168,12 +169,20 @@ def group_repeats(df, others_to_keep=None, lrnn=False):
         others_to_keep = []
     if "cycles" not in df.columns:
         df["cycles"] = 0
-    aggr = {
-        "time": ["mean", "std"],
-        "plan_length": ["mean", "std"],
-        "cycles": ["mean", "std"],
-        "plan_found": "mean",
-    }
+    if TAKE_BEST:
+        aggr = {
+            "time": ["min"],
+            "plan_length": ["min"],
+            "cycles": ["min"],
+            "plan_found": "mean",
+        }
+    else:
+        aggr = {
+            "time": ["mean", "std"],
+            "plan_length": ["mean", "std"],
+            "cycles": ["mean", "std"],
+            "plan_found": "mean",
+        }
     if lrnn:
         aggr["layer"] = "first"
         aggr["dim"] = "first"
@@ -266,7 +275,11 @@ def plot_domains(metric, log_y=False, choices=None, layers=None, dimensions=None
         data = data[~data["solver"].isin(ignore_models)]
         metric_mean = f"{metric}_mean"
         metric_std = f"{metric}_std"
-        fig = px.line(data, x="problem", y=metric_mean, error_y=metric_std, color="solver",line_dash="type", log_y=log_y, facet_col="difficulty")
+        metric_best = f"{metric}_min"
+        if TAKE_BEST:
+            fig = px.line(data, x="problem", y=metric_best, color="solver",line_dash="type", log_y=log_y, facet_col="difficulty")
+        else:
+            fig = px.line(data, x="problem", y=metric_mean, error_y=metric_std, color="solver",line_dash="type", log_y=log_y, facet_col="difficulty")
         # fig = px.scatter(data, x="problem", y=metric_mean, error_y=metric_std, color="solver", log_y=log_y)
         fig.update_xaxes(categoryorder='array')
         fig.update_yaxes(matches=None)
@@ -280,6 +293,7 @@ def plot_domains(metric, log_y=False, choices=None, layers=None, dimensions=None
 def plot_difference(absolute=True, choices=None, layers=None, dimensions=None):
     ignore_models = get_ignore_models(choices, layers, dimensions)
 
+    combination = "plan_length_mean" if not TAKE_BEST else "plan_length_min"
     plot_dir = f"plots/difference"
     if absolute:
         plot_dir += "_absolute"
@@ -292,29 +306,30 @@ def plot_difference(absolute=True, choices=None, layers=None, dimensions=None):
         data = all_data[all_data["domain"] == domain]
         data = data[~data["solver"].isin(ignore_models)]
 
+
         data["improvement"] = data.apply(
-            lambda row: -row["plan_length_mean"]
+            lambda row: -row[combination]
             + data[
                 (data["domain"] == row["domain"])
                 & (data["problem"] == row["problem"])
                 & (data["solver"] == "baseline")
-            ]["plan_length_mean"].values[0],
+            ][combination].values[0],
             axis=1,
         )
         data["improvement (%)"] = data.apply(
             lambda row: 100 * (
-                -row["plan_length_mean"]
+                -row[combination]
                 + data[
                     (data["domain"] == row["domain"])
                     & (data["problem"] == row["problem"])
                     & (data["solver"] == "baseline")
-                ]["plan_length_mean"].values[0]
+                ][combination].values[0]
             )
             / data[
                 (data["domain"] == row["domain"])
                 & (data["problem"] == row["problem"])
                 & (data["solver"] == "baseline")
-            ]["plan_length_mean"].values[0],
+            ][combination].values[0],
             axis=1,
         )
 
