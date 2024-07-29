@@ -107,6 +107,7 @@ class LearningPolicy(Policy):
             type = type[self.dim, 1]
         return type
 
+    @override
     def add_output_action(self, head, body):
         """The output action predicate mapping from the given embedding dimension back to a scalar value"""
         rule = self.get_rule(body, head)
@@ -115,6 +116,11 @@ class LearningPolicy(Policy):
         else:
             head = rule.head
         self.add_rule(head, rule.body)
+
+    def add_output_action_with_derived(self, action, derived, body):
+        """ More verbosity to see which choice of rule derives an action if there are several choices"""
+        self.add_rule(derived, body)
+        self.add_output_action(action, [derived])
 
     def _debug_template(self, serialise_file=None):
         print("=" * 80)
@@ -425,6 +431,7 @@ class LearningPolicy(Policy):
         num_reachable_negative = 0
         num_reachable_positive = 0
         num_reachable_pos_neg = 0
+        num_reachable_pos_or_neg_only = 0
         correctly_ordered = 0
         for state, actions in state2actions.items():
             reachable_actions = []
@@ -474,6 +481,8 @@ class LearningPolicy(Policy):
                 num_reachable_positive += 1
             if len(reachable_negative) > 0 and len(reachable_positive) > 0:
                 num_reachable_pos_neg += 1
+            if len(reachable_negative) == 0 or len(reachable_positive) == 0:
+                num_reachable_pos_or_neg_only += 1
 
             if results and len(reachable_actions) > 0:
                 ordered = sorted(reachable_actions, key=lambda item: item[3], reverse=True)
@@ -490,12 +499,14 @@ class LearningPolicy(Policy):
         ratio_positive = float(num_reachable_positive) / len(state2actions) * 100
         ratio_negative = float(num_reachable_negative) / len(state2actions) * 100
         ratio_pos_neg = float(num_reachable_pos_neg) / len(state2actions) * 100
+        ratio_choiceless = float(num_reachable_pos_or_neg_only) / len(state2actions) * 100
         ratio_problematic = (1 - float(correctly_ordered) / len(state2actions)) * 100
         print(f"There are {len(neural_samples)} learning queries across {len(state2actions)} unique states")
         print(f"{float(num_multiple) / len(state2actions) * 100:2f} % of states have more than 1 action derived")
         print(f"{ratio_positive=:.2f} % of states have some positive action derived, ideally this should be 100%")
         print(f"{ratio_negative=:.2f} % of states have some negative action derived, and hence can be improved with parameter training")
-        print(f"{ratio_pos_neg=:.2f} % of states have both some negative and positive action derived, ideally this should be {ratio_negative=:.2f}")
+        print(f"{ratio_pos_neg=:.2f} % of states have both some negative and positive action derived")
+        print(f"{ratio_choiceless:=.2f} % of states have either just all negative or all positive actions derived")
         if results:
             print(f"{ratio_problematic=:.2f} % of states are problematic with wrongly ordered action predictions (suboptimal first before optimal)")
         # fmt: on

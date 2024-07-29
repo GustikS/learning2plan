@@ -1,3 +1,4 @@
+from copy import deepcopy
 from itertools import combinations, product
 
 import networkx as nx
@@ -29,11 +30,25 @@ class RoversPolicy(FasterLearningPolicy):
         # super()._debug_inference()
         # self._grounding_debug()
         # self._debug_inference_actions()
-        self._debug_inference_helper(R.uncollected_goal_soil("P"), newline=True)
-        self._debug_inference_helper(R.uncollected_goal_rock("P"), newline=True)
-        self._debug_inference_helper(R.uncollected_goal_image("O", "M"), newline=True)
-        self._debug_inference_helper(R.navigate("X", "Y", "Z"), newline=True)
-
+        # print("=" * 80)
+        # self._debug_inference_helper(R.collected_rock("P"), newline=True)
+        # self._debug_inference_helper(R.uncollected_goal_soil("P"), newline=True)
+        # self._debug_inference_helper(R.collected_soil("P"), newline=True)
+        # self._debug_inference_helper(R.uncollected_goal_rock("P"), newline=True)
+        # self._debug_inference_helper(R.collected_image("O", "M"), newline=True)
+        # self._debug_inference_helper(R.uncollected_goal_image("O", "M"), newline=True)
+        print("=" * 80)
+        for relation in [
+            R.navigate_to_soil("X", "Z"),
+            R.navigate_to_rock("X", "Z"),
+            R.navigate_to_calibrate("X", "Z"),
+            R.navigate_to_image("X", "Z"),
+            R.navigate_to_comm_soil("X", "Z"),
+            R.navigate_to_comm_rock("X", "Z"),
+            R.navigate_to_comm_image("X", "Z"),
+            R.navigate("X", "Y", "Z"),
+        ]:
+            self._debug_inference_helper(relation, newline=True)
         print("=" * 80)
         # breakpoint()
 
@@ -111,7 +126,10 @@ class RoversPolicy(FasterLearningPolicy):
         """navigate(?x - rover ?y - waypoint ?z - waypoint)"""
 
         navigate_priority = [
-            ~R.at("X", "Z"),  # domain misses precondition that we don't go to the same place
+            # Tne domain misses precondition that we don't go to the same place.
+            ~R.at("X", "Z"),  
+            # The following cause errors, maybe due to stratification. Solutions are not lost if
+            # they are omitted, but they reduce the number of cycles.
             # ~R.derivable_sample_soil,
             # ~R.derivable_sample_rock,
             # ~R.derivable_calibrate,
@@ -119,78 +137,72 @@ class RoversPolicy(FasterLearningPolicy):
         ]
 
         # move to uncollected goal soil
-        body = [a for a in navigate_priority]  # Python being annoying with copying
+        body = deepcopy(navigate_priority)  # Python being annoying with copying
         body += [
             R.uncollected_goal_soil("Z"),
             R.at_soil_sample("Z"),
             R.equipped_for_soil_analysis("X"),
         ]
-        head = R.navigate_to_soil("X", "Z")
-        self.add_rule(head, body)
-        self.add_output_action("navigate", [head])
-        # self.add_output_action("navigate", body)
+        self.add_output_action_with_derived("navigate", R.navigate_to_soil("X", "Z"), body)
 
         # move to uncollected goal rock
-        body = [a for a in navigate_priority]
+        body = deepcopy(navigate_priority)
         body += [
             R.uncollected_goal_rock("Z"),
             R.at_rock_sample("Z"),
             R.equipped_for_rock_analysis("X"),
         ]
-        head = R.navigate_to_rock("X", "Z")
-        self.add_rule(head, body)
-        self.add_output_action("navigate", [head])
-        # self.add_output_action("navigate", body)
+        self.add_output_action_with_derived("navigate", R.navigate_to_rock("X", "Z"), body)
 
         # move to uncalibrated calibration subgoal
-        body = [a for a in navigate_priority]
+        body = deepcopy(navigate_priority)
         body += [
             R.uncollected_goal_image("O", "M"),
             R.supports_mode("X", "I", "M"),
             R.calibration_target("I", "T"),
             R.visible_from("T", "Z")
         ]
-        self.add_output_action("navigate", body)
+        self.add_output_action_with_derived("navigate", R.navigate_to_calibrate("X", "Z"), body)
 
         # move to uncollected goal image
-        body = [a for a in navigate_priority]
+        body = deepcopy(navigate_priority)
         body += [
             R.uncollected_goal_image("O", "M"),
             R.supports_mode("X", "I", "M"),
             R.calibrated("I", "X"),
             R.visible_from("O", "Z"),
         ]
-        self.add_output_action("navigate", body)
+        self.add_output_action_with_derived("navigate", R.navigate_to_image("X", "Z"), body)
 
         # move to communicate soil data
-        body = [a for a in navigate_priority]
+        body = deepcopy(navigate_priority)
         body += [
             R.ug_communicated_soil_data("P"),
             R.have_soil_analysis("X", "P"),
             R.at_lander("L", "Z1"),
             R.visible("Z", "Z1"),
         ]
-        self.add_output_action("navigate", body)
+        self.add_output_action_with_derived("navigate", R.navigate_to_comm_soil("X", "Z"), body)
 
         # move to communicate rock data
-        body = [a for a in navigate_priority]
+        body = deepcopy(navigate_priority)
         body += [
             R.ug_communicated_rock_data("P"),
             R.have_rock_analysis("X", "P"),
             R.at_lander("L", "Z1"),
             R.visible("Z", "Z1"),
         ]
-        self.add_output_action("navigate", body)
+        self.add_output_action_with_derived("navigate", R.navigate_to_comm_rock("X", "Z"), body)
 
         # move to communicate image data
-        body = [a for a in navigate_priority]
+        body = deepcopy(navigate_priority)
         body += [
             R.ug_communicated_image_data("P"),
             R.have_image("X", "P"),
             R.at_lander("L", "Z1"),
             R.visible("Z", "Z1"),
         ]
-        self.add_output_action("navigate", body)
+        self.add_output_action_with_derived("navigate", R.navigate_to_comm_image("X", "Z"), body)
 
         """ sample_soil(?x - rover ?s - store ?p - waypoint) """
         body = [
@@ -210,9 +222,9 @@ class RoversPolicy(FasterLearningPolicy):
 
         """ calibrate(?r - rover ?i - camera ?t - objective ?w - waypoint) """
         body = [
-            # R.supports_mode("R", "I", "M"),
-            # R.usg_image("O", "M"),
-            # ~R.derivable_calibrated_and_supports_mode("M"),
+            R.supports_mode("R", "I", "M"),
+            R.usg_image("O", "M"),
+            ~R.derivable_calibrated_and_supports_mode("M"),
         ]
         self.add_output_action("calibrate", body)
 
