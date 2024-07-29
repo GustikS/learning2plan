@@ -43,14 +43,14 @@ class LearningPolicy(Policy):
         }
 
     def init_template(
-            self,
-            init_model: NeuraLogic = None,
-            dim=1,
-            num_layers=-1,
-            state_regression=False,
-            action_regression=False,
-            gnn_type = "SAGE",
-            **kwargs,
+        self,
+        init_model: NeuraLogic = None,
+        dim=1,
+        num_layers=-1,
+        state_regression=False,
+        action_regression=False,
+        gnn_type="SAGE",
+        **kwargs,
     ):
         self.dim = dim  # the general dimensionality of embeddings assumed in this model
         self.num_layers = num_layers  # the number of embedding message-passing-like layers
@@ -96,7 +96,7 @@ class LearningPolicy(Policy):
         prefix = new_predicate.predicate.name[:2]
         og_predicate = og_predicate
         if self.dim > 0:
-            new_predicate = new_predicate[prefix: self.dim, 1]
+            new_predicate = new_predicate[prefix : self.dim, 1]
         self.add_rule(og_predicate, new_predicate, embedding_layer=-1)  # forbid the embeddings at input!
 
     @override
@@ -116,11 +116,14 @@ class LearningPolicy(Policy):
             head = rule.head
         self.add_rule(head, rule.body)
 
-    def _debug_template(self):
+    def _debug_template(self, serialise_file=None):
         print("=" * 80)
         print("Template:")
         print(self._template)
         print("=" * 80)
+        if serialise_file is not None:
+            with open(serialise_file, "w") as f:
+                f.write(str(self._template))
 
     def _debug_inference(self):
         """this can be used for precise/complete debugging of the (neural) inference for each state"""
@@ -165,12 +168,12 @@ class LearningPolicy(Policy):
 
     @override
     def add_rule(
-            self,
-            head_or_schema_name: Union[BaseRelation, str],
-            body: list[BaseRelation],
-            guard_level: int = -1,  # = only call the rule after N inference steps
-            embedding_layer=None,
-            fixed_weight: Union[float, np.ndarray] = None,
+        self,
+        head_or_schema_name: Union[BaseRelation, str],
+        body: list[BaseRelation],
+        guard_level: int = -1,  # = only call the rule after N inference steps
+        embedding_layer=None,
+        fixed_weight: Union[float, np.ndarray] = None,
     ):
         """Extending a given rule with weights and embeddings"""
 
@@ -249,20 +252,20 @@ class LearningPolicy(Policy):
             # template += gnn_message_passing(f"{2}-ary", dim, num_layers=num_layers)
 
     def train_model_from(
-            self,
-            train_data_dir: str,
-            samples_limit: int = -1,
-            weight_init: Initializer = Uniform(),
-            num_epochs: int = 100,
-            optimizer: Optimizer = Adam,
-            learning_rate: float = 0.0001,  # increase for SGD
-            learning_rate_decay: str = "",
-            activations: Transformation = Transformation.TANH,
-            aggregations: str = "max",
-            state_regression=False,
-            action_regression=False,
-            load_built_samples=False,
-            eval_bk_policy=False,
+        self,
+        train_data_dir: str,
+        samples_limit: int = -1,
+        weight_init: Initializer = Uniform(),
+        num_epochs: int = 100,
+        optimizer: Optimizer = Adam,
+        learning_rate: float = 0.0001,  # increase for SGD
+        learning_rate_decay: str = "",
+        activations: Transformation = Transformation.TANH,
+        aggregations: str = "max",
+        state_regression=False,
+        action_regression=False,
+        load_built_samples=False,
+        eval_bk_policy=False,
     ):
         """Set up training, then call self._train_parameters for main training"""
         if state_regression or action_regression:
@@ -318,7 +321,9 @@ class LearningPolicy(Policy):
         if self._debug > 2:
             self._grounding_debug()
 
-        self._train_parameters(train_data_dir, epochs=num_epochs, cache=load_built_samples, eval_bk_policy=eval_bk_policy)
+        self._train_parameters(
+            train_data_dir, epochs=num_epochs, cache=load_built_samples, eval_bk_policy=eval_bk_policy
+        )
 
     def _train_parameters(self, lrnn_dataset_dir: str, epochs: int, cache: bool, eval_bk_policy: bool):
         try:
@@ -441,11 +446,20 @@ class LearningPolicy(Policy):
             if not reachable_actions and self._debug > 1:
                 print(colored(f"State {state} has no reachable actions at all!", debug_colour))
             if not reachable_positive and self._debug > 1:
-                actions = [(action[0].java_sample.query.ID.split(":")[1], int(action[1]), action[0].java_sample.query.ID.split(":")[0]) for action in actions]
+                actions = [
+                    (
+                        action[0].java_sample.query.ID.split(":")[1],
+                        int(action[1]),
+                        action[0].java_sample.query.ID.split(":")[0],
+                    )
+                    for action in actions
+                ]
                 sid = actions[0][2]
                 print(colored(f"State {state} {sid} has no reachable positive (optimal) actions at all!", debug_colour))
                 print(colored("Applicable actions:", debug_colour))
-                for action_name, is_optimal, _ in sorted(actions, key=lambda item: repr(item[1]) + repr(item[0]), reverse=True):
+                for action_name, is_optimal, _ in sorted(
+                    actions, key=lambda item: repr(item[1]) + repr(item[0]), reverse=True
+                ):
                     print(colored(f"\t{is_optimal} : {action_name}", debug_colour))
                 print(colored("Reachable actions:", debug_colour))
                 for action in reachable_actions:
@@ -467,9 +481,10 @@ class LearningPolicy(Policy):
                     correctly_ordered += 1
                 elif ordered[0][1] == 0:  # this is a problematic state (wrongly predicted)...
                     if self._debug > 2:
-                        predictions = [(f'{action[1]} : {action[0].java_sample.query.ID} '
-                                        f'-> {action[3]}') for action in ordered]
-                        print(f'A problematic state to predict an optimal action for: {state} -> {predictions}')
+                        predictions = [
+                            (f"{action[1]} : {action[0].java_sample.query.ID} " f"-> {action[3]}") for action in ordered
+                        ]
+                        print(f"A problematic state to predict an optimal action for: {state} -> {predictions}")
 
         # fmt: off
         ratio_positive = float(num_reachable_positive) / len(state2actions) * 100
@@ -496,7 +511,7 @@ class LearningPolicy(Policy):
             @jpype.JOverride
             def accept(self, herbrand_model):
                 print(f"\n========Herbrand model inference round {self.inference_round}==========\n")
-                herbrand_map = sorted(f'{predicate} : {atoms}' for predicate, atoms in herbrand_model.entrySet())
+                herbrand_map = sorted(f"{predicate} : {atoms}" for predicate, atoms in herbrand_model.entrySet())
                 for line in herbrand_map:
                     print(line)
                 self.inference_round += 1

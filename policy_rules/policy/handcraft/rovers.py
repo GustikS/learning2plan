@@ -31,6 +31,7 @@ class RoversPolicy(FasterLearningPolicy):
         # self._debug_inference_actions()
         self._debug_inference_helper(R.uncollected_goal_soil("P"), newline=True)
         self._debug_inference_helper(R.uncollected_goal_rock("P"), newline=True)
+        self._debug_inference_helper(R.uncollected_goal_image("O", "M"), newline=True)
         self._debug_inference_helper(R.navigate("X", "Y", "Z"), newline=True)
 
         print("=" * 80)
@@ -47,7 +48,7 @@ class RoversPolicy(FasterLearningPolicy):
         head = R.uncollected_goal_rock("P")
         body = [
             R.ug_communicated_rock_data("P"),
-            # ~R.collected_rock("P"),
+            ~R.collected_rock("P"),
         ]
         self.add_rule(head, body)
 
@@ -60,11 +61,11 @@ class RoversPolicy(FasterLearningPolicy):
         head = R.uncollected_goal_soil("P")
         body = [
             R.ug_communicated_soil_data("P"),
-            # ~R.collected_soil("P"),
+            ~R.collected_soil("P"),
         ]
         self.add_rule(head, body)
 
-        head = R.uncollected_image("O", "M")
+        head = R.collected_image("O", "M")
         body = [
             R.have_image("R", "O", "M"),
         ]
@@ -73,7 +74,7 @@ class RoversPolicy(FasterLearningPolicy):
         head = R.uncollected_goal_image("O", "M")
         body = [
             R.ug_communicated_image_data("O", "M"),
-            # ~R.uncollected_image("O", "M"),
+            ~R.collected_image("O", "M"),
         ]
         self.add_rule(head, body)
 
@@ -110,7 +111,7 @@ class RoversPolicy(FasterLearningPolicy):
         """navigate(?x - rover ?y - waypoint ?z - waypoint)"""
 
         navigate_priority = [
-            # ~R.at("X", "Z"),  # domain misses precondition that we don't go to the same place
+            ~R.at("X", "Z"),  # domain misses precondition that we don't go to the same place
             # ~R.derivable_sample_soil,
             # ~R.derivable_sample_rock,
             # ~R.derivable_calibrate,
@@ -118,7 +119,7 @@ class RoversPolicy(FasterLearningPolicy):
         ]
 
         # move to uncollected goal soil
-        body = navigate_priority
+        body = [a for a in navigate_priority]  # Python being annoying with copying
         body += [
             R.uncollected_goal_soil("Z"),
             R.at_soil_sample("Z"),
@@ -130,7 +131,7 @@ class RoversPolicy(FasterLearningPolicy):
         # self.add_output_action("navigate", body)
 
         # move to uncollected goal rock
-        body = navigate_priority
+        body = [a for a in navigate_priority]
         body += [
             R.uncollected_goal_rock("Z"),
             R.at_rock_sample("Z"),
@@ -141,55 +142,55 @@ class RoversPolicy(FasterLearningPolicy):
         self.add_output_action("navigate", [head])
         # self.add_output_action("navigate", body)
 
-        # # move to uncalibrated calibration subgoal
-        # body = navigate_priority
-        # body += [
-        #     R.uncollected_goal_image("O", "M"),
-        #     R.supports_mode("X", "I", "M"),
-        #     R.calibration_target("I", "T"),
-        #     R.visible_from("T", "Z")
-        # ]
-        # self.add_output_action("navigate", body)
+        # move to uncalibrated calibration subgoal
+        body = [a for a in navigate_priority]
+        body += [
+            R.uncollected_goal_image("O", "M"),
+            R.supports_mode("X", "I", "M"),
+            R.calibration_target("I", "T"),
+            R.visible_from("T", "Z")
+        ]
+        self.add_output_action("navigate", body)
 
-        # # move to uncollected goal image
-        # body = navigate_priority
-        # body += [
-        #     R.uncollected_goal_image("O", "M"),
-        #     R.supports_mode("X", "I", "M"),
-        #     R.calibrated("I", "X"),
-        #     R.visible_from("O", "Z"),
-        # ]
-        # self.add_output_action("navigate", body)
+        # move to uncollected goal image
+        body = [a for a in navigate_priority]
+        body += [
+            R.uncollected_goal_image("O", "M"),
+            R.supports_mode("X", "I", "M"),
+            R.calibrated("I", "X"),
+            R.visible_from("O", "Z"),
+        ]
+        self.add_output_action("navigate", body)
 
-        # # move to communicate soil data
-        # body = navigate_priority
-        # body += [
-        #     R.ug_communicated_soil_data("P"),
-        #     R.have_soil_analysis("X", "P"),
-        #     R.at_lander("L", "Z1"),
-        #     R.visible("Z", "Z1"),
-        # ]
-        # self.add_output_action("navigate", body)
+        # move to communicate soil data
+        body = [a for a in navigate_priority]
+        body += [
+            R.ug_communicated_soil_data("P"),
+            R.have_soil_analysis("X", "P"),
+            R.at_lander("L", "Z1"),
+            R.visible("Z", "Z1"),
+        ]
+        self.add_output_action("navigate", body)
 
-        # # move to communicate rock data
-        # body = navigate_priority
-        # body += [
-        #     R.ug_communicated_rock_data("P"),
-        #     R.have_rock_analysis("X", "P"),
-        #     R.at_lander("L", "Z1"),
-        #     R.visible("Z", "Z1"),
-        # ]
-        # self.add_output_action("navigate", body)
+        # move to communicate rock data
+        body = [a for a in navigate_priority]
+        body += [
+            R.ug_communicated_rock_data("P"),
+            R.have_rock_analysis("X", "P"),
+            R.at_lander("L", "Z1"),
+            R.visible("Z", "Z1"),
+        ]
+        self.add_output_action("navigate", body)
 
-        # # move to communicate image data
-        # body = navigate_priority
-        # body += [
-        #     R.ug_communicated_image_data("P"),
-        #     R.have_image("X", "P"),
-        #     R.at_lander("L", "Z1"),
-        #     R.visible("Z", "Z1"),
-        # ]
-        # self.add_output_action("navigate", body)
+        # move to communicate image data
+        body = [a for a in navigate_priority]
+        body += [
+            R.ug_communicated_image_data("P"),
+            R.have_image("X", "P"),
+            R.at_lander("L", "Z1"),
+            R.visible("Z", "Z1"),
+        ]
+        self.add_output_action("navigate", body)
 
         """ sample_soil(?x - rover ?s - store ?p - waypoint) """
         body = [
@@ -208,12 +209,12 @@ class RoversPolicy(FasterLearningPolicy):
         self.add_output_action("drop", body)
 
         """ calibrate(?r - rover ?i - camera ?t - objective ?w - waypoint) """
-        # body = [
-        #     # R.supports_mode("R", "I", "M"),
-        #     # R.usg_image("O", "M"),
-        #     # ~R.derivable_calibrated_and_supports_mode("M"),
-        # ]
-        # self.add_output_action("calibrate", body)
+        body = [
+            # R.supports_mode("R", "I", "M"),
+            # R.usg_image("O", "M"),
+            # ~R.derivable_calibrated_and_supports_mode("M"),
+        ]
+        self.add_output_action("calibrate", body)
 
         """ take_image(?r - rover ?p - waypoint ?o - objective ?i - camera ?m - mode) """
         body = [

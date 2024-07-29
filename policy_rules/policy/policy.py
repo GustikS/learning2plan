@@ -177,16 +177,18 @@ class Policy:
     def _add_derived_predicates(self):
         raise NotImplementedError
 
-    def _debug_template(self):
-        print("=" * 80)
-        print("Template for current state:")
-        print(self._template)
+    @abstractmethod
+    def _debug_template(self, serialise=None):
+        pass
         # print("=" * 80)
-        print("-" * 80)
-        for a in sorted(self._engine.examples, key=lambda x: str(x)):
-            print(a)
-        print("=" * 80)
-        # print(self._engine.examples)
+        # print("Template for current state:")
+        # print(self._template)
+        # # print("=" * 80)
+        # print("-" * 80)
+        # for a in sorted(self._engine.examples, key=lambda x: str(x)):
+        #     print(a)
+        # print("=" * 80)
+        # # print(self._engine.examples)
 
     def _debug_inference(self):
         pass

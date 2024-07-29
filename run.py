@@ -190,7 +190,7 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
             matrix_log = []
 
             Step = len(plan)
-            print(colored(f"[[[{Step=}, {goals_left=}, {timer.get_time()}s]]]", "blue"))
+            print(colored(f"[[[{Step=}, {goals_left=}, {cycles_detected=}, {timer.get_time()}s]]]", "blue"))
             if _DEBUG_LEVEL > 1:
                 action_names = [f"{v}:{a.get_name()}" for v, a in policy_actions]
                 matrix_log.append(["Available policy actions", ", ".join(action_names)])
@@ -346,7 +346,7 @@ def main():
             gnn_type=gnn_type
         )
         if _DEBUG_LEVEL > 0:
-            policy._debug_template()
+            policy._debug_template(serialise_file=f"{domain_name}_debug.template.txt")
         total_time += timer.get_time()
 
     # save visualisation of the template if requested

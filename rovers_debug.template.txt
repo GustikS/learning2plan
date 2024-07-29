@@ -1,0 +1,128 @@
+{1, 1} at(X0, X1) :- $ag={1, 1} ag_at(X0, X1).
+{1, 1} at_lander(X0, X1) :- $ag={1, 1} ag_at_lander(X0, X1).
+{1, 1} at_rock_sample(X0) :- $ag={1, 1} ag_at_rock_sample(X0).
+{1, 1} at_soil_sample(X0) :- $ag={1, 1} ag_at_soil_sample(X0).
+{1, 1} calibrated(X0, X1) :- $ag={1, 1} ag_calibrated(X0, X1).
+{1, 1} calibration_target(X0, X1) :- $ag={1, 1} ag_calibration_target(X0, X1).
+{1, 1} communicated_image_data(X0, X1) :- $ag={1, 1} ag_communicated_image_data(X0, X1).
+{1, 1} communicated_rock_data(X0) :- $ag={1, 1} ag_communicated_rock_data(X0).
+{1, 1} communicated_soil_data(X0) :- $ag={1, 1} ag_communicated_soil_data(X0).
+{1, 1} empty(X0) :- $ag={1, 1} ag_empty(X0).
+{1, 1} equipped_for_imaging(X0) :- $ag={1, 1} ag_equipped_for_imaging(X0).
+{1, 1} equipped_for_rock_analysis(X0) :- $ag={1, 1} ag_equipped_for_rock_analysis(X0).
+{1, 1} equipped_for_soil_analysis(X0) :- $ag={1, 1} ag_equipped_for_soil_analysis(X0).
+{1, 1} full(X0) :- $ag={1, 1} ag_full(X0).
+{1, 1} have_image(X0, X1, X2) :- $ag={1, 1} ag_have_image(X0, X1, X2).
+{1, 1} have_rock_analysis(X0, X1) :- $ag={1, 1} ag_have_rock_analysis(X0, X1).
+{1, 1} have_soil_analysis(X0, X1) :- $ag={1, 1} ag_have_soil_analysis(X0, X1).
+{1, 1} on_board(X0, X1) :- $ag={1, 1} ag_on_board(X0, X1).
+{1, 1} store_of(X0, X1) :- $ag={1, 1} ag_store_of(X0, X1).
+{1, 1} supports(X0, X1) :- $ag={1, 1} ag_supports(X0, X1).
+{1, 1} visible(X0, X1) :- $ag={1, 1} ag_visible(X0, X1).
+{1, 1} visible_from(X0, X1) :- $ag={1, 1} ag_visible_from(X0, X1).
+{1, 1} at(X0, X1) :- $ap={1, 1} ap_at(X0, X1).
+{1, 1} at_lander(X0, X1) :- $ap={1, 1} ap_at_lander(X0, X1).
+{1, 1} at_rock_sample(X0) :- $ap={1, 1} ap_at_rock_sample(X0).
+{1, 1} at_soil_sample(X0) :- $ap={1, 1} ap_at_soil_sample(X0).
+{1, 1} calibrated(X0, X1) :- $ap={1, 1} ap_calibrated(X0, X1).
+{1, 1} calibration_target(X0, X1) :- $ap={1, 1} ap_calibration_target(X0, X1).
+{1, 1} communicated_image_data(X0, X1) :- $ap={1, 1} ap_communicated_image_data(X0, X1).
+{1, 1} communicated_rock_data(X0) :- $ap={1, 1} ap_communicated_rock_data(X0).
+{1, 1} communicated_soil_data(X0) :- $ap={1, 1} ap_communicated_soil_data(X0).
+{1, 1} empty(X0) :- $ap={1, 1} ap_empty(X0).
+{1, 1} equipped_for_imaging(X0) :- $ap={1, 1} ap_equipped_for_imaging(X0).
+{1, 1} equipped_for_rock_analysis(X0) :- $ap={1, 1} ap_equipped_for_rock_analysis(X0).
+{1, 1} equipped_for_soil_analysis(X0) :- $ap={1, 1} ap_equipped_for_soil_analysis(X0).
+{1, 1} full(X0) :- $ap={1, 1} ap_full(X0).
+{1, 1} have_image(X0, X1, X2) :- $ap={1, 1} ap_have_image(X0, X1, X2).
+{1, 1} have_rock_analysis(X0, X1) :- $ap={1, 1} ap_have_rock_analysis(X0, X1).
+{1, 1} have_soil_analysis(X0, X1) :- $ap={1, 1} ap_have_soil_analysis(X0, X1).
+{1, 1} on_board(X0, X1) :- $ap={1, 1} ap_on_board(X0, X1).
+{1, 1} store_of(X0, X1) :- $ap={1, 1} ap_store_of(X0, X1).
+{1, 1} supports(X0, X1) :- $ap={1, 1} ap_supports(X0, X1).
+{1, 1} visible(X0, X1) :- $ap={1, 1} ap_visible(X0, X1).
+{1, 1} visible_from(X0, X1) :- $ap={1, 1} ap_visible_from(X0, X1).
+{1, 1} collected_rock(P) :- {1, 1} have_rock_analysis(R, P), {1, 1} h_1(R), {1, 1} h_1(P).
+{1, 1} uncollected_goal_rock(P) :- {1, 1} ug_communicated_rock_data(P), !*collected_rock(P), {1, 1} h_1(P).
+{1, 1} collected_soil(P) :- {1, 1} have_soil_analysis(R, P), {1, 1} h_1(R), {1, 1} h_1(P).
+{1, 1} uncollected_goal_soil(P) :- {1, 1} ug_communicated_soil_data(P), !*collected_soil(P), {1, 1} h_1(P).
+{1, 1} collected_image(O, M) :- {1, 1} have_image(R, O, M), {1, 1} h_1(M), {1, 1} h_1(R), {1, 1} h_1(O).
+{1, 1} uncollected_goal_image(O, M) :- {1, 1} ug_communicated_image_data(O, M), !*collected_image(O, M), {1, 1} h_1(M), {1, 1} h_1(O).
+{1, 1} supports_mode(R, I, M) :- {1, 1} on_board(I, R), {1, 1} equipped_for_imaging(R), {1, 1} supports(I, M), {1, 1} h_1(M), {1, 1} h_1(R), {1, 1} h_1(I).
+{1, 1} navigate_to_soil(X, Z) :- !*at(X, Z), {1, 1} uncollected_goal_soil(Z), {1, 1} at_soil_sample(Z), {1, 1} equipped_for_soil_analysis(X), {1, 1} h_1(X), {1, 1} h_1(Z).
+{1, 1} navigate(X, Y, Z) :- {1, 1} navigate_to_soil(X, Z), {1, 1} applicable_navigate(X, Y, Z), {1, 1} h_1(Y), {1, 1} h_1(X), {1, 1} h_1(Z).
+{1, 1} navigate_to_rock(X, Z) :- !*at(X, Z), {1, 1} uncollected_goal_rock(Z), {1, 1} at_rock_sample(Z), {1, 1} equipped_for_rock_analysis(X), {1, 1} h_1(X), {1, 1} h_1(Z).
+{1, 1} navigate(X, Y, Z) :- {1, 1} navigate_to_rock(X, Z), {1, 1} applicable_navigate(X, Y, Z), {1, 1} h_1(Y), {1, 1} h_1(X), {1, 1} h_1(Z).
+{1, 1} navigate(X, Y, Z) :- !*at(X, Z), {1, 1} uncollected_goal_image(O, M), {1, 1} supports_mode(X, I, M), {1, 1} calibration_target(I, T), {1, 1} visible_from(T, Z), {1, 1} applicable_navigate(X, Y, Z), {1, 1} h_1(O), {1, 1} h_1(Z), {1, 1} h_1(I), {1, 1} h_1(T), {1, 1} h_1(M), {1, 1} h_1(X), {1, 1} h_1(Y).
+{1, 1} navigate(X, Y, Z) :- !*at(X, Z), {1, 1} uncollected_goal_image(O, M), {1, 1} supports_mode(X, I, M), {1, 1} calibrated(I, X), {1, 1} visible_from(O, Z), {1, 1} applicable_navigate(X, Y, Z), {1, 1} h_1(O), {1, 1} h_1(Z), {1, 1} h_1(I), {1, 1} h_1(M), {1, 1} h_1(X), {1, 1} h_1(Y).
+{1, 1} navigate(X, Y, Z) :- !*at(X, Z), {1, 1} ug_communicated_soil_data(P), {1, 1} have_soil_analysis(X, P), {1, 1} at_lander(L, Z1), {1, 1} visible(Z, Z1), {1, 1} applicable_navigate(X, Y, Z), {1, 1} h_1(L), {1, 1} h_1(Z), {1, 1} h_1(X), {1, 1} h_1(Y), {1, 1} h_1(Z1), {1, 1} h_1(P).
+{1, 1} navigate(X, Y, Z) :- !*at(X, Z), {1, 1} ug_communicated_rock_data(P), {1, 1} have_rock_analysis(X, P), {1, 1} at_lander(L, Z1), {1, 1} visible(Z, Z1), {1, 1} applicable_navigate(X, Y, Z), {1, 1} h_1(L), {1, 1} h_1(Z), {1, 1} h_1(X), {1, 1} h_1(Y), {1, 1} h_1(Z1), {1, 1} h_1(P).
+{1, 1} navigate(X, Y, Z) :- !*at(X, Z), {1, 1} ug_communicated_image_data(P), {1, 1} have_image(X, P), {1, 1} at_lander(L, Z1), {1, 1} visible(Z, Z1), {1, 1} applicable_navigate(X, Y, Z), {1, 1} h_1(L), {1, 1} h_1(Z), {1, 1} h_1(X), {1, 1} h_1(Y), {1, 1} h_1(Z1), {1, 1} h_1(P).
+{1, 1} sample_soil(X, S, P) :- {1, 1} uncollected_goal_soil(P), {1, 1} applicable_sample_soil(X, S, P), {1, 1} h_1(X), {1, 1} h_1(S), {1, 1} h_1(P).
+{1, 1} sample_rock(X, S, P) :- {1, 1} uncollected_goal_rock(P), {1, 1} applicable_sample_rock(X, S, P), {1, 1} h_1(X), {1, 1} h_1(S), {1, 1} h_1(P).
+{1, 1} drop(X, Y) :- {1, 1} applicable_drop(X, Y), {1, 1} h_1(Y), {1, 1} h_1(X).
+{1, 1} calibrate(R, I, T, W) :- {1, 1} applicable_calibrate(R, I, T, W), {1, 1} h_1(T), {1, 1} h_1(R), {1, 1} h_1(W), {1, 1} h_1(I).
+{1, 1} take_image(R, P, O, I, M) :- {1, 1} uncollected_goal_image(O, M), {1, 1} applicable_take_image(R, P, O, I, M), {1, 1} h_1(O), {1, 1} h_1(I), {1, 1} h_1(R), {1, 1} h_1(M), {1, 1} h_1(P).
+{1, 1} communicate_soil_data(R, L, P, X, Y) :- {1, 1} ug_communicated_soil_data(P), {1, 1} applicable_communicate_soil_data(R, L, P, X, Y), {1, 1} h_1(L), {1, 1} h_1(R), {1, 1} h_1(X), {1, 1} h_1(Y), {1, 1} h_1(P).
+{1, 1} communicate_rock_data(R, L, P, X, Y) :- {1, 1} ug_communicated_rock_data(P), {1, 1} applicable_communicate_rock_data(R, L, P, X, Y), {1, 1} h_1(L), {1, 1} h_1(R), {1, 1} h_1(X), {1, 1} h_1(Y), {1, 1} h_1(P).
+{1, 1} communicate_image_data(R, L, O, M, X, Y) :- {1, 1} ug_communicated_image_data(O, M), {1, 1} applicable_communicate_image_data(R, L, O, M, X, Y), {1, 1} h_1(O), {1, 1} h_1(L), {1, 1} h_1(R), {1, 1} h_1(X), {1, 1} h_1(M), {1, 1} h_1(Y).
+{1, 1} applicable_navigate(X, Y, Z) :- {1, 1} rover(X), {1, 1} waypoint(Y), {1, 1} waypoint(Z), {1, 1} at(X, Y), {1, 1} h_1(Y), {1, 1} h_1(X), {1, 1} h_1(Z).
+{1, 1} applicable_sample_soil(X, S, P) :- {1, 1} rover(X), {1, 1} store(S), {1, 1} waypoint(P), {1, 1} at(X, P), {1, 1} at_soil_sample(P), {1, 1} equipped_for_soil_analysis(X), {1, 1} store_of(S, X), {1, 1} empty(S), {1, 1} h_1(X), {1, 1} h_1(S), {1, 1} h_1(P).
+{1, 1} applicable_sample_rock(X, S, P) :- {1, 1} rover(X), {1, 1} store(S), {1, 1} waypoint(P), {1, 1} at(X, P), {1, 1} at_rock_sample(P), {1, 1} equipped_for_rock_analysis(X), {1, 1} store_of(S, X), {1, 1} empty(S), {1, 1} h_1(X), {1, 1} h_1(S), {1, 1} h_1(P).
+{1, 1} applicable_drop(X, Y) :- {1, 1} rover(X), {1, 1} store(Y), {1, 1} store_of(Y, X), {1, 1} full(Y), {1, 1} h_1(Y), {1, 1} h_1(X).
+{1, 1} applicable_calibrate(R, I, T, W) :- {1, 1} rover(R), {1, 1} camera(I), {1, 1} objective(T), {1, 1} waypoint(W), {1, 1} equipped_for_imaging(R), {1, 1} calibration_target(I, T), {1, 1} at(R, W), {1, 1} visible_from(T, W), {1, 1} on_board(I, R), {1, 1} h_1(T), {1, 1} h_1(R), {1, 1} h_1(W), {1, 1} h_1(I).
+{1, 1} applicable_take_image(R, P, O, I, M) :- {1, 1} rover(R), {1, 1} waypoint(P), {1, 1} objective(O), {1, 1} camera(I), {1, 1} mode(M), {1, 1} calibrated(I, R), {1, 1} on_board(I, R), {1, 1} equipped_for_imaging(R), {1, 1} supports(I, M), {1, 1} visible_from(O, P), {1, 1} at(R, P), {1, 1} h_1(O), {1, 1} h_1(I), {1, 1} h_1(R), {1, 1} h_1(M), {1, 1} h_1(P).
+{1, 1} applicable_communicate_soil_data(R, L, P, X, Y) :- {1, 1} rover(R), {1, 1} lander(L), {1, 1} waypoint(P), {1, 1} waypoint(X), {1, 1} waypoint(Y), {1, 1} at(R, X), {1, 1} at_lander(L, Y), {1, 1} have_soil_analysis(R, P), {1, 1} visible(X, Y), {1, 1} h_1(L), {1, 1} h_1(R), {1, 1} h_1(X), {1, 1} h_1(Y), {1, 1} h_1(P).
+{1, 1} applicable_communicate_rock_data(R, L, P, X, Y) :- {1, 1} rover(R), {1, 1} lander(L), {1, 1} waypoint(P), {1, 1} waypoint(X), {1, 1} waypoint(Y), {1, 1} at(R, X), {1, 1} at_lander(L, Y), {1, 1} have_rock_analysis(R, P), {1, 1} visible(X, Y), {1, 1} h_1(L), {1, 1} h_1(R), {1, 1} h_1(X), {1, 1} h_1(Y), {1, 1} h_1(P).
+{1, 1} applicable_communicate_image_data(R, L, O, M, X, Y) :- {1, 1} rover(R), {1, 1} lander(L), {1, 1} objective(O), {1, 1} mode(M), {1, 1} waypoint(X), {1, 1} waypoint(Y), {1, 1} at(R, X), {1, 1} at_lander(L, Y), {1, 1} have_image(R, O, M), {1, 1} visible(X, Y), {1, 1} h_1(O), {1, 1} h_1(L), {1, 1} h_1(R), {1, 1} h_1(X), {1, 1} h_1(M), {1, 1} h_1(Y).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} at(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} at_lander(X0, X1).
+{1, 1} 1-ary_0(X0) :- {1, 1} at_rock_sample(X0).
+{1, 1} 1-ary_0(X0) :- {1, 1} at_soil_sample(X0).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} calibrated(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} calibration_target(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} communicated_image_data(X0, X1).
+{1, 1} 1-ary_0(X0) :- {1, 1} communicated_rock_data(X0).
+{1, 1} 1-ary_0(X0) :- {1, 1} communicated_soil_data(X0).
+{1, 1} 1-ary_0(X0) :- {1, 1} empty(X0).
+{1, 1} 1-ary_0(X0) :- {1, 1} equipped_for_imaging(X0).
+{1, 1} 1-ary_0(X0) :- {1, 1} equipped_for_rock_analysis(X0).
+{1, 1} 1-ary_0(X0) :- {1, 1} equipped_for_soil_analysis(X0).
+{1, 1} 1-ary_0(X0) :- {1, 1} full(X0).
+{1, 1} 3-ary_0(X0, X1, X2) :- {1, 1} have_image(X0, X1, X2).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} have_rock_analysis(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} have_soil_analysis(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} on_board(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} store_of(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} supports(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} visible(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} visible_from(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} ug_at(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} ug_at_lander(X0, X1).
+{1, 1} 1-ary_0(X0) :- {1, 1} ug_at_rock_sample(X0).
+{1, 1} 1-ary_0(X0) :- {1, 1} ug_at_soil_sample(X0).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} ug_calibrated(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} ug_calibration_target(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} ug_communicated_image_data(X0, X1).
+{1, 1} 1-ary_0(X0) :- {1, 1} ug_communicated_rock_data(X0).
+{1, 1} 1-ary_0(X0) :- {1, 1} ug_communicated_soil_data(X0).
+{1, 1} 1-ary_0(X0) :- {1, 1} ug_empty(X0).
+{1, 1} 1-ary_0(X0) :- {1, 1} ug_equipped_for_imaging(X0).
+{1, 1} 1-ary_0(X0) :- {1, 1} ug_equipped_for_rock_analysis(X0).
+{1, 1} 1-ary_0(X0) :- {1, 1} ug_equipped_for_soil_analysis(X0).
+{1, 1} 1-ary_0(X0) :- {1, 1} ug_full(X0).
+{1, 1} 3-ary_0(X0, X1, X2) :- {1, 1} ug_have_image(X0, X1, X2).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} ug_have_rock_analysis(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} ug_have_soil_analysis(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} ug_on_board(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} ug_store_of(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} ug_supports(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} ug_visible(X0, X1).
+{1, 1} 2-ary_0(X0, X1) :- {1, 1} ug_visible_from(X0, X1).
+{1, 1} h_1(X0) :- {1, 1} 0-ary_0.
+{1, 1} h_1(X0) :- {1, 1} 1-ary_0(X0).
+{1, 1} h_1(X0) :- {1, 1} 2-ary_0(X0, X1).
+{1, 1} h_1(X1) :- {1, 1} 2-ary_0(X0, X1).
+{1, 1} h_1(X0) :- {1, 1} 3-ary_0(X0, X1, X2).
+{1, 1} h_1(X1) :- {1, 1} 3-ary_0(X0, X1, X2).
+{1, 1} h_1(X2) :- {1, 1} 3-ary_0(X0, X1, X2).
