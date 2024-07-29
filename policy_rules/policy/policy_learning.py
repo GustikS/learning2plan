@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import warnings
 from contextlib import contextmanager
@@ -12,6 +13,7 @@ from neuralogic.core import Aggregation, R, Rule, Template, Transformation, V
 from neuralogic.core.constructs.relation import BaseRelation, WeightedRelation
 from neuralogic.dataset import FileDataset
 from neuralogic.inference import EvaluationInferenceEngine
+from neuralogic.logging import Formatter, Level, add_handler
 from neuralogic.nn.init import Initializer, Uniform
 from neuralogic.nn.java import NeuraLogic
 from neuralogic.nn.loss import MSE, CrossEntropy
@@ -108,19 +110,21 @@ class LearningPolicy(Policy):
         return type
 
     @override
-    def add_output_action(self, head, body):
+    def add_output_action(self, head, body, guard_level=-1):
         """The output action predicate mapping from the given embedding dimension back to a scalar value"""
         rule = self.get_rule(body, head)
         if self.dim > 0:
             head = rule.head[1, self.dim]
         else:
             head = rule.head
-        self.add_rule(head, rule.body)
+        self.add_rule(head, rule.body, guard_level=guard_level)
 
-    def add_output_action_with_derived(self, action, derived, body):
+    def add_output_action_with_derived(self, action, derived, body, guard_level=-1):
         """ More verbosity to see which choice of rule derives an action if there are several choices"""
-        self.add_rule(derived, body)
-        self.add_output_action(action, [derived])
+        self.add_rule(derived, body, guard_level=guard_level)
+        if guard_level > -1:
+            guard_level += 3
+        self.add_output_action(action, [derived], guard_level=guard_level)
 
     def _debug_template(self, serialise_file=None):
         print("=" * 80)

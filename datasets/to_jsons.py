@@ -13,7 +13,7 @@ MAX_TOTAL_STATES_PER_PROBLEM = 10000
 MAX_TOTAL_STATES = {
     "blocksworld": 26000,
     "ferry": 11000,
-    "rovers": 15000,
+    "rover": 15000,
     "satellite": 19000,
     "transport": 17000,
 }

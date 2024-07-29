@@ -14,7 +14,7 @@ DOMAINS = [
     "blocksworld",
     "ferry",
     "satellite",
-    # "rovers",
+    # "rover",
 ]
 easy_problems = set(f"0_{i:02d}" for i in range(1, 31))
 medium_problems = set(f"1_{i:02d}" for i in range(1, 31))
@@ -443,10 +443,11 @@ def visualise_train():
     for domain in DOMAINS:
         print(domain)
         domain_df = train_df[train_df["domain"] == domain]
+        domain_df["time"] = domain_df["time"].astype(float)
         fig = make_subplots(rows=1, cols=2)
 
         fig.add_trace(
-            go.Scatter(x=domain_df["config"], y=domain_df["loss"],mode='markers',name="loss"),
+            go.Scatter(x=domain_df["config"], y=domain_df["time"],mode='markers',name="loss"),
             row=1, col=1
         )
 

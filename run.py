@@ -311,7 +311,7 @@ def main():
 
     if _DEBUG_LEVEL > 5:
         add_handler(sys.stdout, Level.FINE, Formatter.COLOR)
-    if _DEBUG_LEVEL > 4:
+    elif _DEBUG_LEVEL > 4:
         add_handler(sys.stdout, Level.WARNING, Formatter.COLOR)
     else:
         add_handler(sys.stdout, Level.OFF, Formatter.COLOR)

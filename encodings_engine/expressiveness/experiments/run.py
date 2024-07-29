@@ -3,7 +3,6 @@ import pprint
 from torch_geometric.nn import SAGEConv
 
 from encodings_engine.expressiveness.encoding import Object2ObjectGraph
-
 from encodings_engine.expressiveness.hashing import DistanceHashing
 from encodings_engine.learning.modelsTorch import get_compatible_model
 from encodings_engine.parsing import get_datasets
@@ -14,7 +13,7 @@ from encodings_engine.parsing import get_datasets
 folder = "../../datasets/textfiles/beluga"
 
 # folder = "./datasets/orig/blocks"
-# folder = "./datasets/orig/rovers"
+# folder = "./datasets/orig/rover"
 # folder = "./datasets/orig/transport"
 
 datasets = get_datasets(folder, limit=1, descending=False)  # smallest dataset

@@ -47,13 +47,6 @@ neuralogic_settings["preprocessTemplateInference"] = False
 # this was only good for the lifted queries setting (not used in the current setup)
 neuralogic_settings["aggregateConflictingQueries"] = False
 
-"""
-DZC 15/07/2024. See commit b24e3b918277778f05585f6c378cb411b72c13e8 for original code
-Main changes: 
-- pack template and weights into one file, but keep text representation of template into another file
-- change typing of load_stored_model to NeuraLogic from Union[NeuraLogic, Template] as the old code always seemed to return NeuraLogic or None
-"""
-
 
 @dataclass
 class SaveData:

@@ -5,7 +5,6 @@ import sys
 
 from neuralogic.logging import Formatter, Level, add_handler
 
-
 # add_handler(sys.stdout, Level.FINE, Formatter.COLOR)
 
 
@@ -247,7 +246,7 @@ if __name__ == "__main__":
     domain = "blocksworld"
     # domain = "satellite"
     # domain = "ferry"
-    # domain = "rovers"
+    # domain = "rover"
     # domain = "transport"
 
     numeric = False
