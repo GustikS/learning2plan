@@ -170,6 +170,9 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
             if goals_left == 0:
                 break
 
+            Step = len(plan)
+            print(colored(f"[[[{Step=}, {goals_left=}, {cycles_detected=}, {timer.get_time()}s]]]", "blue"))
+
             policy_actions: list[tuple[float, pymimir.Action]] = policy.solve(state.get_atoms())
 
             # sort for reproducibility
@@ -188,9 +191,6 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
                 exit(-1)
 
             matrix_log = []
-
-            Step = len(plan)
-            print(colored(f"[[[{Step=}, {goals_left=}, {cycles_detected=}, {timer.get_time()}s]]]", "blue"))
             if _DEBUG_LEVEL > 1:
                 action_names = [f"{v}:{a.get_name()}" for v, a in policy_actions]
                 matrix_log.append(["Available policy actions", ", ".join(action_names)])
@@ -230,7 +230,7 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
             if _DEBUG_LEVEL > 4:
                 ilg_state = policy.get_ilg_facts(state.get_atoms())
                 ilg_state = ", ".join([str(f) for f in ilg_state])
-                matrix_log.append(["Current state: ", ilg_state])
+                matrix_log.append(["State after action: ", ilg_state])
             if len(matrix_log) > 0:
                 print_mat(matrix_log, rjust=False)
             if _DEBUG_LEVEL > 1:
