@@ -76,7 +76,7 @@ class RoversPolicy(FasterLearningPolicy):
             R.ug_communicated_image_data("O", "M"),
             ~R.collected_image("O", "M"),
         ]
-        self.add_rule(head, body)
+        self.add_rule(head, body, guard_level=3)
 
         # self.add_rule(R.derivable_sample_soil, R.sample_soil("X", "S", "P"))
         # self.add_rule(R.derivable_sample_rock, R.sample_rock("X", "S", "P"))
