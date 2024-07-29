@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
-import os
 import time
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from tests.test_policies import PROBLEMS, test_domain
+from tests.test_policies import test_domain
 
 problems = [f"0_{i:02}" for i in range(11, 16)]
 optimal = [17, 11, 8, 18, 13]

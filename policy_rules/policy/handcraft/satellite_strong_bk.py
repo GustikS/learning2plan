@@ -12,7 +12,7 @@ file only derives at least one optimal action for ~79% of states.
 """
 
 
-class SatellitePolicy(FasterLearningPolicy):
+class SatellitePolicyStrongBK(FasterLearningPolicy):
     def print_state(self, state: list[Atom]):
         object_names = sorted([o.name for o in self._problem.objects])
         directions = 0
@@ -79,86 +79,83 @@ class SatellitePolicy(FasterLearningPolicy):
     @override
     def _add_derived_predicates(self):
         """This is a new version that should be easier to debug/maintain"""
-        head = R.instrument_config("S", "I", "M", "D_goal")
+        head = R.instrument_config("S", "I", "M")
         body = [
-            R.ug_have_image("D_goal", "M"),
             R.supports("I", "M"),
             R.on_board("I", "S"),
         ]
         self.add_rule(head, body)
 
+        head = R.phase_one("S", "I", "M", "D")
+        body = [
+            R.ug_have_image("D", "M"),
+            R.instrument_config("S", "I", "M"),
+            R.power_on("I"),
+        ]
+        self.add_rule(head, body)
+
+        head = R.phase_two("S", "I", "M", "D")
+        body = [
+            R.ug_have_image("D", "M"),
+            R.instrument_config("S", "I", "M"),
+            R.calibrated("I"),
+        ]
+        self.add_rule(head, body)
+
+        self.add_rule(R.derivable_phase_one, R.phase_one("S", "I", "M", "D"))
+        self.add_rule(R.derivable_phase_two, R.phase_two("S", "I", "M", "D"))
+
+        # self.add_rule(R.derivable_switch_on, R.switch_on("I", "D"))
         self.add_rule(R.derivable_calibrate, R.calibrate("S", "I", "D"))
         self.add_rule(R.derivable_take_image, R.take_image("S", "D", "I", "M"))
         self.add_rule(R.derivable_ug_have_image, R.ug_have_image("D", "M"))
 
-        # head = R.phase_one("S", "I", "M", "D")
-        # body = [
-        #     R.ug_have_image("D", "M"),
-        #     R.instrument_config("S", "I", "M"),
-        #     R.power_on("I"),
-        # ]
-        # self.add_rule(head, body)
-
-        # head = R.phase_two("S", "I", "M", "D")
-        # body = [
-        #     R.ug_have_image("D", "M"),
-        #     R.instrument_config("S", "I", "M"),
-        #     R.calibrated("I"),
-        # ]
-        # self.add_rule(head, body)
-
-        # self.add_rule(R.derivable_phase_one, R.phase_one("S", "I", "M", "D"))
-        # self.add_rule(R.derivable_phase_two, R.phase_two("S", "I", "M", "D"))
-
 
     @override
     def _add_policy_rules(self):
-        """ turn_to(?s - satellite ?d_new - direction ?d_prev - direction) """
-        """ switch_on(?i - instrument ?s - satellite) """
-        """ switch_off(?i - instrument ?s - satellite) """
-        """ calibrate(?s - satellite ?i - instrument ?d - direction) """
-        """ take_image(?s - satellite ?d - direction ?i - instrument ?m - mode) """
+        """Facts:
+        - calibrated(?i) is always good, it is never a negative precondition
+        - power_on(?i) is always good, it is never a negative precondition
+        - switch_off(?i, ?s) is needed if a satellite contains several necessary instruments
+        - calibrate only has to be done once for each necessary instrument
+        """
 
-        # # 1a. switch off instrument if necessary
-        # body = []
-        # self.add_output_action("switch_off", body)
-
-        # 1b. switch on instrument in a satellite that supports the goal mode
+        # 1. switch on instrument in a satellite that supports the goal mode
         body = [
-            R.instrument_config("S", "I", "M", "D_goal"),
+            ~R.derivable_phase_one,
+            R.ug_have_image("D_goal", "M"),
+            R.instrument_config("S", "I", "M"),
         ]
         self.add_output_action("switch_on", body)
 
         # 2a. turn the satellite to calibration target (if necessary)
         body = [
-            R.instrument_config("S", "I", "M", "D_goal"),
+            R.phase_one("S", "I", "M", "D_goal"),
             R.calibration_target("I", "D_new"),  # D_new = calibration direction to turn_to
             ~R.calibrated("I"),
             ~R.pointing("S", "D_new"),
-            # ~R.derivable_calibrate,
-            ~R.derivable_take_image,
+            ~R.derivable_calibrate,
         ]
         self.add_output_action("turn_to", body)
 
         # 2b. calibrate instrument
         body = [
-            R.instrument_config("S", "I", "M", "D_goal"),
+            R.phase_one("S", "I", "M", "D_goal"),
             ~R.calibrated("I"),
+            ~R.derivable_phase_two,
         ]
         self.add_output_action("calibrate", body)
 
         # 3a. turn to goal direction (if necessary)
         body = [
-            R.instrument_config("S", "I", "M", "D_new"),
-            R.calibrated("I"),
-            # ~R.derivable_calibrate,
+            R.phase_two("S", "I", "M", "D_new"),
             ~R.derivable_take_image,
         ]
         self.add_output_action("turn_to", body)
 
         # 3b. take image
         body = [
-            R.instrument_config("S", "I", "M", "D"),
+            R.phase_two("S", "I", "M", "D"),
         ]
         self.add_output_action("take_image", body)
 

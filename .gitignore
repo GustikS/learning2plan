@@ -9,3 +9,4 @@ __pycache__/
 *.model_template.txt
 *.log
 trash_*/
+*.template.txt
