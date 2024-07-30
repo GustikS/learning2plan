@@ -14,7 +14,7 @@ while true; do
     mkdir -p baseline_logs
 
     ### BK logs from gadi
-    # rsync -av --progress gadi:$PATH_TO_GADI_LOGS/baseline_logs results
+    rsync -av --progress gadi:$PATH_TO_GADI_LOGS/baseline_logs results
 
     ### planner logs from gadi
     # rsync -av --progress gadi:$PATH_TO_GADI_LOGS/planner_logs results

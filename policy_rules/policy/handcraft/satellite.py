@@ -87,58 +87,19 @@ class SatellitePolicy(FasterLearningPolicy):
         ]
         self.add_rule(head, body)
 
-        # head = R.calibrated_for_goal("S", "I", "M", "D_goal")
-        # body = [
-        #     R.instrument_config("S", "I", "M", "D_goal"),
-        #     R.calibrated("I"),
-        # ]
-        # self.add_rule(head, body)
-
-        # self.add_rule(R.derivable_calibrated_for_goal, [R.calibrated_for_goal("S", "I", "M", "D_goal")], guard_level=3)
         self.add_rule(R.derivable_calibrate, [R.calibrate("S", "I", "D")], guard_level=3)
         self.add_rule(R.derivable_take_image, [R.take_image("S", "D", "I", "M")], guard_level=3)
         self.add_rule(R.derivable_ug_have_image, [R.ug_have_image("D", "M")], guard_level=3)
 
-
-        
-        # self.add_rule(R.derivable_turn_to_goal, [R.turn_to_goal("S", "D_new", "D_prev")], guard_level=3)
-        # self.add_rule(R.derivable_turn_to_calibrate, [R.turn_to_calibrate("S", "D_new", "D_prev")], guard_level=3)
-        # self.add_rule(R.derivable_turn_to_point, [R.turn_to_point("S", "D_new", "D_prev")], guard_level=3)
-
-        # head = R.phase_one("S", "I", "M", "D")
-        # body = [
-        #     R.ug_have_image("D", "M"),
-        #     R.instrument_config("S", "I", "M"),
-        #     R.power_on("I"),
-        # ]
-        # self.add_rule(head, body)
-
-        # head = R.phase_two("S", "I", "M", "D")
-        # body = [
-        #     R.ug_have_image("D", "M"),
-        #     R.instrument_config("S", "I", "M"),
-        #     R.calibrated("I"),
-        # ]
-        # self.add_rule(head, body)
-
-        # self.add_rule(R.derivable_phase_one, R.phase_one("S", "I", "M", "D"))
-        # self.add_rule(R.derivable_phase_two, R.phase_two("S", "I", "M", "D"))
-
-
-
     @override
     def _add_policy_rules(self):
-        """ turn_to(?s - satellite ?d_new - direction ?d_prev - direction) """
+        """turn_to(?s - satellite ?d_new - direction ?d_prev - direction)"""
         """ switch_on(?i - instrument ?s - satellite) """
         """ switch_off(?i - instrument ?s - satellite) """
         """ calibrate(?s - satellite ?i - instrument ?d - direction) """
         """ take_image(?s - satellite ?d - direction ?i - instrument ?m - mode) """
 
-        # # 1a. switch off instrument if necessary
-        # body = []
-        # self.add_output_action("switch_off", body)
-
-        # 1b. switch on instrument in a satellite that supports the goal mode
+        # 1. switch on instrument in a satellite that supports the goal mode
         body = [
             R.instrument_config("S", "I", "M", "D_goal"),
         ]
@@ -154,7 +115,8 @@ class SatellitePolicy(FasterLearningPolicy):
             ~R.derivable_calibrate,  # loses optimality
             ~R.derivable_take_image,
         ]
-        self.add_output_action_with_derived("turn_to", R.turn_to_calibrate("S", "D_new", "D_prev"), body, guard_level=6)
+        self.add_output_action("turn_to", body, guard_level=6)
+        # self.add_output_action_with_derived("turn_to", R.turn_to_calibrate("S", "D_new", "D_prev"), body, guard_level=6)
 
         # 2b. calibrate instrument
         body = [
@@ -171,7 +133,8 @@ class SatellitePolicy(FasterLearningPolicy):
             ~R.derivable_calibrate,  # loses optimality
             ~R.derivable_take_image,
         ]
-        self.add_output_action_with_derived("turn_to", R.turn_to_goal("S", "D_new", "D_prev"), body, guard_level=6)
+        self.add_output_action("turn_to", body, guard_level=6)
+        # self.add_output_action_with_derived("turn_to", R.turn_to_goal("S", "D_new", "D_prev"), body, guard_level=6)
 
         # 3b. take image
         body = [
@@ -185,4 +148,5 @@ class SatellitePolicy(FasterLearningPolicy):
             # (LP)
             ~R.derivable_ug_have_image,
         ]
-        self.add_output_action_with_derived("turn_to", R.turn_to_point("S", "D_new", "D_prev"), body, guard_level=6)
+        self.add_output_action("turn_to", body, guard_level=6)
+        # self.add_output_action_with_derived("turn_to", R.turn_to_point("S", "D_new", "D_prev"), body, guard_level=6)
