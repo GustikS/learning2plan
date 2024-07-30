@@ -24,7 +24,7 @@ from neuralogic.optim.optimizer import Optimizer
 from pymimir import Action, Domain
 from sklearn.metrics import f1_score
 from termcolor import colored
-from tqdm import tqdm, trange
+from tqdm import tqdm
 from typing_extensions import override
 
 from modelling.templates import (anonymous_predicates, gnn_message_passing, object2object_edges,
@@ -370,8 +370,7 @@ class LearningPolicy(Policy):
             best_state_dict = self.model.state_dict()
             best_epoch = -1
             with TimerContextManager("training the LRNN"):
-                pbar = trange(epochs)
-                for epoch in pbar:
+                for epoch in range(epochs):
                     t = time.time()
                     results, n_samples = self.model(neural_samples, True, epochs=1)
                     if decay := neuralogic_settings.optimizer._lr_decay:
@@ -396,7 +395,7 @@ class LearningPolicy(Policy):
                         best_state_dict = self.model.state_dict()
                         best_epoch = epoch
 
-                    pbar.set_description(f"{epoch=}, {n_samples=}, {loss=}, {accuracy=}, {f1=}, {t=}")
+                    print(f"{epoch=}, {n_samples=}, {loss=}, {accuracy=}, {f1=}, {t=}", flush=True)
 
             print(colored(f"Best model at epoch={best_epoch} with f1_score={best_f1}", "green"))
 

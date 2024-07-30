@@ -11,7 +11,7 @@ class TimerContextManager:
         self.end = end
 
     def __enter__(self):
-        print(f"Started {self.description}...")
+        print(f"Started {self.description}...", flush=True)
         # print(colored(f"Started {self.description}...", "magenta"))
         self.start_time = time.time()
         return self
@@ -22,7 +22,7 @@ class TimerContextManager:
         end_time = time.time()
         execution_time = end_time - self.start_time
         if self.description:
-            print(colored(f"Finished {self.description} in {execution_time}s" + self.end, "blue"))
+            print(colored(f"Finished {self.description} in {execution_time}s" + self.end, "blue"), flush=True)
 
     def get_time(self):
         return time.time() - self.start_time
