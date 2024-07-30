@@ -94,10 +94,10 @@ class SatellitePolicy(FasterLearningPolicy):
     @override
     def _add_policy_rules(self):
         """turn_to(?s - satellite ?d_new - direction ?d_prev - direction)"""
-        """ switch_on(?i - instrument ?s - satellite) """
-        """ switch_off(?i - instrument ?s - satellite) """
-        """ calibrate(?s - satellite ?i - instrument ?d - direction) """
-        """ take_image(?s - satellite ?d - direction ?i - instrument ?m - mode) """
+        """switch_on(?i - instrument ?s - satellite)"""
+        """switch_off(?i - instrument ?s - satellite)"""
+        """calibrate(?s - satellite ?i - instrument ?d - direction)"""
+        """take_image(?s - satellite ?d - direction ?i - instrument ?m - mode)"""
 
         # 1. switch on instrument in a satellite that supports the goal mode
         body = [

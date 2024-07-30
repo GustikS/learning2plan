@@ -14,8 +14,8 @@ LRNN_REPEATS = {
     1,
     2,
 }
-
 TAKE_BEST = 0
+
 DOMAINS = [
     "blocksworld",
     "ferry",
@@ -351,9 +351,8 @@ def plot_domains(metric, log_y=False, choices=None, layers=None, dimensions=None
         if TAKE_BEST:
             fig = px.line(data, x="problem", y=metric_best, color="solver",line_dash="type", log_y=log_y, facet_col="difficulty")
         else:
-            fig = px.line(data, x="problem", y=metric_mean, error_y=metric_std, color="solver",line_dash="type", log_y=log_y, facet_col="difficulty")
-        # fig = px.scatter(data, x="problem", y=metric_mean, error_y=metric_std, color="solver", log_y=log_y)
-        fig.update_xaxes(categoryorder='array')
+            fig = px.line(data, x="problem", y=metric_mean, error_y=metric_std, color="solver", line_dash="type", log_y=log_y, facet_col="difficulty", category_orders={"problem": sorted(easy_problems | medium_problems)})
+        # fig.update_xaxes(categoryorder='array')
         fig.update_yaxes(matches=None)
         fig.update_xaxes(matches=None)
         fig.for_each_yaxis(lambda y: y.update(showticklabels=True,matches=None))

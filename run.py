@@ -178,6 +178,31 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
             # sort for reproducibility
             policy_actions = sorted(policy_actions, key=lambda x: x[1].get_name())
 
+            # print remaining goals
+            rem_goals = {}
+            ilg_state = policy.get_ilg_facts(state.get_atoms())
+            for f in ilg_state:
+                pred = f.predicate
+                if pred.startswith("ug_"):
+                    pred = pred[3:]
+                    if pred not in rem_goals:
+                        rem_goals[pred] = 0
+                    rem_goals[pred] += 1
+            desc = ""
+            for k, v in rem_goals.items():
+                desc += f"{k}={v}, "
+            print(colored("Remaining goals:", "light_magenta"), desc)
+
+            # print number of derived actions per schema
+            schemata = {k.name: 0 for k in policy._domain.action_schemas}
+            for a in policy_actions:
+                schema = a[1].schema
+                schemata[schema.name] += 1
+            desc = ""
+            for k, v in schemata.items():
+                desc += f"{k}={v}, "
+            print(colored("Derived:", "light_magenta"), desc)
+
             state_str = state_repr(state)
             seen_states.add(state_str)
             # print(state_str)
@@ -222,8 +247,7 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
             # if state_repr(succ_state) in seen_states:
             #     cycles_detected += 1
 
-            if _DEBUG_LEVEL > 0:
-                matrix_log.append(["Applying", colored(action.get_name(), "cyan")])
+            matrix_log.append(["Applying", colored(action.get_name(), "cyan")])
             plan.append(action.get_name())
             state = succ_state
 
