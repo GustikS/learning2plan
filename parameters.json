@@ -11,9 +11,7 @@
     "repeats": [
         0,
         1,
-        2,
-        3,
-        4
+        2
     ],
     "epochs": 100,
     "policy_sample": [

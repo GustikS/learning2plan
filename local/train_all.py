@@ -29,13 +29,13 @@ REPEATS = parameters["repeats"]
 POLICY_SAMPLE = parameters["policy_sample"]
 
 DOMAINS = [
-    # "blocksworld", 
-    # "ferry", 
+    "blocksworld", 
+    "ferry", 
     "satellite", 
-    # "transport",
+    "rover",
 ]
 
-CONFIGS = sorted(product(DOMAINS, LAYERS, DIMENSIONS, REPEATS))
+CONFIGS = reversed(sorted(product(DOMAINS, LAYERS, DIMENSIONS, REPEATS)))
 
 
 """ Main loop """
@@ -62,6 +62,7 @@ def main():
         cmd = f"apptainer run {CONTAINER} python3 run.py -d {domain} --embedding {dim} --layers {layer} -s {repeat} --epochs 100 --save_file {save_file}"
         os.system("date")
         print(cmd)
+        print(log_file)
         cmd = cmd.split()
         with open(log_file, "w") as f:
             subprocess.run(cmd, cwd=f"{CUR_DIR}/..", stdout=f, stderr=f)

@@ -13,11 +13,11 @@ PATH_TO_GADI_CODE=/scratch/cd85/dc6693/cvut-colab
 while true; do
     mkdir -p baseline_logs
 
-    # # BK logs from gadi
-    # rsync -av --progress gadi:$PATH_TO_GADI_CODE/pbs/__experiments/baseline_logs results
+    # BK logs from gadi
+    rsync -av --progress gadi:$PATH_TO_GADI_CODE/pbs/__experiments/baseline_logs results
 
-    # # planner logs from gadi
-    # rsync -av --progress gadi:$PATH_TO_GADI_CODE/pbs/__experiments/planner_logs results
+    # planner logs from gadi
+    rsync -av --progress gadi:$PATH_TO_GADI_CODE/pbs/__experiments/planner_logs results
 
     # train logs local
     cp -r local/__experiments/train_logs results/

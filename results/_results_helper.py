@@ -14,7 +14,7 @@ DOMAINS = [
     "blocksworld",
     "ferry",
     "satellite",
-    # "rover",
+    "rover",
 ]
 easy_problems = set(f"0_{i:02d}" for i in range(1, 31))
 medium_problems = set(f"1_{i:02d}" for i in range(1, 31))
@@ -61,7 +61,7 @@ if raw_logs_exist:
                 if solved:
                     plan_length = int(content.split("plan_length=")[1].split("\n")[0])
                     time = float(content.split("total_time=")[1].split("\n")[0])
-                    cycles = int(content.split("cycles_detected=")[1].split("\n")[0])
+                    cycles = int(content.split("cycles_detected=")[-1].split("\n")[0])
                 else:
                     plan_length = None
                     time = None
@@ -151,7 +151,7 @@ if raw_logs_exist:
             else:
                 time = float((content.split("total_time=")[1]).split("\n")[0])
                 plan_length = float((content.split("plan_length=")[1]).split("\n")[0])
-                cycles = int(content.split("cycles_detected=")[1].split("\n")[0])
+                cycles = int(content.split("cycles_detected=")[-1].split("\n")[0])
                 max_bound = False
         data["domain"].append(domain)
         data["problem"].append(problem)
@@ -444,16 +444,21 @@ def visualise_train():
         print(domain)
         domain_df = train_df[train_df["domain"] == domain]
         domain_df["time"] = domain_df["time"].astype(float)
-        fig = make_subplots(rows=1, cols=2)
+        fig = make_subplots(rows=1, cols=3)
 
         fig.add_trace(
-            go.Scatter(x=domain_df["config"], y=domain_df["time"],mode='markers',name="loss"),
+            go.Scatter(x=domain_df["config"], y=domain_df["loss"],mode='markers',name="loss"),
             row=1, col=1
         )
 
         fig.add_trace(
             go.Scatter(x=domain_df["config"], y=domain_df["f1"],mode='markers',name="f1"),
             row=1, col=2
+        )
+
+        fig.add_trace(
+            go.Scatter(x=domain_df["config"], y=domain_df["time"],mode='markers',name="time"),
+            row=1, col=3
         )
 
         # fig.update_layout(height=600, width=800, title_text="Side By Side Subplots")
