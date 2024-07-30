@@ -59,8 +59,9 @@ def main():
 
         log_file = f"{LOG_DIR}/{description}.log"
         save_file = f"{SAVE_DIR}/{description}.model"
+        lock_file = f"{LOCK_DIR}/{description}.lock"
 
-        if (os.path.exists(save_file) ) and not args.force:
+        if (os.path.exists(save_file) or os.path.exists(lock_file)) and not args.force:
             skipped += 1
             # print(log_file)
             continue
@@ -74,6 +75,7 @@ def main():
 
         slurm_vars = ','.join([
             f"CMD={cmd}",
+            f"SAVE_FILE={save_file}",
         ])
 
         job_cmd = [
@@ -83,6 +85,10 @@ def main():
             f"--export={slurm_vars}",
             JOB_SCRIPT,
         ]
+
+        ## empty lock file
+        with open(lock_file, "w") as f:
+            pass
 
         p = subprocess.Popen(job_cmd)
         p.wait()

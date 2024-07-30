@@ -15,6 +15,12 @@ pwd; hostname; date; echo ""; lscpu; echo ""
 # go into root directory with run.py
 cd ..
 
+# check if SAVE_FILE exists, and if so, exit 
+if [ -f "$SAVE_FILE" ]; then
+    echo "$SAVE_FILE exists, exiting"
+    exit 0
+fi
+
 $CMD
 
 date
