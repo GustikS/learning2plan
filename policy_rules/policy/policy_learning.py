@@ -270,7 +270,7 @@ class LearningPolicy(Policy):
         optimizer: Optimizer = Adam,
         learning_rate: float = 0.0001,  # increase for SGD
         learning_rate_decay: str = "",
-        activations: Transformation = Transformation.TANH,
+        activations: Transformation = Transformation.RELU,
         aggregations: str = "max",
         state_regression=False,
         action_regression=False,

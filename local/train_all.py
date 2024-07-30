@@ -63,12 +63,13 @@ def main():
         os.system("date")
         print(cmd)
         print(log_file)
-        cmd = cmd.split()
-        with open(log_file, "w") as f:
-            subprocess.run(cmd, cwd=f"{CUR_DIR}/..", stdout=f, stderr=f)
-            f.write("\n")
-            f.flush()
-            os.fsync(f.fileno())
+        _ = os.popen(f"cd ..; {cmd} > {log_file}").read()
+        # cmd = cmd.split()
+        # with open(log_file, "w") as f:
+        #     subprocess.run(cmd, cwd=f"{CUR_DIR}/..", stdout=f, stderr=f)
+        #     f.write("\n")
+        #     f.flush()
+        #     os.fsync(f.fileno())
 
     print("Submitted:", submitted)
     print("Skipped:", skipped)

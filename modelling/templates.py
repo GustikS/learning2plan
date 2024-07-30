@@ -1,5 +1,5 @@
-from neuralogic.core import R, Settings, Template, Transformation, V, Aggregation
-from neuralogic.nn.module import GATv2Conv, GCNConv, GINConv, SAGEConv, GENConv, SGConv, TAGConv
+from neuralogic.core import Aggregation, R, Settings, Template, Transformation, V
+from neuralogic.nn.module import GATv2Conv, GCNConv, GENConv, GINConv, SAGEConv, SGConv, TAGConv
 
 from policy_rules.util.template_settings import neuralogic_settings
 
@@ -204,6 +204,8 @@ def gnn_message_passing(binary_relation, dim, gnn_type="SAGE", num_layers=3):
     """classic message passing reusing some existing GNN models as implemented in LRNN rules..."""
 
     match gnn_type:
+        case "GCN":
+            model_class = GCNConv
         case "SAGE":
             model_class = SAGEConv
         case "GIN":

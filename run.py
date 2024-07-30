@@ -65,7 +65,7 @@ def parse_args():
     parser.add_argument("-gnn", "--gnn_type", type=str, default="SAGE", choices=["SAGE", "GIN", "TAG"])
     parser.add_argument("-num", "--layers", type=int, default=1,
                         help="Number of model layers (-1 = off, 1 = just embedding, 2+ = message-passing)")
-    parser.add_argument("-agg", "--aggregation", default="sum", choices=["sum", "mean", "max"],
+    parser.add_argument("-agg", "--aggregation", default="max", choices=["sum", "mean", "max"],
                         help="Aggregation function for message passing")
     parser.add_argument("-ep", "--epochs", type=int, default=100,
                         help="Number of model training epochs")

@@ -312,6 +312,7 @@ def quantify_performance(choices=None, layers=None, dimensions=None):
         df.columns = df.columns.map(" ".join)
         df.reset_index(inplace=True)
         fig = px.scatter(df, x="config", y="improvement (%) mean", error_y="improvement (%) std", facet_col="difficulty")
+        fig.update_yaxes(range=[-100, 100])
         fig.show()
 
         # easy = data[data["difficulty"] == "0"]
@@ -378,6 +379,7 @@ def plot_difference(absolute=True, choices=None, layers=None, dimensions=None):
         fig.update_xaxes(categoryorder='array')
         fig.update_yaxes(matches=None)
         fig.update_xaxes(matches=None)
+        fig.update_yaxes(range=[-100, 100])
         fig.for_each_yaxis(lambda y: y.update(showticklabels=True,matches=None))
         fig.for_each_xaxis(lambda x: x.update(showticklabels=True,matches=None))
         fig.write_html(plot_dir + "/" + domain + ".html")
