@@ -438,7 +438,7 @@ class LearningPolicy(Policy):
         num_reachable_pos_neg = 0
         num_reachable_pos_or_neg_only = 0
         correctly_ordered = 0
-        for state, actions in state2actions.items():
+        for state, actions in tqdm(state2actions.items()):
             reachable_actions = []
             reachable_positive = []
             reachable_negative = []

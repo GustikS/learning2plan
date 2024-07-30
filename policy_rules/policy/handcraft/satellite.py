@@ -87,9 +87,23 @@ class SatellitePolicy(FasterLearningPolicy):
         ]
         self.add_rule(head, body)
 
-        self.add_rule(R.derivable_calibrate, R.calibrate("S", "I", "D"))
-        self.add_rule(R.derivable_take_image, R.take_image("S", "D", "I", "M"))
-        self.add_rule(R.derivable_ug_have_image, R.ug_have_image("D", "M"))
+        # head = R.calibrated_for_goal("S", "I", "M", "D_goal")
+        # body = [
+        #     R.instrument_config("S", "I", "M", "D_goal"),
+        #     R.calibrated("I"),
+        # ]
+        # self.add_rule(head, body)
+
+        # self.add_rule(R.derivable_calibrated_for_goal, [R.calibrated_for_goal("S", "I", "M", "D_goal")], guard_level=3)
+        self.add_rule(R.derivable_calibrate, [R.calibrate("S", "I", "D")], guard_level=3)
+        self.add_rule(R.derivable_take_image, [R.take_image("S", "D", "I", "M")], guard_level=3)
+        self.add_rule(R.derivable_ug_have_image, [R.ug_have_image("D", "M")], guard_level=3)
+
+
+        
+        # self.add_rule(R.derivable_turn_to_goal, [R.turn_to_goal("S", "D_new", "D_prev")], guard_level=3)
+        # self.add_rule(R.derivable_turn_to_calibrate, [R.turn_to_calibrate("S", "D_new", "D_prev")], guard_level=3)
+        # self.add_rule(R.derivable_turn_to_point, [R.turn_to_point("S", "D_new", "D_prev")], guard_level=3)
 
         # head = R.phase_one("S", "I", "M", "D")
         # body = [
@@ -109,6 +123,7 @@ class SatellitePolicy(FasterLearningPolicy):
 
         # self.add_rule(R.derivable_phase_one, R.phase_one("S", "I", "M", "D"))
         # self.add_rule(R.derivable_phase_two, R.phase_two("S", "I", "M", "D"))
+
 
 
     @override
@@ -131,14 +146,15 @@ class SatellitePolicy(FasterLearningPolicy):
 
         # 2a. turn the satellite to calibration target (if necessary)
         body = [
+            ~R.pointing("S", "D_new"),
             R.instrument_config("S", "I", "M", "D_goal"),
             R.calibration_target("I", "D_new"),  # D_new = calibration direction to turn_to
+            R.power_on("I"),
             ~R.calibrated("I"),
-            ~R.pointing("S", "D_new"),
-            # ~R.derivable_calibrate,
+            ~R.derivable_calibrate,  # loses optimality
             ~R.derivable_take_image,
         ]
-        self.add_output_action("turn_to", body)
+        self.add_output_action_with_derived("turn_to", R.turn_to_calibrate("S", "D_new", "D_prev"), body, guard_level=6)
 
         # 2b. calibrate instrument
         body = [
@@ -149,12 +165,13 @@ class SatellitePolicy(FasterLearningPolicy):
 
         # 3a. turn to goal direction (if necessary)
         body = [
+            ~R.pointing("S", "D_new"),
             R.instrument_config("S", "I", "M", "D_new"),
             R.calibrated("I"),
-            # ~R.derivable_calibrate,
+            ~R.derivable_calibrate,  # loses optimality
             ~R.derivable_take_image,
         ]
-        self.add_output_action("turn_to", body)
+        self.add_output_action_with_derived("turn_to", R.turn_to_goal("S", "D_new", "D_prev"), body, guard_level=6)
 
         # 3b. take image
         body = [
@@ -168,4 +185,4 @@ class SatellitePolicy(FasterLearningPolicy):
             # (LP)
             ~R.derivable_ug_have_image,
         ]
-        self.add_output_action("turn_to", body)
+        self.add_output_action_with_derived("turn_to", R.turn_to_point("S", "D_new", "D_prev"), body, guard_level=6)

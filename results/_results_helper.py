@@ -9,6 +9,12 @@ import pandas as pd
 import plotly.express as px
 from tqdm import tqdm
 
+LRNN_REPEATS = {
+    0,
+    1,
+    2,
+}
+
 TAKE_BEST = 0
 DOMAINS = [
     "blocksworld",
@@ -68,6 +74,8 @@ if raw_logs_exist:
                     cycles = None
         except Exception as e:
             print(f"Error in {file}: {e}")
+            continue
+        if repeat not in LRNN_REPEATS:
             continue
         data["domain"].append(domain)
         data["layer"].append(layer)
@@ -395,7 +403,7 @@ with open(PARAMETER_FILE, "r") as f:
     parameters = json.load(f)
 DIMENSIONS = parameters["dimensions"]
 LAYERS = parameters["layers"]
-REPEATS = parameters["repeats"]
+LRNN_REPEATS = parameters["repeats"]
 POLICY_SAMPLE = parameters["policy_sample"]
 
 TRAIN_LOG_DIR = f"{this_file_dir}/train_logs"
@@ -406,7 +414,7 @@ train_data = ["domain", "layers", "dimension", "config", "repeat", "loss", "f1",
 train_data = {k: [] for k in train_data}
 
 if os.path.exists(TRAIN_LOG_DIR):
-    for domain, layer, dimension, repeat in product(DOMAINS, LAYERS, DIMENSIONS, REPEATS):
+    for domain, layer, dimension, repeat in product(DOMAINS, LAYERS, DIMENSIONS, LRNN_REPEATS):
         log_file = f"{TRAIN_LOG_DIR}/{domain}_{layer}_{dimension}_{repeat}.log"
         if not os.path.exists(log_file):
             continue
@@ -449,17 +457,17 @@ def visualise_train():
         fig = make_subplots(rows=1, cols=3)
 
         fig.add_trace(
-            go.Scatter(x=domain_df["config"], y=domain_df["loss"],mode='markers',name="loss"),
+            go.Scatter(x=domain_df["config"], y=domain_df["loss"],mode='markers',name="loss",hoverinfo=["all"]),
             row=1, col=1
         )
 
         fig.add_trace(
-            go.Scatter(x=domain_df["config"], y=domain_df["f1"],mode='markers',name="f1"),
+            go.Scatter(x=domain_df["config"], y=domain_df["f1"],mode='markers',name="f1",hoverinfo=["all"]),
             row=1, col=2
         )
 
         fig.add_trace(
-            go.Scatter(x=domain_df["config"], y=domain_df["time"],mode='markers',name="time"),
+            go.Scatter(x=domain_df["config"], y=domain_df["time"],mode='markers',name="time",hoverinfo=["all"]),
             row=1, col=3
         )
 

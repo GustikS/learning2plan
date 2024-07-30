@@ -123,16 +123,19 @@ class RoversPolicy(FasterLearningPolicy):
         ]
         self.add_rule(head, body)
 
-
         for tup in [
             ("derivable_sample_soil", R.sample_soil("X", "S", "P")),
-            ("derivable_sample_rock", R.sample_rock("X", "S" ,"P")),
+            ("derivable_sample_rock", R.sample_rock("X", "S", "P")),
             ("derivable_drop", R.drop("X", "Y")),
             ("derivable_calibrate", R.calibrate("R", "I", "T", "W")),
             ("derivable_take_image", R.take_image("R", "P", "O", "I", "M")),
             ("derivable_communicate_soil_data", R.communicate_soil_data("R", "L", "P", "X", "Y"), DERIVE_COMM_A_GUARD),
             ("derivable_communicate_rock_data", R.communicate_rock_data("R", "L", "P", "X", "Y"), DERIVE_COMM_A_GUARD),
-            ("derivable_communicate_image_data", R.communicate_image_data("R", "L", "O", "M", "X", "Y"), DERIVE_COMM_A_GUARD),
+            (
+                "derivable_communicate_image_data",
+                R.communicate_image_data("R", "L", "O", "M", "X", "Y"),
+                DERIVE_COMM_A_GUARD,
+            ),
             # ("derivable_communicate", R.derivable_communicate_soil_data, DERIVE_COMM_B_GUARD),
             # ("derivable_communicate", R.derivable_communicate_rock_data, DERIVE_COMM_B_GUARD),
             # ("derivable_communicate", R.derivable_communicate_image_data, DERIVE_COMM_B_GUARD),
@@ -167,7 +170,7 @@ class RoversPolicy(FasterLearningPolicy):
             ~R.derivable_sample_soil,
             ~R.derivable_sample_rock,
             # ~R.derivable_drop,
-            # ~R.derivable_calibrate,
+            ~R.derivable_calibrate,
             ~R.derivable_take_image,
             ~R.derivable_communicate_soil_data,
             ~R.derivable_communicate_rock_data,
@@ -200,7 +203,9 @@ class RoversPolicy(FasterLearningPolicy):
             R.calibration_target("I", "T"),
             R.visible_from("T", "Z"),
         ]
-        self.add_output_action_with_derived("navigate", R.navigate_to_calibrate("X", "Z"), body, guard_level=NAVIGATE_GUARD)
+        self.add_output_action_with_derived(
+            "navigate", R.navigate_to_calibrate("X", "Z"), body, guard_level=NAVIGATE_GUARD
+        )
 
         # move to uncollected goal image
         body = deepcopy(navigate_priority)
@@ -220,7 +225,9 @@ class RoversPolicy(FasterLearningPolicy):
             R.at_lander("L", "Z1"),
             R.visible("Z", "Z1"),
         ]
-        self.add_output_action_with_derived("navigate", R.navigate_to_comm_soil("X", "Z"), body, guard_level=NAVIGATE_GUARD)
+        self.add_output_action_with_derived(
+            "navigate", R.navigate_to_comm_soil("X", "Z"), body, guard_level=NAVIGATE_GUARD
+        )
 
         # move to communicate rock data
         body = deepcopy(navigate_priority)
@@ -230,7 +237,9 @@ class RoversPolicy(FasterLearningPolicy):
             R.at_lander("L", "Z1"),
             R.visible("Z", "Z1"),
         ]
-        self.add_output_action_with_derived("navigate", R.navigate_to_comm_rock("X", "Z"), body, guard_level=NAVIGATE_GUARD)
+        self.add_output_action_with_derived(
+            "navigate", R.navigate_to_comm_rock("X", "Z"), body, guard_level=NAVIGATE_GUARD
+        )
 
         # move to communicate image data
         body = deepcopy(navigate_priority)
@@ -240,23 +249,12 @@ class RoversPolicy(FasterLearningPolicy):
             R.at_lander("L", "Z1"),
             R.visible("Z", "Z1"),
         ]
-        self.add_output_action_with_derived("navigate", R.navigate_to_comm_image("X", "Z"), body, guard_level=NAVIGATE_GUARD)
-
-        """ sample_soil(?x - rover ?s - store ?p - waypoint) """
-        body = [
-            R.uncollected_goal_soil("P"),
-        ]
-        self.add_output_action("sample_soil", body)
-
-        """ sample_rock(?x - rover ?s - store ?p - waypoint) """
-        body = [
-            R.uncollected_goal_rock("P"),
-        ]
-        self.add_output_action("sample_rock", body)
+        self.add_output_action_with_derived(
+            "navigate", R.navigate_to_comm_image("X", "Z"), body, guard_level=NAVIGATE_GUARD
+        )
 
         """ drop(?x - rover ?y - store) """
-        body = []
-        self.add_output_action("drop", body)
+        self.add_output_action("drop", [])
 
         """ calibrate(?r - rover ?i - camera ?t - objective ?w - waypoint) """
         body = [
@@ -266,23 +264,12 @@ class RoversPolicy(FasterLearningPolicy):
         ]
         self.add_output_action("calibrate", body)
 
-        """ take_image(?r - rover ?p - waypoint ?o - objective ?i - camera ?m - mode) """
-        body = [
-            R.uncollected_goal_image("O", "M"),
-        ]
-        self.add_output_action("take_image", body)
+        """ collecting """
+        self.add_output_action("sample_soil", [R.uncollected_goal_soil("P")])
+        self.add_output_action("sample_rock", [R.uncollected_goal_rock("P")])
+        self.add_output_action("take_image", [R.uncollected_goal_image("O", "M")])
 
-        body = [
-            R.ug_communicated_soil_data("P"),
-        ]
-        self.add_output_action("communicate_soil_data", body)
-
-        body = [
-            R.ug_communicated_rock_data("P"),
-        ]
-        self.add_output_action("communicate_rock_data", body)
-
-        body = [
-            R.ug_communicated_image_data("O", "M"),
-        ]
-        self.add_output_action("communicate_image_data", body)
+        """ communicating """
+        self.add_output_action("communicate_soil_data", [R.ug_communicated_soil_data("P")])
+        self.add_output_action("communicate_rock_data", [R.ug_communicated_rock_data("P")])
+        self.add_output_action("communicate_image_data", [R.ug_communicated_image_data("O", "M")])
