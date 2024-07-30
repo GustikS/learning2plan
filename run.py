@@ -369,7 +369,7 @@ def main():
         with TimerContextManager("creating LRNN training dataset from JSON") as timer:
             prepare_training_data(
                 domain.name,
-                target_subdir="data",
+                target_subdir=f"data_{args.layers}_{args.embedding}_{args.seed}",
                 cur_dir=CUR_DIR,
                 state_regression=state_regression,
                 action_regression=action_regression,

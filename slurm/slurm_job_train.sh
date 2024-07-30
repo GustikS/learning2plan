@@ -13,7 +13,7 @@ export LC_ALL=C
 pwd; hostname; date; echo ""; lscpu; echo ""
 
 # go into root directory with run.py
-cd ..
+cd /pfcalcul/work/dchen/code/cvut-colab
 
 # check if SAVE_FILE exists, and if so, exit 
 if [ -f "$SAVE_FILE" ]; then
