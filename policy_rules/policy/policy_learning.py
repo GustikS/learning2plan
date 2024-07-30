@@ -302,6 +302,7 @@ class LearningPolicy(Policy):
         match aggregations:
             case "max":
                 aggregations = Aggregation.MAX
+                neuralogic_settings.iso_value_compression = False  # from warning message
             case "sum":
                 aggregations = Aggregation.SUM
             case "mean":
