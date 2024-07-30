@@ -3,7 +3,6 @@ import os
 import pathlib
 from itertools import product
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -20,7 +19,7 @@ DOMAINS = [
     "blocksworld",
     "ferry",
     "satellite",
-    "rover",
+    # "rover",
 ]
 easy_problems = set(f"0_{i:02d}" for i in range(1, 31))
 medium_problems = set(f"1_{i:02d}" for i in range(1, 31))

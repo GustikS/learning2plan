@@ -257,7 +257,7 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
                 matrix_log.append(["State after action: ", ilg_state])
             if len(matrix_log) > 0:
                 print_mat(matrix_log, rjust=False)
-            if _DEBUG_LEVEL > 1:
+            if _DEBUG_LEVEL > 0:
                 # may or may not be implemented depending on domain
                 policy.print_state(state.get_atoms())
 
