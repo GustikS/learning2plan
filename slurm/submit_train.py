@@ -32,10 +32,10 @@ POLICY_SAMPLE = parameters["policy_sample"]
 EPOCHS = parameters["epochs"]
 
 DOMAINS = [
-    # "blocksworld", 
-    # "ferry", 
+    "blocksworld", 
+    "ferry", 
+    "rover",
     "satellite", 
-    # "transport",
 ]
 
 CONFIGS = sorted(product(DOMAINS, LAYERS, DIMENSIONS, REPEATS))

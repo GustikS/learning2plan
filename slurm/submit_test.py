@@ -38,7 +38,7 @@ DOMAINS = [
     "blocksworld", 
     "ferry", 
     "satellite", 
-    # "transport",
+    "rover",
 ]
 # PROBLEMS = [f"{x}_{y:02d}" for y in range(1, 31) for x in [0, 1, 2]]
 PROBLEMS = [f"{x}_{y:02d}" for y in range(1, 31) for x in [0, 1]]
@@ -96,7 +96,7 @@ def main():
         with open(lock_file, "w") as f:
             pass
 
-        cmd = f"python3 run.py -d {domain} --embedding {dim} --layers {layer} -s {repeat} -b 10000 -c {choice} -p {problem} --load_file {save_file}"
+        cmd = f"python3 run.py -d {domain} --embedding {dim} --layers {layer} -s {repeat} -b 1000 -c {choice} -p {problem} --load_file {save_file}"
         cmd = f"apptainer run {CONTAINER} {cmd}"
 
         slurm_vars = ','.join([
