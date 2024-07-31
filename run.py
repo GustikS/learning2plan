@@ -44,6 +44,9 @@ def parse_args():
     parser.add_argument("-v", "--verbose", type=int, default=0)
     parser.add_argument("-b", "--bound", type=int, default=100, help="Termination bound")
 
+    parser.add_argument("-dnc", "--do_not_cycle_detect", type=bool, default=False, action=argparse.BooleanOptionalAction,
+                        help="Do not cycle detect when sampling actions")
+
     parser.add_argument("--train", type=bool, default=False, action=argparse.BooleanOptionalAction,
                         help="Train an LRNN. Training is also performed if a save file is specified.")
     parser.add_argument("-load", "--load_file", type=str, default="", help="Filename to load the template")
@@ -203,8 +206,9 @@ def execute_policy(policy, initial_state, goal, pre_policy_time, baseline_policy
                 desc += f"{k}={v}, "
             print(colored("Derived:", "light_magenta"), desc)
 
-            state_str = state_repr(state)
-            seen_states.add(state_str)
+            if not args.do_not_cycle_detect:
+                state_str = state_repr(state)
+                seen_states.add(state_str)
             # print(state_str)
 
             if len(policy_actions) == 0:

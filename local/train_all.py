@@ -29,13 +29,13 @@ REPEATS = parameters["repeats"]
 POLICY_SAMPLE = parameters["policy_sample"]
 
 DOMAINS = [
-    "blocksworld", 
-    "ferry", 
-    "satellite", 
+    # "blocksworld", 
+    # "ferry", 
+    # "satellite", 
     "rover",
 ]
 
-CONFIGS = reversed(sorted(product(DOMAINS, LAYERS, DIMENSIONS, REPEATS)))
+CONFIGS = sorted(product(DOMAINS, LAYERS, DIMENSIONS, REPEATS))
 
 
 """ Main loop """
