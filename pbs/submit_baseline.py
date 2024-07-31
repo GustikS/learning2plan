@@ -30,15 +30,15 @@ LAYERS = parameters["layers"]
 REPEATS = parameters["repeats"]
 POLICY_SAMPLE = parameters["policy_sample"]
 
-PBS_TEST_NCPU = 2
-PBS_TEST_TIMEOUT = "1:00:00"
-PBS_TEST_MEMOUT = "8GB"
+PBS_TEST_NCPU = 4
+PBS_TEST_TIMEOUT = "2:00:00"
+PBS_TEST_MEMOUT = "16GB"
 
 DOMAINS = [
     # "blocksworld", 
     # "ferry", 
-    "satellite", 
-    # "transport"
+    "rover",
+    # "satellite", 
 ]
 PROBLEMS = [f"{x}_{y:02d}" for y in range(1, 31) for x in [0, 1]]
 
@@ -61,14 +61,21 @@ def main():
         description = f"{domain}_{problem}_r{repeat}"
 
         log_file = f"{LOG_DIR}/{description}.log"
-        lock_file = f"{LOCK_DIR}/{description}.lock"
+        lock_file = f"{LOCK_DIR}/{description}_baseline.lock"
 
-        if (os.path.exists(log_file) or os.path.exists(lock_file)) and not args.force:
+        if os.path.exists(log_file) and not args.force:
+            with open(log_file, "r") as f:
+                content = f.read()
+            if "Plan generated!" in content:
+                skipped += 1
+                continue
+
+        if os.path.exists(lock_file) and not args.force:
             skipped += 1
-            # print(log_file)
             continue
 
         if submitted >= submissions:
+            print(description)
             to_go += 1
             continue
 
@@ -76,7 +83,7 @@ def main():
         with open(lock_file, "w") as f:
             pass
 
-        cmd = f"python3 run.py -d {domain} -p {problem} -s {repeat} -c sample -b 10000"
+        cmd = f"python3 run.py -d {domain} -p {problem} -s {repeat} -dnc -b 10000"
 
         job_cmd = [
             "qsub",
@@ -93,7 +100,7 @@ def main():
             "-l",
             f"mem={PBS_TEST_MEMOUT}",
             "-v",
-            f"CMD={cmd}",
+            f"CMD={cmd},LOCK_FILE={lock_file}",
             JOB_SCRIPT,
         ]
 

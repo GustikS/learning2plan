@@ -12,3 +12,5 @@ set -x
 cd /scratch/cd85/dc6693/cvut-colab
 
 /scratch/cd85/dc6693/cvut-colab/lrnn_planning.sif $CMD
+
+rm $LOCK_FILE

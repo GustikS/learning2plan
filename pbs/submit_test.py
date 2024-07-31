@@ -21,9 +21,10 @@ os.makedirs(LOCK_DIR, exist_ok=True)
 JOB_SCRIPT = f"{CUR_DIR}/pbs_job.sh"
 assert os.path.exists(JOB_SCRIPT), JOB_SCRIPT
 
-PBS_TEST_NCPU = 2
+PBS_TEST_NCPU = 4
 PBS_TEST_TIMEOUT = "1:00:00"
-PBS_TEST_MEMOUT = "8GB"
+PBS_TEST_MEMOUT = "16GB"
+# 4SU per job for 8GB
 
 PARAMETER_FILE = f"{CUR_DIR}/../parameters.json"
 assert os.path.exists(PARAMETER_FILE), PARAMETER_FILE
@@ -35,11 +36,10 @@ REPEATS = parameters["repeats"]
 POLICY_SAMPLE = parameters["policy_sample"]
 
 DOMAINS = [
-    "blocksworld", 
+    # "blocksworld", 
     # "ferry", 
-    # "miconic",
-    # "satellite", 
-    # "transport"
+    "rover",
+    "satellite", 
 ]
 # PROBLEMS = [f"{x}_{y:02d}" for y in range(1, 31) for x in [0, 1, 2]]
 PROBLEMS = [f"{x}_{y:02d}" for y in range(1, 31) for x in [0, 1]]
@@ -60,7 +60,8 @@ def main():
 
     missing_models = set()
     submitted = 0
-    skipped = 0
+    skipped_from_log = 0
+    skipped_from_lock = 0
     model_missing = 0
     to_go = 0
 
@@ -77,9 +78,17 @@ def main():
             missing_models.add(save_file)
             continue
 
-        if (os.path.exists(log_file) or os.path.exists(lock_file)) and not args.force:
-            skipped += 1
-            # print(log_file)
+        if os.path.exists(log_file) and not args.force:
+            with open(log_file, "r") as f:
+                content = f.read()
+            if "Plan generated!" in content:
+                skipped_from_log += 1
+                continue
+            # else:
+            #     print(description)
+
+        if os.path.exists(lock_file) and not args.force:
+            skipped_from_lock += 1
             continue
 
         if submitted >= submissions:
@@ -90,7 +99,7 @@ def main():
         with open(lock_file, "w") as f:
             pass
 
-        cmd = f"python3 run.py -d {domain} --embedding {dim} --layers {layer} -s {repeat} -b 10000 -c {choice} -p {problem} --load_file {save_file}"
+        cmd = f"python3 run.py -d {domain} -dnc --embedding {dim} --layers {layer} -s {repeat} -b 3000 -c {choice} -p {problem} --load_file {save_file}"
 
         job_cmd = [
             "qsub",
@@ -107,7 +116,7 @@ def main():
             "-l",
             f"mem={PBS_TEST_MEMOUT}",
             "-v",
-            f"CMD={cmd}",
+            f"CMD={cmd},LOCK_FILE={lock_file}",
             JOB_SCRIPT,
         ]
 
@@ -120,7 +129,8 @@ def main():
     for m in sorted(missing_models):
         print(m)
     print("Submitted:", submitted)
-    print("Skipped from log or lock:", skipped)
+    print("Skipped from log:", skipped_from_log)
+    print("Skipped from lock:", skipped_from_lock)
     print("Skipped from missing model:", model_missing)
     print("To go:", to_go)
 

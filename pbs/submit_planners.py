@@ -18,7 +18,7 @@ os.makedirs(LOG_DIR, exist_ok=True)
 os.makedirs(LOCK_DIR, exist_ok=True)
 PLANNERS = [
     "lama",
-    # "scorpion",
+    "scorpion",
 ]
 JOB_SCRIPT = {planner: f"{CUR_DIR}/{planner}_job.sh" for planner in PLANNERS}
 for planner, job_script in JOB_SCRIPT.items():
@@ -29,10 +29,11 @@ PBS_TEST_TIMEOUT = "1:00:00"
 PBS_TEST_MEMOUT = "8GB"
 
 DOMAINS = [
-    "blocksworld", 
-    "ferry", 
-    "satellite", 
-    "transport"
+    # "blocksworld", 
+    # "ferry", 
+    "rover",
+    # "satellite", 
+    # "transport"
 ]
 # PROBLEMS = [f"{x}_{y:02d}" for y in range(1, 31) for x in [0, 1, 2]]
 PROBLEMS = [f"{x}_{y:02d}" for y in range(1, 31) for x in [0, 1]]
