@@ -439,10 +439,12 @@ if os.path.exists(TRAIN_LOG_DIR):
         train_data["f1"].append(f1)
         train_data["epoch"].append(epoch)
         train_data["time"].append(t)
+        # print(domain, layer, dimension, repeat, loss, f1, epoch, t)
 
     train_df = pd.DataFrame(train_data)
     train_df.to_csv(train_csv_file, index=False)
 else:
+    print("Using existing train csv")
     train_df = pd.read_csv(train_csv_file)
 
 import plotly.graph_objects as go
@@ -452,6 +454,7 @@ from plotly.subplots import make_subplots
 def visualise_train():
     for domain in DOMAINS:
         print(domain)
+        # display(train_df)
         domain_df = train_df[train_df["domain"] == domain]
         domain_df["time"] = domain_df["time"].astype(float)
         fig = make_subplots(rows=1, cols=3)
