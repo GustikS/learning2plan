@@ -14,6 +14,8 @@ UNCOLLECTED_GUARD = 6
 DERV_UNCOLLECTED_GUARD = 9
 ACTION_GUARD = 12
 
+_DEBUG_NAVIGATE = True
+
 
 class RoversPolicy(FasterLearningPolicy):
     def __init__(self, domain: Domain, debug=0):
@@ -50,6 +52,9 @@ class RoversPolicy(FasterLearningPolicy):
         ]:
             self._debug_inference_helper(relation, newline=True)
 
+        print("=" * 80)
+        self._debug_inference_helper(R.supports_mode("R", "I", "M"), newline=True)
+
         # print("=" * 80)
         # for relation in [
         #     R.derive_communicate_soil_data,
@@ -58,18 +63,19 @@ class RoversPolicy(FasterLearningPolicy):
         # ]:
         #     self._debug_inference_helper(relation, newline=True)
 
-        # print("=" * 80)
-        # for relation in [
-        #     R.navigate_to_soil("X", "Z"),
-        #     R.navigate_to_rock("X", "Z"),
-        #     R.navigate_to_calibrate("X", "Z"),
-        #     R.navigate_to_image("X", "Z"),
-        #     R.navigate_to_comm_soil("X", "Z"),
-        #     R.navigate_to_comm_rock("X", "Z"),
-        #     R.navigate_to_comm_image("X", "Z"),
-        #     R.navigate("X", "Y", "Z"),
-        # ]:
-        #     self._debug_inference_helper(relation, newline=True)
+        if _DEBUG_NAVIGATE:
+            print("=" * 80)
+            for relation in [
+                R.navigate_to_soil("X", "Z"),
+                R.navigate_to_rock("X", "Z"),
+                R.navigate_to_calibrate("X", "Z"),
+                R.navigate_to_image("X", "Z"),
+                R.navigate_to_comm_soil("X", "Z"),
+                R.navigate_to_comm_rock("X", "Z"),
+                R.navigate_to_comm_image("X", "Z"),
+                R.navigate("X", "Y", "Z"),
+            ]:
+                self._debug_inference_helper(relation, newline=True)
 
         print("=" * 80)
         # breakpoint()
@@ -134,13 +140,9 @@ class RoversPolicy(FasterLearningPolicy):
             R.derv_calibrated_and_supports_mode("M"), [R.calibrated("I", "R"), R.supports_mode("R", "I", "M")]
         )
 
-    @override
-    def _add_policy_rules(self):
-        # https://ipc2023-learning.github.io/talk.pdf
-        # 1. for each rock/soil data in the goal, get a rover equipped for
-        # rock/soil analysis and can move to that waypoint, sample and drop it
 
-        """navigate(?x - rover ?y - waypoint ?z - waypoint)"""
+    def _add_navigate_rule(self, body, description):
+        """ Helper for adding and debugging navigate rules """
 
         navigate_priority = [
             # Tne domain misses precondition that we don't go to the same place.
@@ -156,80 +158,82 @@ class RoversPolicy(FasterLearningPolicy):
             ~R.derv_comm_image_data,
         ]
 
+        extended_body = body + deepcopy(navigate_priority)  # Python being annoying with copying
+        self.add_output_action("navigate", extended_body, guard_level=ACTION_GUARD)
+
+        if _DEBUG_NAVIGATE:
+            self.add_rule(R.get(f"navigate_to_{description}")("X", "Z"), extended_body, guard_level=ACTION_GUARD)
+
+
+    @override
+    def _add_policy_rules(self):
+        # https://ipc2023-learning.github.io/talk.pdf
+        # 1. for each rock/soil data in the goal, get a rover equipped for
+        # rock/soil analysis and can move to that waypoint, sample and drop it
+
+        """navigate(?x - rover ?y - waypoint ?z - waypoint)"""
+
         # move to uncollected goal soil
-        body = deepcopy(navigate_priority)  # Python being annoying with copying
-        body += [
+        body = [
             R.uncollected_goal_soil("Z"),
             R.at_soil_sample("Z"),
             R.equipped_for_soil_analysis("X"),
         ]
-        self.add_output_action("navigate", body, guard_level=ACTION_GUARD)
-        # self.add_output_action_with_derived("navigate", R.navigate_to_soil("X", "Z"), body, guard_level=NAVIGATE_GUARD)
+        self._add_navigate_rule(body, "soil")
 
         # move to uncollected goal rock
-        body = deepcopy(navigate_priority)
-        body += [
+        body = [
             R.uncollected_goal_rock("Z"),
             R.at_rock_sample("Z"),
             R.equipped_for_rock_analysis("X"),
         ]
-        self.add_output_action("navigate", body, guard_level=ACTION_GUARD)
-        # self.add_output_action_with_derived("navigate", R.navigate_to_rock("X", "Z"), body, guard_level=NAVIGATE_GUARD)
+        self._add_navigate_rule(body, "rock")
 
         # move to uncalibrated calibration subgoal
-        body = deepcopy(navigate_priority)
-        body += [
+        body = [
             R.uncollected_goal_image("O", "M"),
             R.supports_mode("X", "I", "M"),
             R.calibration_target("I", "T"),
             R.visible_from("T", "Z"),
+            ~R.derv_calibrated_and_supports_mode("M"),
         ]
-        self.add_output_action("navigate", body, guard_level=ACTION_GUARD)
-        # self.add_output_action_with_derived("navigate", R.navigate_to_calibrate("X", "Z"), body, guard_level=NAVIGATE_GUARD)
+        self._add_navigate_rule(body, "calibrate")
 
         # move to uncollected goal image
-        body = deepcopy(navigate_priority)
-        body += [
+        body = [
             R.uncollected_goal_image("O", "M"),
             R.supports_mode("X", "I", "M"),
             R.calibrated("I", "X"),
             R.visible_from("O", "Z"),
         ]
-        self.add_output_action("navigate", body, guard_level=ACTION_GUARD)
-        # self.add_output_action_with_derived("navigate", R.navigate_to_image("X", "Z"), body, guard_level=NAVIGATE_GUARD)
+        self._add_navigate_rule(body, "image")
 
         # move to communicate soil data
-        body = deepcopy(navigate_priority)
-        body += [
+        body = [
             R.ug_communicated_soil_data("P"),
             R.have_soil_analysis("X", "P"),
             R.at_lander("L", "Z1"),
             R.visible("Z", "Z1"),
         ]
-        self.add_output_action("navigate", body, guard_level=ACTION_GUARD)
-        # self.add_output_action_with_derived("navigate", R.navigate_to_comm_soil("X", "Z"), body, guard_level=NAVIGATE_GUARD)
+        self._add_navigate_rule(body, "comm_soil")
 
         # move to communicate rock data
-        body = deepcopy(navigate_priority)
-        body += [
+        body = [
             R.ug_communicated_rock_data("P"),
             R.have_rock_analysis("X", "P"),
             R.at_lander("L", "Z1"),
             R.visible("Z", "Z1"),
         ]
-        self.add_output_action("navigate", body, guard_level=ACTION_GUARD)
-        # self.add_output_action_with_derived("navigate", R.navigate_to_comm_rock("X", "Z"), body, guard_level=NAVIGATE_GUARD)
+        self._add_navigate_rule(body, "comm_rock")
 
         # move to communicate image data
-        body = deepcopy(navigate_priority)
-        body += [
+        body = [
             R.ug_communicated_image_data("O", "M"),
             R.have_image("X", "O", "M"),
             R.at_lander("L", "Z1"),
             R.visible("Z", "Z1"),
         ]
-        self.add_output_action("navigate", body, guard_level=ACTION_GUARD)
-        # self.add_output_action_with_derived("navigate", R.navigate_to_comm_image("X", "Z"), body, guard_level=NAVIGATE_GUARD)
+        self._add_navigate_rule(body, "comm_image")
 
         """ drop(?x - rover ?y - store) """
         self.add_output_action("drop", [R.derv_uncollected_soil, ~R.derv_empty_soil], guard_level=ACTION_GUARD)
@@ -239,7 +243,7 @@ class RoversPolicy(FasterLearningPolicy):
         body = [
             R.supports_mode("R", "I", "M"),
             R.uncollected_goal_image("O", "M"),
-            ~R.derv_calibrated_and_supports_mode("M"),
+            ~R.calibrated("I", "R"),
         ]
         self.add_output_action("calibrate", body, guard_level=ACTION_GUARD)
 

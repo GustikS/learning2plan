@@ -331,8 +331,6 @@ def main():
         if save_file_name:
             print(f"    {save_file_name=}")
 
-    # TODO(DZC): cycle checking
-
     if _DEBUG_LEVEL > 5:
         add_handler(sys.stdout, Level.FINE, Formatter.COLOR)
     elif _DEBUG_LEVEL > 4:

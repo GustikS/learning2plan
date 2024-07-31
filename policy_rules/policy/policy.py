@@ -103,7 +103,7 @@ class Policy:
         if self._debug > 3:
             self._debug_template()
 
-        if self._debug > 2:
+        if self._debug > 1:
             self._debug_inference()
 
         return self.query_actions()

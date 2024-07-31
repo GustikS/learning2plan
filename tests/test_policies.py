@@ -5,19 +5,25 @@ from tqdm import tqdm
 
 
 def _log_subprocess_output(pipe):
-    plan_length = 0
+    plan_length = -1
+    cycle_detected = -1
     for line in iter(pipe.readline, b""):  # b'\n'-separated lines
         line = line.decode("utf-8").strip()
         logging.info(line)
         if "plan_length=" in line:
             plan_length = int(line.split("=")[1])
-    return plan_length
+        if "cycles_detected=" in line and "," not in line:
+            cycle_detected = int(line.split("=")[1])
+    return plan_length, cycle_detected
 
 def test_domain(domain, debug=False, problems=1000, seed=2024):
-    # test all "easy" problems
+    # test "easy" problems
     PROBLEMS = []
-    for i in range (1, 31):
+    iterator = [10, 20, 30]
+    # iterator = range(1, 31)
+    for i in iterator:
         PROBLEMS.append(f"0_{i:02}")
+        
     lengths = []
     if not isinstance(problems, int):
         PROBLEMS = problems
@@ -28,14 +34,15 @@ def test_domain(domain, debug=False, problems=1000, seed=2024):
     for i, problem in iterator:
         if i >= problems:
             break
-        cmd = ["python3", "run.py", "-s", str(seed), "-d", domain, "-p", problem, "-c", "sample", "-b", "1000"]
+        cmd = ["python3", "run.py", "-s", str(seed), "-d", domain, "-p", problem, "-b", "1000"]
         cmd_str = " ".join(cmd)
         if not debug:
             logging.critical(cmd_str)
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         with process.stdout:
-            plan_length = _log_subprocess_output(process.stdout)
+            plan_length, cycle_detected = _log_subprocess_output(process.stdout)
         lengths.append(plan_length)
+        assert cycle_detected == 0, cmd_str
         rc = process.wait()  # 0 means success
         assert rc == 0, cmd_str
     if debug:
