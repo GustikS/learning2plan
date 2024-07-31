@@ -321,7 +321,7 @@ def quantify_performance(choices=None, layers=None, dimensions=None):
         df.columns = df.columns.map(" ".join)
         df.reset_index(inplace=True)
         fig = px.scatter(df, x="config", y="improvement (%) mean", error_y="improvement (%) std", facet_col="difficulty")
-        fig.update_yaxes(range=[-100, 100])
+        fig.update_yaxes(range=[-20, 20])
         fig.show()
 
         # easy = data[data["difficulty"] == "0"]
@@ -451,11 +451,15 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 
-def visualise_train():
+def visualise_train(layers, dimensions):
+    layers = set(layers)
+    dimensions = set(dimensions)
     for domain in DOMAINS:
         print(domain)
         # display(train_df)
         domain_df = train_df[train_df["domain"] == domain]
+        domain_df = domain_df[domain_df["layers"].isin(layers)]
+        domain_df = domain_df[domain_df["dimension"].isin(dimensions)]
         domain_df["time"] = domain_df["time"].astype(float)
         fig = make_subplots(rows=1, cols=3)
 

@@ -773,10 +773,12 @@ rover,1_27,2,1552.6500985622406,0.0,742.0,True,False
 rover,1_28,0,1787.6645777225494,0.0,713.0,True,False
 rover,1_28,1,1865.0207061767578,0.0,715.0,True,False
 rover,1_28,2,1804.5601296424866,0.0,722.0,True,False
-rover,1_29,0,,,,False,False
-rover,1_29,1,,,,False,False
-rover,1_29,2,,,,False,False
+rover,1_29,0,3728.6209869384766,0.0,894.0,True,False
+rover,1_29,1,3781.839770078659,0.0,894.0,True,False
+rover,1_29,2,3645.8888738155365,0.0,895.0,True,False
+rover,1_30,0,,,,False,False
 rover,1_30,1,,,,False,False
+rover,1_30,2,,,,False,False
 satellite,0_01,0,0.5478284358978271,0.0,5.0,True,False
 satellite,0_01,1,0.5267083644866943,0.0,5.0,True,False
 satellite,0_01,2,0.3324723243713379,0.0,6.0,True,False

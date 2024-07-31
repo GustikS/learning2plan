@@ -19,11 +19,11 @@ while true; do
     ### planner logs from gadi
     # rsync -av --progress gadi:$PATH_TO_GADI_LOGS/planner_logs results
 
-    ### train logs local
-    cp -r local/__experiments/train_logs results/
-
     ### train logs from cluster-laas
     rsync -av --progress cluster-laas:$PATH_TO_CLUSTER_LAAS_LOGS/train_logs results/
+
+    ### train logs local (higher priority)
+    cp -r local/__experiments/train_logs results/
 
     ### test logs from cluster-laas
     # rsync -av --progress cluster-laas:$PATH_TO_CLUSTER_LAAS_LOGS/test_logs results/
