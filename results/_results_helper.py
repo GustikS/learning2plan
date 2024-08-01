@@ -412,7 +412,6 @@ def plot_difference(absolute=True, choices=None, layers=None, dimensions=None, s
         else:
             y = "improvement (%)"
 
-
         if split_difficulty:
             fig = px.line(data, x="problem", y=y, color="solver",line_dash="type", facet_col="difficulty")
         else:
