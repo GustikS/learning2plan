@@ -20,8 +20,8 @@ TAKE_BEST = 0
 DOMAINS = [
     "blocksworld",
     "ferry",
-    "satellite",
     "rover",
+    "satellite",
 ]
 easy_problems = set(f"0_{i:02d}" for i in range(1, 31))
 medium_problems = set(f"1_{i:02d}" for i in range(1, 31))
@@ -226,8 +226,10 @@ for group in groups:
     if is_lrnn:
         data["solver"] = "L" + data["layer_first"].astype(str) + "_D" + data["dim_first"].astype(str) + "_" + data["choice"]
         data["type"] = "lrnn_" + data["choice"]
+        data["solver_class"] = "lrnn"
     else:
         data["type"] = "bounds"
+        data["solver_class"] = group
     datas[group] = data
 # display(datas["lrnn"])
 
@@ -274,8 +276,10 @@ def get_ignore_models(choices=None, layers=None, dimensions=None):
     return ignore_models
 
 
-def get_improvement(df):
+def get_improvement(df, problems=None, with_optimal=False):
     combination = "plan_length_mean" if not TAKE_BEST else "plan_length_min"
+    if problems is not None:
+        df = df[df["problem"].isin(problems)]
     df["improvement"] = df.apply(
         lambda row: -row[combination]
         + df[
@@ -285,22 +289,46 @@ def get_improvement(df):
         ][combination].values[0],
         axis=1,
     )
-    df["improvement (%)"] = df.apply(
-        lambda row: 100 * (
-            -row[combination]
-            + df[
+    if with_optimal:
+        df["improvement (%)"] = df.apply(
+            lambda row: 100 * (
+                -row[combination]
+                + df[
+                    (df["domain"] == row["domain"])
+                    & (df["problem"] == row["problem"])
+                    & (df["solver"] == "baseline")
+                ][combination].values[0]
+            ) / (
+                - df[
+                    (df["domain"] == row["domain"])
+                    & (df["problem"] == row["problem"])
+                    & (df["solver"] == "optimal")
+                ][combination].values[0]
+                + df[
+                    (df["domain"] == row["domain"])
+                    & (df["problem"] == row["problem"])
+                    & (df["solver"] == "baseline")
+                ][combination].values[0]
+            ),
+            axis=1,
+        )
+    else:
+        df["improvement (%)"] = df.apply(
+            lambda row: 100 * (
+                -row[combination]
+                + df[
+                    (df["domain"] == row["domain"])
+                    & (df["problem"] == row["problem"])
+                    & (df["solver"] == "baseline")
+                ][combination].values[0]
+            )
+            / df[
                 (df["domain"] == row["domain"])
                 & (df["problem"] == row["problem"])
                 & (df["solver"] == "baseline")
-            ][combination].values[0]
+            ][combination].values[0],
+            axis=1,
         )
-        / df[
-            (df["domain"] == row["domain"])
-            & (df["problem"] == row["problem"])
-            & (df["solver"] == "baseline")
-        ][combination].values[0],
-        axis=1,
-    )
     return df
 
 
@@ -362,7 +390,7 @@ def plot_domains(metric, log_y=False, choices=None, layers=None, dimensions=None
         fig.show()
 
 
-def plot_difference(absolute=True, choices=None, layers=None, dimensions=None):
+def plot_difference(absolute=True, choices=None, layers=None, dimensions=None, split_difficulty=False):
     ignore_models = get_ignore_models(choices, layers, dimensions)
 
     plot_dir = f"plots/difference"
@@ -377,20 +405,26 @@ def plot_difference(absolute=True, choices=None, layers=None, dimensions=None):
         data = all_data[all_data["domain"] == domain]
         data = data[~data["solver"].isin(ignore_models)]
         data = get_improvement(data)
+        data = data.replace("_best", "", regex=True)
 
         if absolute:
             y = "improvement"
         else:
             y = "improvement (%)"
 
-        fig = px.line(data, x="problem", y=y, color="solver",line_dash="type", facet_col="difficulty")
+
+        if split_difficulty:
+            fig = px.line(data, x="problem", y=y, color="solver",line_dash="type", facet_col="difficulty")
+        else:
+            fig = px.line(data, x="problem", y=y, color="solver",line_dash="type", facet_col="domain")
         fig.update_xaxes(categoryorder='array')
         fig.update_yaxes(matches=None)
         fig.update_xaxes(matches=None)
-        fig.update_yaxes(range=[-100, 100])
+        # fig.update_yaxes(range=[-100, 100])
         fig.for_each_yaxis(lambda y: y.update(showticklabels=True,matches=None))
         fig.for_each_xaxis(lambda x: x.update(showticklabels=True,matches=None))
         fig.write_html(plot_dir + "/" + domain + ".html")
+        fig.write_image(plot_dir + "/" + domain + ".png")
         fig.show()
 
 
