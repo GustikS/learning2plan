@@ -289,29 +289,27 @@ def get_improvement(df, problems=None, with_optimal=False):
         ][combination].values[0],
         axis=1,
     )
-    if with_optimal:
-        df["improvement (%)"] = df.apply(
-            lambda row: 100 * (
-                -row[combination]
-                + df[
+
+    def with_optimal_lime(row):
+        baseline = df[
                     (df["domain"] == row["domain"])
                     & (df["problem"] == row["problem"])
                     & (df["solver"] == "baseline")
                 ][combination].values[0]
-            ) / (
-                - df[
+        optimal = df[
                     (df["domain"] == row["domain"])
                     & (df["problem"] == row["problem"])
                     & (df["solver"] == "optimal")
                 ][combination].values[0]
-                + df[
-                    (df["domain"] == row["domain"])
-                    & (df["problem"] == row["problem"])
-                    & (df["solver"] == "baseline")
-                ][combination].values[0]
-            ),
-            axis=1,
-        )
+        
+        if baseline == optimal:
+            return 100
+
+        return 100 * (-row[combination] + baseline) / (- optimal + baseline)
+
+
+    if with_optimal:
+        df["improvement (%)"] = df.apply(lambda row: with_optimal_lime(row), axis=1)
     else:
         df["improvement (%)"] = df.apply(
             lambda row: 100 * (
@@ -470,7 +468,7 @@ if os.path.exists(TRAIN_LOG_DIR):
         train_data["config"].append(f"{layer}_{dimension}")
         train_data["loss"].append(loss)
         train_data["f1"].append(f1)
-        train_data["epoch"].append(epoch)
+        train_data["epoch"].append(int(epoch))
         train_data["time"].append(t)
         # print(domain, layer, dimension, repeat, loss, f1, epoch, t)
 
@@ -494,7 +492,7 @@ def visualise_train(layers, dimensions):
         domain_df = domain_df[domain_df["layers"].isin(layers)]
         domain_df = domain_df[domain_df["dimension"].isin(dimensions)]
         domain_df["time"] = domain_df["time"].astype(float)
-        fig = make_subplots(rows=1, cols=3)
+        fig = make_subplots(rows=1, cols=4)
 
         fig.add_trace(
             go.Scatter(x=domain_df["config"], y=domain_df["loss"],mode='markers',name="loss",hoverinfo=["all"]),
@@ -509,6 +507,11 @@ def visualise_train(layers, dimensions):
         fig.add_trace(
             go.Scatter(x=domain_df["config"], y=domain_df["time"],mode='markers',name="time",hoverinfo=["all"]),
             row=1, col=3
+        )
+
+        fig.add_trace(
+            go.Scatter(x=domain_df["config"], y=domain_df["epoch"],mode='markers',name="epoch",hoverinfo=["all"]),
+            row=1, col=4
         )
 
         # fig.update_layout(height=600, width=800, title_text="Side By Side Subplots")
