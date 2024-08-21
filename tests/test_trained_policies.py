@@ -36,7 +36,7 @@ def test_train_eval_domain(domain, debug=False, problems=5, seed=2024):
         domain,
         "--save_file",
         model_file,
-        "-num",
+        "-l",
         "1",
         "-e",
         "1",

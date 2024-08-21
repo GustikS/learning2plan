@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-from itertools import product
-import os
-import subprocess
 import argparse
 import json
+import os
+import subprocess
+from itertools import product
 
 ## paths
 # make everything relative to where this script is located

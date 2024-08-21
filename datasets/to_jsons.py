@@ -15,7 +15,6 @@ MAX_TOTAL_STATES = {
     "ferry": 11000,
     "rover": 15000,
     "satellite": 19000,
-    "transport": 17000,
 }
 
 current_dir = os.path.dirname(os.path.abspath(__file__))

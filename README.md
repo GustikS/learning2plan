@@ -1,16 +1,76 @@
-Use python 3.10 (exactly) for the pymimir (`pymdzcf`) dependency.
+# Lifted Relational Neural Networks for Planning
+
+- [Lifted Relational Neural Networks for Planning](#lifted-relational-neural-networks-for-planning)
+  - [Setup](#setup)
+    - [Virtual environment](#virtual-environment)
+    - [Apptainer environment](#apptainer-environment)
+  - [Code Usage](#code-usage)
+    - [Run BK Policy](#run-bk-policy)
+    - [Train and Save an LRNN Policy](#train-and-save-an-lrnn-policy)
+    - [Load and Run an LRNN Policy](#load-and-run-an-lrnn-policy)
+  - [Benchmark notes](#benchmark-notes)
+  - [Profiling Instructions](#profiling-instructions)
+  - [Code Details](#code-details)
+    - [Dataset](#dataset)
+    - [Domains with handcrafted policies](#domains-with-handcrafted-policies)
+    - [Training](#training)
+    - [Evaluating policies](#evaluating-policies)
+
+## Setup
+### Virtual environment
+Use Python 3.10 (exactly) for the pymimir (`pymdzcf`) dependency.
 
 After installing the `./requirements.txt` dependencies, you should be able to `python3 run.py --help` from the root dir of the repo
 
 All the core functionality of the workflow is exposed to the arguments of the run script.
 
+Setup example using conda:
+
+    conda create --name lrnnplan python=3.10
+    conda activate lrnnplan
+    pip install -r requirements.txt
+
+### Apptainer environment
+Alternatively, we can use an apptainer environment. Build the environment with 
+
+    apptainer build lrnnplan.sif Apptainer_env.def
+
+and run the driver script by 
+
+    apptainer run lrnnplan.sif python3 run.py <arguments>
+
+## Code Usage
+Call `python3 run.py -h` for up to date usage. Some examples of usage are as follows.
+
+### Run BK Policy
+
+    python3 run.py -d satellite -p 0_30
+
+### Train and Save an LRNN Policy
+
+    python3 run.py -d satellite --embedding 8 --layers 2 --save_file satellite.model
+
+### Load and Run an LRNN Policy
+
+    python3 run.py -d satellite --embedding 8 --layers 2 --load_file satellite.model -p 0_30
+
 ## Benchmark notes
 
-No hyphens allowed in predicates or action schemata in PDDL and plan files! I have either replaced them with underscores or removed them entirely for some domains but have not checked this thoroughly. The reason for this is to ensure consistency in the code and to minimise bugs.
+Hyphens are NOT allowed in predicates or action schemata in PDDL files! e.g. `turn_to` is ok but not `turn-to`. I have either replaced them with underscores or removed them entirely for some domains but have not checked this thoroughly. The reason for this is to ensure consistency in the code and to minimise bugs when parsing.
 
-## Workflow instructions
+## Profiling Instructions
+Run the following
+
+    python3 -m cProfile -o out.profile run.py <arguments>
+    snakeviz out.profile
+
+## Code Details
 
 ### Dataset
+The dataset is automatically generated in the when training the model. The below is the old instructions and information.
+
+---
+
 Firstly, you need to create the training datasets from pymimir by running `datasets/to_jsons.py` 
 which exports them to respective domain JSON files `datasets/jsons/DOMAIN` . 
 This preprocessing action is separate and not part of the main `run.py` workflow, as it takes quite some time.
@@ -28,13 +88,14 @@ The resulting lrnn training samples will get exported into
 split into `*/examples.txt` and `*/queries.txt`, linked together via example ids (rows), in a human-readable format 
 so that you can check them even manually.
 
+---
+
 ### Domains with handcrafted policies
 The domains with background knowledge (BK) in forms of handcrafted policies so far are 
 - `blocksworld`
 - `ferry`
-- `miconic`
 - `satellite`
-- `transport`
+- `rover`
 
 ### Training
 A similar workflow follows for the **templates**, which represent the core logic of the whole policy. They are either created w.r.t. 
@@ -71,37 +132,4 @@ There are two types of policies that can be evaluated
 The arguments are
  - `--problem` - the problem from the given domain to test the current policy on
  - `--bound` - the number of actions/steps taken greedily through the state space
- - `--verbose` - levels of verbosity from [0-6] to inspect the different parts of the workflow right from the console
-
-### Examples
-#### Run just Ferry handcrafted policy
-
-    python3 run.py -d ferry -p 0_30
-
-#### Train Ferry but do not save
-
-    python3 run.py -d ferry --embedding 8 --layers 2 --train
-
-#### Train and save Ferry policy
-
-    python3 run.py -d ferry --embedding 8 --layers 2 --save_file ferry.model
-
-#### Load and run Ferry policy
-
-    python3 run.py -d ferry --embedding 8 --layers 2 --load_file ferry.model -p 0_30
-
-#### Save visualisation of Ferry template to file
-We use a low embedding to prevent a lot of numbers being seen
-
-    python3 run.py -d ferry --embedding 3 --layers 2 --visualise ferry_template.png
-
-## Apptainer instructions
-
-I use apptainer as a "virtual environment" for managing packages on a cluster, rather than as a binary of the actual source code. Build the container by
-
-    apptainer build Apptainer_cpu_environment.sif Apptainer_cpu_environment.def
-
-Run the code using the container e.g. by
-
-    cd policy_rules/
-    ../Apptainer_cpu_environment.sif python3 run.py
+ - `--verbosity` - levels of verbosity to inspect the different parts of the workflow right from the console
