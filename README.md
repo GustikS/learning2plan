@@ -17,12 +17,10 @@
     - [Evaluating policies](#evaluating-policies)
 
 ## Setup
+Set up your environment with either of the methods described below. Run `pytest` after to check if your setup was successful.
+
 ### Virtual environment
-Use Python 3.10 (exactly) for the pymimir (`pymdzcf`) dependency.
-
-After installing the `./requirements.txt` dependencies, you should be able to `python3 run.py --help` from the root dir of the repo
-
-All the core functionality of the workflow is exposed to the arguments of the run script.
+Set up a virtual environment with venv or conda (python==3.10) and install the `./requirements.txt` dependencies.
 
 Setup example using conda:
 
@@ -33,7 +31,7 @@ Setup example using conda:
 ### Apptainer environment
 Alternatively, we can use an apptainer environment. Build the environment with 
 
-    apptainer build lrnnplan.sif Apptainer_env.def
+    apptainer build lrnnplan.sif Environment.def
 
 and run the driver script by 
 
@@ -68,27 +66,6 @@ Run the following
 
 ### Dataset
 The dataset is automatically generated in the when training the model. The below is the old instructions and information.
-
----
-
-Firstly, you need to create the training datasets from pymimir by running `datasets/to_jsons.py` 
-which exports them to respective domain JSON files `datasets/jsons/DOMAIN` . 
-This preprocessing action is separate and not part of the main `run.py` workflow, as it takes quite some time.
-
-    cd datasets; python3 to_jsons.py; cd ..
-
-The dataset folder also contains `datasets/lrnn/*` subdirs that get automatically extracted out of 
-these json files as part of the main workflow, depending on the requested format settings, particularly:
- - `--state_regression` for ADDING the current state distance target as a regression label
- - `--action_regression` for switching between classification/regression of the action targets
-
-The resulting lrnn training samples will get exported into
- - `--limit` state samples from the JSON file
-
-split into `*/examples.txt` and `*/queries.txt`, linked together via example ids (rows), in a human-readable format 
-so that you can check them even manually.
-
----
 
 ### Domains with handcrafted policies
 The domains with background knowledge (BK) in forms of handcrafted policies so far are 

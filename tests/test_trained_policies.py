@@ -73,7 +73,7 @@ def test_train_eval_domain(domain, debug=False, problems=5, seed=2024):
         ]
         cmd_str = " ".join(cmd)
         if not debug:
-            logging.critical(cmd_str)
+            logging.info(cmd_str)
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         with process.stdout:
             plan_length = _log_subprocess_output(process.stdout)

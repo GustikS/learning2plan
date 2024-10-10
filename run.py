@@ -195,7 +195,8 @@ def main():
 
     # training should be performed if there are training data AND the policy has learnable parameters/model
     if to_train and hasattr(policy, "model"):
-        training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/data"
+        target_subdir = f"data_{opts.layers}_{opts.embedding}_{opts.seed}"
+        training_data_path = f"{CUR_DIR}/datasets/lrnn/{domain_name}/classic/{target_subdir}"
 
         if not opts.do_not_json:
             # (Fast) convert raw pddl data to json containing state space info
@@ -207,7 +208,7 @@ def main():
         with TimerContextManager("creating LRNN training dataset from JSON") as timer:
             prepare_training_data(
                 domain.name,
-                target_subdir=f"data_{opts.layers}_{opts.embedding}_{opts.seed}",
+                target_subdir=target_subdir,
                 cur_dir=CUR_DIR,
                 state_regression=state_regression,
                 action_regression=action_regression,

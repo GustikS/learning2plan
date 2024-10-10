@@ -37,7 +37,7 @@ def test_domain(domain, debug=False, problems=1000, seed=2024):
         cmd = ["python3", "run.py", "-s", str(seed), "-d", domain, "-p", problem, "-b", "1000"]
         cmd_str = " ".join(cmd)
         if not debug:
-            logging.critical(cmd_str)
+            logging.info(cmd_str)
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         with process.stdout:
             plan_length, cycle_detected = _log_subprocess_output(process.stdout)

@@ -1,8 +1,12 @@
-Go into this directory, and run the script to get state space data as jsons. They will NOT be added to github because they may be too large, hence the .gitignore file.
+Training datasets are created from pymimir and exported to respective domain JSON files `datasets/jsons/DOMAIN` . 
+This preprocessing action is separate and integrated into `run.py` workflow, but takes quite some time.
+The dataset folder also contains `datasets/lrnn/*` subdirs that get automatically extracted out of 
+these json files as part of the main workflow, depending on the requested format settings, particularly:
+ - `--state_regression` for ADDING the current state distance target as a regression label
+ - `--action_regression` for switching between classification/regression of the action targets
 
-    cd datasets/
-    ./to_jsons.py
+The resulting lrnn training samples will get exported into
+ - `--limit` state samples from the JSON file
 
-The json files containing the optimal actions for all states in the state spaces of small problems should then be located in 
-
-    datasets/jsons/<DOMAIN>/classic/state_space_data.json
+split into `*/examples.txt` and `*/queries.txt`, linked together via example ids (rows), in a human-readable format 
+so that you can check them even manually.

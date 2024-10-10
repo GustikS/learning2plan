@@ -1,8 +1,8 @@
 DOMAINS = [
     "blocksworld",
     "ferry",
+    "rover",
     "satellite",
-    "transport",
 ]
 
 

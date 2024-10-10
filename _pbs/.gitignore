@@ -1,6 +1,0 @@
-*.sif
-__experiments*/
-*.csv
-.lock*
-__sas*/
-backups/
